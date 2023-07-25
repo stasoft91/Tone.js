@@ -5,7 +5,7 @@ import { optionsFromArguments } from "../core/util/Defaults";
 import { readOnly } from "../core/util/Interface";
 import { FeedbackEffect, FeedbackEffectOptions } from "./FeedbackEffect";
 
-interface FeedbackDelayOptions extends FeedbackEffectOptions {
+export interface FeedbackDelayOptions extends FeedbackEffectOptions {
 	delayTime: Time;
 	maxDelay: Time;
 }

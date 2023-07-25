@@ -8,7 +8,7 @@ import { OfflineContext } from "../core/context/OfflineContext";
 import { noOp } from "../core/util/Interface";
 import { assertRange } from "../core/util/Debug";
 
-interface ReverbOptions extends EffectOptions {
+export interface ReverbOptions extends EffectOptions {
 	decay: Seconds;
 	preDelay: Seconds;
 }
