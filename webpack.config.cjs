@@ -13,7 +13,7 @@ const defaults = {
 		Tone: "./Tone/index.ts",
 	},
 	output: {
-		path: path.resolve(__dirname),
+		path: path.resolve(__dirname, "build"),
 		filename: "[name].js",
 		library: "Tone",
 		libraryTarget: "umd",
