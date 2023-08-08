@@ -52,7 +52,6 @@ module.exports = {
 		"@typescript-eslint/explicit-function-return-type": "off",
 		"no-multi-spaces": ["error"],
 		"array-bracket-spacing": ["error", "never"],
-		"block-spacing": ["error", "always"],
 		"func-call-spacing": ["error", "never"],
 		"key-spacing": ["error", { beforeColon: false, afterColon: true }],
 		"brace-style": ["error", "1tbs"],

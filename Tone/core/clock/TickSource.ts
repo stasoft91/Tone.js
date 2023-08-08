@@ -6,7 +6,6 @@ import { PlaybackState, StateTimeline, StateTimelineEvent } from "../util/StateT
 import { Timeline, TimelineEvent } from "../util/Timeline";
 import { isDefined } from "../util/TypeCheck";
 import { TickSignal } from "./TickSignal";
-import { EQ } from "../util/Math";
 
 interface TickSourceOptions extends ToneWithContextOptions {
 	frequency: number;
@@ -362,9 +361,9 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 			const startTicks = this.frequency.getTicksAtTime(maxStartTime);
 			const ticksAtStart = this.frequency.getTicksAtTime(lastStateEvent.time);
 			const diff = startTicks - ticksAtStart;
-			let offset = Math.ceil(diff) - diff;
+			const offset = Math.ceil(diff) - diff;
 			// guard against floating point issues
-			offset = EQ(offset, 1) ? 0 : offset;
+			// offset = EQ(offset, 1) ? 0 : offset;
 			let nextTickTime = this.frequency.getTimeOfTick(startTicks + offset);
 			while (nextTickTime < endTime) {
 				try {
