@@ -1,11 +1,8 @@
-import { MidSideEffect, MidSideEffectOptions } from "../effect/MidSideEffect";
-import { Signal } from "../signal/Signal";
-import { Multiply } from "../signal/Multiply";
-import { Subtract } from "../signal/Subtract";
-import { NormalRange } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { connect, optionsFromArguments } from "../core";
+import type { NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { connect } from "../core/context/ToneAudioNode";
+import { Multiply, Signal, Subtract } from "../signal";
+import { MidSideEffect, type MidSideEffectOptions } from "./MidSideEffect";
 
 export interface StereoWidenerOptions extends MidSideEffectOptions {
 	width: NormalRange;
@@ -29,28 +26,28 @@ export class StereoWidener extends MidSideEffect<StereoWidenerOptions> {
 	 * The width control. 0 = 100% mid. 1 = 100% side. 0.5 = no change.
 	 */
 	readonly width: Signal<"normalRange">;
-	
-	/**
+
+    /**
 	 * Two times the (1-width) for the mid channel
 	 */
 	private _twoTimesWidthMid: Multiply;
-	
-	/**
+
+    /**
 	 * Two times the width for the side channel
 	 */
 	private _twoTimesWidthSide: Multiply;
-	
-	/**
+
+    /**
 	 * Mid multiplier
 	 */
 	private _midMult: Multiply;
-	
-	/**
+
+    /**
 	 * 1 - width
 	 */
 	private _oneMinusWidth: Subtract;
-	
-	/**
+
+    /**
 	 * Side multiplier
 	 */
 	private _sideMult: Multiply;

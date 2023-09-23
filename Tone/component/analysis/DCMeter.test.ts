@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { BasicTests, warns } from "test/helper/Basic";
+import { BasicTests } from "test/helper/Basic";
 import { PassAudio } from "test/helper/PassAudio";
 import { ONLINE_TESTING } from "test/helper/Supports";
 import { Signal } from "Tone/signal/Signal";

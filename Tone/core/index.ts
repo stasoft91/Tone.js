@@ -19,7 +19,12 @@ export * from "./type/Time";
 export * from "./type/Ticks";
 export * from "./type/TransportTime";
 
+// get the units and export them under the "Unit" namespace
+import * as Unit from "./type/Units";
+// export the debug stuff as Debug
+import * as debug from "./util/Debug";
 import "./util/Draw";
+
 export * from "./util/Emitter";
 export * from "./util/IntervalTimeline";
 export * from "./util/StateTimeline";
@@ -29,10 +34,6 @@ export * from "./util/TypeCheck";
 export { dbToGain, gainToDb, intervalToFrequencyRatio, ftom, mtof } from "./type/Conversions";
 export { optionsFromArguments, defaultArg } from "./util/Defaults";
 
-// get the units and export them under the "Unit" namespace
-import * as Unit from "./type/Units";
 export { Unit };
 
-// export the debug stuff as Debug
-import * as debug from "./util/Debug";
 export { debug };

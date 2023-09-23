@@ -1,6 +1,6 @@
 export * from "./NoteUnits";
 
-import { Note } from "./NoteUnits";
+import type { Note } from "./NoteUnits";
 
 /**
  * A number representing a time in seconds
@@ -58,8 +58,8 @@ export type Subdivision = "1m" | "1n" | "1n." | "2n" | "2n." | "2t" | "4n" | "4n
  * A time object has a subdivision as the keys and a number as the values.
  * @example
  * Tone.Time({
- * 	"2n": 1,
- * 	"8n": 3
+ *    "2n": 1,
+ *    "8n": 3
  * }).valueOf(); // 2n + 8n * 3
  * @category Unit
  */

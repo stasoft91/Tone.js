@@ -1,7 +1,7 @@
-import { Scale, ScaleOptions } from "./Scale";
-import { Positive } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { optionsFromArguments } from "../core";
+import type { Positive } from "../core/type/Units";
 import { Pow } from "./Pow";
+import { Scale, type ScaleOptions } from "./Scale";
 
 export interface ScaleExpOptions extends ScaleOptions {
 	exponent: Positive;
@@ -43,12 +43,6 @@ export class ScaleExp extends Scale<ScaleExpOptions> {
 		this._exp.connect(this._mult);
 	}
 
-	static getDefaults(): ScaleExpOptions {
-		return Object.assign(Scale.getDefaults(), {
-			exponent: 1,
-		});
-	}
-
 	/**
 	 * Instead of interpolating linearly between the [[min]] and
 	 * [[max]] values, setting the exponent will interpolate between
@@ -57,9 +51,16 @@ export class ScaleExp extends Scale<ScaleExpOptions> {
 	get exponent(): Positive {
 		return this._exp.value;
 	}
+
 	set exponent(exp) {
 		this._exp.value = exp;
 	}
+
+    static getDefaults(): ScaleExpOptions {
+        return Object.assign(Scale.getDefaults(), {
+            exponent: 1,
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

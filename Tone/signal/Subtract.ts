@@ -1,9 +1,6 @@
-import { connectSeries } from "../core/context/ToneAudioNode";
-import { Gain } from "../core/context/Gain";
-import { Param } from "../core/context/Param";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Negate } from "../signal/Negate";
-import { Signal, SignalOptions } from "../signal/Signal";
+import { connectSeries, Gain, optionsFromArguments, Param } from "../core";
+import { Negate } from "./Negate";
+import { Signal, type SignalOptions } from "./Signal";
 
 /**
  * Subtract the signal connected to the input is subtracted from the signal connected
@@ -29,23 +26,20 @@ export class Subtract extends Signal {
 	override = false;
 
 	readonly name: string = "Subtract";
-
+    /**
+     * The value which is subtracted from the main signal
+     */
+    subtrahend: Param<"number"> = this._param;
 	/**
 	 * the summing node
 	 */
 	private _sum: Gain = new Gain({ context: this.context });
 	readonly input: Gain = this._sum;
 	readonly output: Gain = this._sum;
-
 	/**
 	 * Negate the input of the second input before connecting it to the summing node.
 	 */
 	private _neg: Negate = new Negate({ context: this.context });
-
-	/**
-	 * The value which is subtracted from the main signal
-	 */
-	subtrahend: Param<"number"> = this._param;
 
 	/**
 	 * @param value The value to subtract from the incoming signal. If the value

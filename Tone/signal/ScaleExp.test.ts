@@ -1,8 +1,8 @@
-import { ConstantOutput } from "test/helper/ConstantOutput";
-import { ScaleExp } from "./ScaleExp";
-import { BasicTests } from "test/helper/Basic";
-import { Signal } from "Tone/signal/Signal";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { ConstantOutput } from "test/helper/ConstantOutput";
+import { Signal } from "Tone/signal/Signal";
+import { ScaleExp } from "./ScaleExp";
 
 describe("ScaleExp", () => {
 
@@ -33,7 +33,7 @@ describe("ScaleExp", () => {
 				const scale = new ScaleExp(0, 1, 3);
 				signal.connect(scale);
 				scale.toDestination();
-			}, 0.125); 
+            }, 0.125);
 		});
 
 		it("scale a signal between 1 and 3 exponentially", () => {
@@ -42,7 +42,7 @@ describe("ScaleExp", () => {
 				const scale = new ScaleExp(1, 3, 2);
 				signal.connect(scale);
 				scale.toDestination();
-			}, 1.5); 
+            }, 1.5);
 		});
 	});
 });

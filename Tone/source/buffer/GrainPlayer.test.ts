@@ -1,10 +1,10 @@
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
-import { GrainPlayer } from "./GrainPlayer";
+import { CompareToFile } from "test/helper/CompareToFile";
 import { Offline, whenBetween } from "test/helper/Offline";
 import { SourceTests } from "test/helper/SourceTests";
 import { ToneAudioBuffer } from "Tone/core/context/ToneAudioBuffer";
-import { CompareToFile } from "test/helper/CompareToFile";
-import { expect } from "chai";
+import { GrainPlayer } from "./GrainPlayer";
 
 describe("GrainPlayer", () => {
 
@@ -22,7 +22,8 @@ describe("GrainPlayer", () => {
 		return CompareToFile(() => {
 			const player = new GrainPlayer(buffer).toDestination();
 			player.start(0.1).stop(0.2);
-			player.detune = -100,
+            player.detune = -100;
+
 			player.playbackRate = 2;
 		}, "grainPlayer.wav", 0.16);
 	});
@@ -34,7 +35,7 @@ describe("GrainPlayer", () => {
 			player.loop = true;
 			player.overlap = 0.005;
 			player.grainSize = 0.05;
-			player.detune = 1200,
+            player.detune = 1200;
 			player.playbackRate = 0.5;
 		}, "grainPlayer2.wav", 0.2);
 	});
@@ -89,7 +90,7 @@ describe("GrainPlayer", () => {
 
 		it("invokes onerror if no url", (done) => {
 			const source = new GrainPlayer({
-				url: "./nosuchfile.wav", 
+                url: "./nosuchfile.wav",
 				onerror() {
 					source.dispose();
 					done();

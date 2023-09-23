@@ -1,12 +1,9 @@
-import { Source, SourceOptions } from "../Source";
-import { noOp } from "../../core/util/Interface";
-import { ToneAudioBuffer } from "../../core/context/ToneAudioBuffer";
-import { defaultArg, optionsFromArguments } from "../../core/util/Defaults";
-import { Clock } from "../../core/clock/Clock";
-import { Cents, Positive, Seconds, Time } from "../../core/type/Units";
-import { ToneBufferSource } from "./ToneBufferSource";
-import { intervalToFrequencyRatio } from "../../core/type/Conversions";
+import { Clock, defaultArg, intervalToFrequencyRatio, optionsFromArguments, ToneAudioBuffer } from "../../core";
+import type { Cents, Positive, Seconds, Time } from "../../core/type/Units";
 import { assertRange } from "../../core/util/Debug";
+import { noOp } from "../../core/util/Interface";
+import { Source, type SourceOptions } from "../Source";
+import { ToneBufferSource } from "./ToneBufferSource";
 
 interface GrainPlayerOptions extends SourceOptions {
 	onload: () => void;
@@ -37,58 +34,31 @@ export class GrainPlayer extends Source<GrainPlayerOptions> {
 	 * The audio buffer belonging to the player.
 	 */
 	buffer: ToneAudioBuffer;
-
-	/**
-	 * Create a repeating tick to schedule the grains.
-	 */
-	private _clock: Clock;
-
-	/**
-	 * Internal loopStart value
-	 */
-	private _loopStart = 0;
-
-	/**
-	 * Internal loopStart value
-	 */
-	private _loopEnd = 0;
-
-	/**
-	 * All of the currently playing BufferSources
-	 */
-	private _activeSources: ToneBufferSource[] = [];
-
-	/**
-	 * Internal reference to the playback rate
-	 */
-	private _playbackRate: Positive;
-
-	/**
-	 * Internal grain size reference;
-	 */
-	private _grainSize: Seconds;
-
-	/**
-	 * Internal overlap reference;
-	 */
-	private _overlap: Seconds;
-
 	/**
 	 * Adjust the pitch independently of the playbackRate.
 	 */
 	detune: Cents;
-
 	/**
 	 * If the buffer should loop back to the loopStart when completed
 	 */
 	loop: boolean;
+    /**
+     * Create a repeating tick to schedule the grains.
+     */
+    private _clock: Clock;
+    /**
+     * All of the currently playing BufferSources
+     */
+    private _activeSources: ToneBufferSource[] = [];
 
 	/**
 	 * @param url Either the AudioBuffer or the url from which to load the AudioBuffer
 	 * @param onload The function to invoke when the buffer is loaded.
 	 */
 	constructor(url?: string | AudioBuffer | ToneAudioBuffer, onload?: () => void);
+
 	constructor(options?: Partial<GrainPlayerOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(GrainPlayer.getDefaults(), arguments, ["url", "onload"]));
@@ -121,6 +91,116 @@ export class GrainPlayer extends Source<GrainPlayerOptions> {
 		this._clock.on("stop", this._onstop.bind(this));
 	}
 
+    /**
+     * Internal loopStart value
+     */
+    private _loopStart = 0;
+
+    /**
+     * The loop start time.
+     */
+    get loopStart(): Time {
+        return this._loopStart;
+    }
+
+    set loopStart(time) {
+        if (this.buffer.loaded) {
+            assertRange(this.toSeconds(time), 0, this.buffer.duration);
+        }
+        this._loopStart = this.toSeconds(time);
+    }
+
+    /**
+     * Internal loopStart value
+     */
+    private _loopEnd = 0;
+
+    /**
+     * The loop end time.
+     */
+    get loopEnd(): Time {
+        return this._loopEnd;
+    }
+
+    set loopEnd(time) {
+        if (this.buffer.loaded) {
+            assertRange(this.toSeconds(time), 0, this.buffer.duration);
+        }
+        this._loopEnd = this.toSeconds(time);
+    }
+
+    /**
+     * Internal reference to the playback rate
+     */
+    private _playbackRate: Positive;
+
+    /**
+     * The playback rate of the sample
+     */
+    get playbackRate(): Positive {
+        return this._playbackRate;
+    }
+
+    set playbackRate(rate) {
+        assertRange(rate, 0.001);
+        this._playbackRate = rate;
+        this.grainSize = this._grainSize;
+    }
+
+    /**
+     * Internal grain size reference;
+     */
+    private _grainSize: Seconds;
+
+    /**
+     * The size of each chunk of audio that the
+     * buffer is chopped into and played back at.
+     */
+    get grainSize(): Time {
+        return this._grainSize;
+    }
+
+    set grainSize(size) {
+        this._grainSize = this.toSeconds(size);
+        this._clock.frequency.setValueAtTime(this._playbackRate / this._grainSize, this.now());
+    }
+
+    /**
+     * Internal overlap reference;
+     */
+    private _overlap: Seconds;
+
+    /**
+     * The duration of the cross-fade between successive grains.
+     */
+    get overlap(): Time {
+        return this._overlap;
+    }
+
+    set overlap(time) {
+        const computedTime = this.toSeconds(time);
+        assertRange(computedTime, 0);
+        this._overlap = computedTime;
+    }
+
+    /**
+     * The direction the buffer should play in
+     */
+    get reverse() {
+        return this.buffer.reverse;
+    }
+
+    set reverse(rev) {
+        this.buffer.reverse = rev;
+    }
+
+    /**
+     * If all the buffer is loaded
+     */
+    get loaded(): boolean {
+        return this.buffer.loaded;
+    }
+
 	static getDefaults(): GrainPlayerOptions {
 		return Object.assign(Source.getDefaults(), {
 			onload: noOp,
@@ -136,6 +216,26 @@ export class GrainPlayer extends Source<GrainPlayerOptions> {
 		});
 	}
 
+    /**
+     * Stop and then restart the player from the beginning (or offset)
+     * @param  time When the player should start.
+     * @param  offset The offset from the beginning of the sample to start at.
+     * @param  duration How long the sample should play. If no duration is given,
+     *                    it will default to the full length of the sample (minus any offset)
+     */
+    restart(time?: Seconds, offset?: Time, duration?: Time): this {
+        super.restart(time, offset, duration);
+        return this;
+    }
+
+    dispose(): this {
+        super.dispose();
+        this.buffer.dispose();
+        this._clock.dispose();
+        this._activeSources.forEach((source) => source.dispose());
+        return this;
+    }
+
 	/**
 	 * Internal start method
 	 */
@@ -150,18 +250,6 @@ export class GrainPlayer extends Source<GrainPlayerOptions> {
 		if (duration) {
 			this.stop(time + this.toSeconds(duration));
 		}
-	}
-
-	/**
-	 * Stop and then restart the player from the beginning (or offset)
-	 * @param  time When the player should start.
-	 * @param  offset The offset from the beginning of the sample to start at.
-	 * @param  duration How long the sample should play. If no duration is given, 
-	 * 					it will default to the full length of the sample (minus any offset)
-	 */
-	restart(time?: Seconds, offset?: Time, duration?: Time): this {
-		super.restart(time, offset, duration);
-		return this;
 	}
 
 	protected _restart(time?: Seconds, offset?: Time, duration?: Time): void {
@@ -230,93 +318,5 @@ export class GrainPlayer extends Source<GrainPlayerOptions> {
 				this._activeSources.splice(index, 1);
 			}
 		};
-	}
-
-	/**
-	 * The playback rate of the sample
-	 */
-	get playbackRate(): Positive {
-		return this._playbackRate;
-	}
-	set playbackRate(rate) {
-		assertRange(rate, 0.001);
-		this._playbackRate = rate;
-		this.grainSize = this._grainSize;
-	}
-
-	/**
-	 * The loop start time.
-	 */
-	get loopStart(): Time {
-		return this._loopStart;
-	}
-	set loopStart(time) {
-		if (this.buffer.loaded) {
-			assertRange(this.toSeconds(time), 0, this.buffer.duration);
-		}
-		this._loopStart = this.toSeconds(time);
-	}
-
-	/**
-	 * The loop end time.
-	 */
-	get loopEnd(): Time {
-		return this._loopEnd;
-	}
-	set loopEnd(time) {
-		if (this.buffer.loaded) {
-			assertRange(this.toSeconds(time), 0, this.buffer.duration);
-		}
-		this._loopEnd = this.toSeconds(time);
-	}
-
-	/**
-	 * The direction the buffer should play in
-	 */
-	get reverse() {
-		return this.buffer.reverse;
-	}
-
-	set reverse(rev) {
-		this.buffer.reverse = rev;
-	}
-
-	/**
-	 * The size of each chunk of audio that the
-	 * buffer is chopped into and played back at.
-	 */
-	get grainSize(): Time {
-		return this._grainSize;
-	}
-	set grainSize(size) {
-		this._grainSize = this.toSeconds(size);
-		this._clock.frequency.setValueAtTime(this._playbackRate / this._grainSize, this.now());
-	}
-
-	/**
-	 * The duration of the cross-fade between successive grains.
-	 */
-	get overlap(): Time {
-		return this._overlap;
-	}
-	set overlap(time) {
-		const computedTime = this.toSeconds(time);
-		assertRange(computedTime, 0);
-		this._overlap = computedTime;
-	}
-
-	/**
-	 * If all the buffer is loaded
-	 */
-	get loaded(): boolean {
-		return this.buffer.loaded;
-	}
-
-	dispose(): this {
-		super.dispose();
-		this.buffer.dispose();
-		this._clock.dispose();
-		this._activeSources.forEach((source) => source.dispose());
-		return this;
 	}
 }

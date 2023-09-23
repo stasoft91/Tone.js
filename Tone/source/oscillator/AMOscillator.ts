@@ -1,20 +1,19 @@
-import { Gain } from "../../core/context/Gain";
-import { Degrees, Frequency, Seconds } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Gain, optionsFromArguments } from "../../core";
+import type { Degrees, Frequency, Seconds } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { AudioToGain } from "../../signal/AudioToGain";
-import { Multiply } from "../../signal/Multiply";
-import { Signal } from "../../signal/Signal";
+import { AudioToGain, Multiply, Signal } from "../../signal";
 import { Source } from "../Source";
 import { Oscillator } from "./Oscillator";
 import {
-	AMConstructorOptions, AMOscillatorOptions,
-	generateWaveform, NonCustomOscillatorType,
-	ToneOscillatorInterface,
-	ToneOscillatorType
+    type AMConstructorOptions,
+    type AMOscillatorOptions,
+    generateWaveform,
+    type NonCustomOscillatorType,
+    type ToneOscillatorInterface,
+    type ToneOscillatorType
 } from "./OscillatorInterface";
 
-export { AMOscillatorOptions } from "./OscillatorInterface";
+export type { AMOscillatorOptions } from "./OscillatorInterface";
 
 /**
  * An amplitude modulated oscillator node. It is implemented with
@@ -31,32 +30,15 @@ export { AMOscillatorOptions } from "./OscillatorInterface";
  * ```
  * @example
  * return Tone.Offline(() => {
- * 	const amOsc = new Tone.AMOscillator(30, "sine", "square").toDestination().start();
+ *    const amOsc = new Tone.AMOscillator(30, "sine", "square").toDestination().start();
  * }, 0.2, 1);
  * @category Source
  */
 export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOscillatorInterface {
 
 	readonly name: string = "AMOscillator";
-
-	/**
-	 * The carrier oscillator
-	 */
-	private _carrier: Oscillator;
-
 	readonly frequency: Signal<"frequency">;
 	readonly detune: Signal<"cents">;
-
-	/**
-	 * The modulating oscillator
-	 */
-	private _modulator: Oscillator;
-
-	/**
-	 * convert the -1,1 output to 0,1
-	 */
-	private _modulationScale = new AudioToGain({ context: this.context });
-
 	/**
 	 * Harmonicity is the frequency ratio between the carrier and the modulator oscillators.
 	 * A harmonicity of 1 gives both oscillators the same frequency.
@@ -64,16 +46,27 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 	 * @example
 	 * const amOsc = new Tone.AMOscillator("D2").toDestination().start();
 	 * Tone.Transport.scheduleRepeat(time => {
-	 * 	amOsc.harmonicity.setValueAtTime(1, time);
-	 * 	amOsc.harmonicity.setValueAtTime(0.5, time + 0.5);
-	 * 	amOsc.harmonicity.setValueAtTime(1.5, time + 1);
-	 * 	amOsc.harmonicity.setValueAtTime(1, time + 2);
-	 * 	amOsc.harmonicity.linearRampToValueAtTime(2, time + 4);
+     *    amOsc.harmonicity.setValueAtTime(1, time);
+     *    amOsc.harmonicity.setValueAtTime(0.5, time + 0.5);
+     *    amOsc.harmonicity.setValueAtTime(1.5, time + 1);
+     *    amOsc.harmonicity.setValueAtTime(1, time + 2);
+     *    amOsc.harmonicity.linearRampToValueAtTime(2, time + 4);
 	 * }, 4);
 	 * Tone.Transport.start();
 	 */
 	readonly harmonicity: Signal<"positive">;
-
+    /**
+     * The carrier oscillator
+     */
+    private _carrier: Oscillator;
+    /**
+     * The modulating oscillator
+     */
+    private _modulator: Oscillator;
+    /**
+     * convert the -1,1 output to 0,1
+     */
+    private _modulationScale = new AudioToGain({ context: this.context });
 	/**
 	 * the node where the modulation happens
 	 */
@@ -101,7 +94,7 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 			phase: options.phase,
 			type: options.type,
 		} as OscillatorOptions);
-		this.frequency = this._carrier.frequency,
+        this.frequency = this._carrier.frequency;
 		this.detune = this._carrier.detune;
 
 		this._modulator = new Oscillator({
@@ -124,40 +117,13 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 		readOnly(this, ["frequency", "detune", "harmonicity"]);
 	}
 
-	static getDefaults(): AMOscillatorOptions {
-		return Object.assign(Oscillator.getDefaults(), {
-			harmonicity: 1,
-			modulationType: "square" as NonCustomOscillatorType,
-		});
-	}
-
-	/**
-	 * start the oscillator
-	 */
-	protected _start(time: Seconds): void {
-		this._modulator.start(time);
-		this._carrier.start(time);
-	}
-
-	/**
-	 * stop the oscillator
-	 */
-	protected _stop(time: Seconds): void {
-		this._modulator.stop(time);
-		this._carrier.stop(time);
-	}
-
-	protected _restart(time: Seconds): void {
-		this._modulator.restart(time);
-		this._carrier.restart(time);
-	}
-
 	/**
 	 * The type of the carrier oscillator
 	 */
 	get type(): ToneOscillatorType {
 		return this._carrier.type;
 	}
+
 	set type(type: ToneOscillatorType) {
 		this._carrier.type = type;
 	}
@@ -165,6 +131,7 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 	get baseType(): OscillatorType {
 		return this._carrier.baseType;
 	}
+
 	set baseType(baseType: OscillatorType) {
 		this._carrier.baseType = baseType;
 	}
@@ -172,7 +139,8 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 	get partialCount(): number {
 		return this._carrier.partialCount;
 	}
-	set partialCount(partialCount: number) {
+
+    set partialCount(partialCount: number) {
 		this._carrier.partialCount = partialCount;
 	}
 
@@ -182,14 +150,16 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 	get modulationType(): ToneOscillatorType {
 		return this._modulator.type;
 	}
-	set modulationType(type: ToneOscillatorType) {
+
+    set modulationType(type: ToneOscillatorType) {
 		this._modulator.type = type;
 	}
 
 	get phase(): Degrees {
 		return this._carrier.phase;
 	}
-	set phase(phase: Degrees) {
+
+    set phase(phase: Degrees) {
 		this._carrier.phase = phase;
 		this._modulator.phase = phase;
 	}
@@ -197,9 +167,17 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 	get partials(): number[] {
 		return this._carrier.partials;
 	}
-	set partials(partials: number[]) {
+
+    set partials(partials: number[]) {
 		this._carrier.partials = partials;
 	}
+
+    static getDefaults(): AMOscillatorOptions {
+        return Object.assign(Oscillator.getDefaults(), {
+            harmonicity: 1,
+            modulationType: "square" as NonCustomOscillatorType,
+        });
+    }
 
 	async asArray(length = 1024): Promise<Float32Array> {
 		return generateWaveform(this, length);
@@ -219,4 +197,25 @@ export class AMOscillator extends Source<AMOscillatorOptions> implements ToneOsc
 		this._modulationScale.dispose();
 		return this;
 	}
+
+    /**
+     * start the oscillator
+     */
+    protected _start(time: Seconds): void {
+        this._modulator.start(time);
+        this._carrier.start(time);
+    }
+
+    /**
+     * stop the oscillator
+     */
+    protected _stop(time: Seconds): void {
+        this._modulator.stop(time);
+        this._carrier.stop(time);
+    }
+
+    protected _restart(time: Seconds): void {
+        this._modulator.restart(time);
+        this._carrier.restart(time);
+    }
 }

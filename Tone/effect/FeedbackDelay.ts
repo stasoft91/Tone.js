@@ -1,9 +1,7 @@
-import { Delay } from "../core/context/Delay";
-import { Param } from "../core/context/Param";
-import { NormalRange, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { Delay, optionsFromArguments, Param } from "../core";
+import type { NormalRange, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { FeedbackEffect, FeedbackEffectOptions } from "./FeedbackEffect";
+import { FeedbackEffect, type FeedbackEffectOptions } from "./FeedbackEffect";
 
 export interface FeedbackDelayOptions extends FeedbackEffectOptions {
 	delayTime: Time;
@@ -18,8 +16,8 @@ export interface FeedbackDelayOptions extends FeedbackEffectOptions {
  * @example
  * const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5).toDestination();
  * const tom = new Tone.MembraneSynth({
- * 	octaves: 4,
- * 	pitchDecay: 0.1
+ *    octaves: 4,
+ *    pitchDecay: 0.1
  * }).connect(feedbackDelay);
  * tom.triggerAttackRelease("A2", "32n");
  * @category Effect
@@ -27,16 +25,14 @@ export interface FeedbackDelayOptions extends FeedbackEffectOptions {
 export class FeedbackDelay extends FeedbackEffect<FeedbackDelayOptions> {
 
 	readonly name: string = "FeedbackDelay";
-
-	/**
-	 * the delay node
-	 */
-	private _delayNode: Delay;
-
 	/**
 	 * The delayTime of the FeedbackDelay.
 	 */
 	readonly delayTime: Param<"time">;
+    /**
+     * the delay node
+     */
+    private _delayNode: Delay;
 
 	constructor(delayTime?: Time, feedback?: NormalRange);
 	constructor(options?: Partial<FeedbackDelayOptions>);

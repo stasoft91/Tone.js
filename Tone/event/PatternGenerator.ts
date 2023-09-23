@@ -4,7 +4,16 @@ import { clamp } from "../core/util/Math";
 /**
  * The name of the patterns
  */
-export type PatternName = "up" | "down" | "upDown" | "downUp" | "alternateUp" | "alternateDown" | "random" | "randomOnce" | "randomWalk";
+export type PatternName =
+    "up"
+    | "down"
+    | "upDown"
+    | "downUp"
+    | "alternateUp"
+    | "alternateDown"
+    | "random"
+    | "randomOnce"
+    | "randomWalk";
 
 /**
  * Start at the first value and go up to the last

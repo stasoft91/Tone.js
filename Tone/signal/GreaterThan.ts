@@ -1,54 +1,49 @@
-import { ToneAudioNode } from "../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Subtract } from "./Subtract";
-import { Signal, SignalOptions } from "./Signal";
-import { GreaterThanZero } from "./GreaterThanZero";
+import { optionsFromArguments, Param, ToneAudioNode } from "../core";
 import { readOnly } from "../core/util/Interface";
-import { Param } from "../core/context/Param";
+import { GreaterThanZero } from "./GreaterThanZero";
+import { Signal, type SignalOptions } from "./Signal";
+import { Subtract } from "./Subtract";
 
 export type GreaterThanOptions = SignalOptions<"number">;
 
 /**
  * Output 1 if the signal is greater than the value, otherwise outputs 0.
  * can compare two signals or a signal and a number.
- * 
+ *
  * @example
  * return Tone.Offline(() => {
- * 	const gt = new Tone.GreaterThan(2).toDestination();
- * 	const sig = new Tone.Signal(4).connect(gt);
+ *    const gt = new Tone.GreaterThan(2).toDestination();
+ *    const sig = new Tone.Signal(4).connect(gt);
  * }, 0.1, 1);
  * @category Signal
  */
 export class GreaterThan extends Signal<"number"> {
 
-	readonly name: string = "GreaterThan"
+    readonly name: string = "GreaterThan";
 
 	readonly override: boolean = false;
 
 	readonly input: ToneAudioNode;
 	readonly output: ToneAudioNode;
-
-	/**
-	 * compare that amount to zero after subtracting
-	 */
-	private _gtz: GreaterThanZero;
-
-	/**
-	 * Subtract the value from the input node
-	 */
-	private _subtract: Subtract;
-
 	/**
 	 * The signal to compare to the incoming signal against.
 	 * @example
 	 * return Tone.Offline(() => {
-	 * 	// change the comparison value
-	 * 	const gt = new Tone.GreaterThan(1.5).toDestination();
-	 * 	const signal = new Tone.Signal(1).connect(gt);
-	 * 	gt.comparator.setValueAtTime(0.5, 0.1);
+     *    // change the comparison value
+     *    const gt = new Tone.GreaterThan(1.5).toDestination();
+     *    const signal = new Tone.Signal(1).connect(gt);
+     *    gt.comparator.setValueAtTime(0.5, 0.1);
 	 * }, 0.5, 1);
 	 */
-	readonly comparator: Param<"number">
+    readonly comparator: Param<"number">;
+    /**
+     * compare that amount to zero after subtracting
+     */
+    private _gtz: GreaterThanZero;
+    /**
+     * Subtract the value from the input node
+     */
+    private _subtract: Subtract;
 
 	/**
 	 * @param value The value to compare to

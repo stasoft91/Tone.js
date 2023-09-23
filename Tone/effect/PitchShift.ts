@@ -1,13 +1,10 @@
-import { Interval, Seconds, Time } from "../core/type/Units";
-import { FeedbackEffect, FeedbackEffectOptions } from "./FeedbackEffect";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { LFO } from "../source/oscillator/LFO";
-import { Delay } from "../core/context/Delay";
-import { CrossFade } from "../component/channel/CrossFade";
-import { Signal } from "../signal/Signal";
+import { CrossFade } from "../component";
+import { Delay, intervalToFrequencyRatio, optionsFromArguments, Param } from "../core";
+import type { Interval, Seconds, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { Param } from "../core/context/Param";
-import { intervalToFrequencyRatio } from "../core/type/Conversions";
+import { Signal } from "../signal";
+import { LFO } from "../source";
+import { FeedbackEffect, type FeedbackEffectOptions } from "./FeedbackEffect";
 
 export interface PitchShiftOptions extends FeedbackEffectOptions {
 	pitch: Interval;
@@ -26,68 +23,51 @@ export interface PitchShiftOptions extends FeedbackEffectOptions {
 export class PitchShift extends FeedbackEffect<PitchShiftOptions> {
 
 	readonly name: string = "PitchShift";
-
+    /**
+     * The amount of delay on the input signal
+     */
+    readonly delayTime: Param<"time">;
 	/**
 	 * The pitch signal
 	 */
 	private _frequency: Signal<"frequency">;
-
 	/**
 	 * Uses two DelayNodes to cover up the jump in the sawtooth wave.
 	 */
 	private _delayA: Delay;
-
 	/**
 	 * The first LFO.
 	 */
 	private _lfoA: LFO;
-
 	/**
 	 * The second DelayNode
 	 */
 	private _delayB: Delay;
-
 	/**
 	 * The second LFO.
 	 */
 	private _lfoB: LFO;
-
 	/**
 	 * Cross fade quickly between the two delay lines to cover up the jump in the sawtooth wave
 	 */
 	private _crossFade: CrossFade;
-
 	/**
 	 * LFO which alternates between the two delay lines to cover up the disparity in the
 	 * sawtooth wave.
 	 */
 	private _crossFadeLFO: LFO;
-
 	/**
 	 * The delay node
 	 */
 	private _feedbackDelay: Delay;
 
 	/**
-	 * The amount of delay on the input signal
-	 */
-	readonly delayTime: Param<"time">;
-
-	/**
-	 * Hold the current pitch
-	 */
-	private _pitch: Interval;
-
-	/**
-	 * Hold the current windowSize
-	 */
-	private _windowSize;
-
-	/**
 	 * @param pitch The interval to transpose the incoming signal by.
 	 */
 	constructor(pitch?: Interval);
+
 	constructor(options?: Partial<PitchShiftOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(PitchShift.getDefaults(), arguments, ["pitch"]));
@@ -150,14 +130,10 @@ export class PitchShift extends FeedbackEffect<PitchShiftOptions> {
 		this.windowSize = this._windowSize;
 	}
 
-	static getDefaults(): PitchShiftOptions {
-		return Object.assign(FeedbackEffect.getDefaults(), {
-			pitch: 0,
-			windowSize: 0.1,
-			delayTime: 0,
-			feedback: 0
-		});
-	}
+    /**
+     * Hold the current pitch
+     */
+    private _pitch: Interval;
 
 	/**
 	 * Repitch the incoming signal by some interval (measured in semi-tones).
@@ -170,7 +146,12 @@ export class PitchShift extends FeedbackEffect<PitchShiftOptions> {
 	get pitch() {
 		return this._pitch;
 	}
-	set pitch(interval) {
+    /**
+     * Hold the current windowSize
+     */
+    private _windowSize;
+
+    set pitch(interval) {
 		this._pitch = interval;
 		let factor = 0;
 		if (interval < 0) {
@@ -198,10 +179,20 @@ export class PitchShift extends FeedbackEffect<PitchShiftOptions> {
 	get windowSize(): Seconds {
 		return this._windowSize;
 	}
-	set windowSize(size) {
+
+    set windowSize(size) {
 		this._windowSize = this.toSeconds(size);
 		this.pitch = this._pitch;
 	}
+
+    static getDefaults(): PitchShiftOptions {
+        return Object.assign(FeedbackEffect.getDefaults(), {
+            pitch: 0,
+            windowSize: 0.1,
+            delayTime: 0,
+            feedback: 0
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

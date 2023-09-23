@@ -1,7 +1,5 @@
-import { Param } from "../../core/context/Param";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Decibels, Positive, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Decibels, Positive, Time } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
 
 export interface CompressorOptions extends ToneAudioNodeOptions {
@@ -25,35 +23,24 @@ export interface CompressorOptions extends ToneAudioNodeOptions {
 export class Compressor extends ToneAudioNode<CompressorOptions> {
 
 	readonly name: string = "Compressor";
-
-	/**
-	 * the compressor node
-	 */
-	private _compressor: DynamicsCompressorNode = this.context.createDynamicsCompressor();
-	readonly input = this._compressor;
-	readonly output = this._compressor;
-
 	/**
 	 * The decibel value above which the compression will start taking effect.
 	 * @min -100
 	 * @max 0
 	 */
 	readonly threshold: Param<"decibels">;
-
 	/**
 	 * The amount of time (in seconds) to reduce the gain by 10dB.
 	 * @min 0
 	 * @max 1
 	 */
 	readonly attack: Param<"time">;
-
 	/**
 	 * The amount of time (in seconds) to increase the gain by 10dB.
 	 * @min 0
 	 * @max 1
 	 */
 	readonly release: Param<"time">;
-
 	/**
 	 * A decibel value representing the range above the threshold where the
 	 * curve smoothly transitions to the "ratio" portion.
@@ -61,13 +48,18 @@ export class Compressor extends ToneAudioNode<CompressorOptions> {
 	 * @max 40
 	 */
 	readonly knee: Param<"decibels">;
-
 	/**
 	 * The amount of dB change in input for a 1 dB change in output.
 	 * @min 1
 	 * @max 20
 	 */
 	readonly ratio: Param<"positive">;
+    /**
+     * the compressor node
+     */
+    private _compressor: DynamicsCompressorNode = this.context.createDynamicsCompressor();
+    readonly input = this._compressor;
+    readonly output = this._compressor;
 
 	/**
 	 * @param threshold The value above which the compression starts to be applied.
@@ -132,6 +124,14 @@ export class Compressor extends ToneAudioNode<CompressorOptions> {
 		readOnly(this, ["knee", "release", "attack", "ratio", "threshold"]);
 	}
 
+    /**
+     * A read-only decibel value for metering purposes, representing the current amount of gain
+     * reduction that the compressor is applying to the signal. If fed no signal the value will be 0 (no gain reduction).
+     */
+    get reduction(): Decibels {
+        return this._compressor.reduction;
+    }
+
 	static getDefaults(): CompressorOptions {
 		return Object.assign(ToneAudioNode.getDefaults(), {
 			attack: 0.003,
@@ -140,14 +140,6 @@ export class Compressor extends ToneAudioNode<CompressorOptions> {
 			release: 0.25,
 			threshold: -24,
 		});
-	}
-
-	/**
-	 * A read-only decibel value for metering purposes, representing the current amount of gain
-	 * reduction that the compressor is applying to the signal. If fed no signal the value will be 0 (no gain reduction).
-	 */
-	get reduction(): Decibels {
-		return this._compressor.reduction;
 	}
 
 	dispose(): this {

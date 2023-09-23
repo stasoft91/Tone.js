@@ -1,11 +1,11 @@
 import { expect } from "chai";
+import { Offline } from "test/helper/Offline";
+import { PassAudio } from "test/helper/PassAudio";
 import { Merge } from "Tone/component";
 import { Split } from "Tone/component/channel/Split";
 import { Oscillator } from "Tone/source";
 import { Gain } from "./Gain";
 import { connect, disconnect, fanIn } from "./ToneAudioNode";
-import { PassAudio } from "test/helper/PassAudio";
-import { Offline } from "test/helper/Offline";
 
 describe("ToneAudioNode", () => {
 
@@ -228,8 +228,8 @@ describe("ToneAudioNode", () => {
 				fanIn(gain0, gain1, input, output);
 			});
 		});
-		
-		it("can connect one channel to another", () => {
+
+        it("can connect one channel to another", () => {
 			return PassAudio(input => {
 				const context = input.context;
 				const output = input.context.destination;
@@ -240,8 +240,8 @@ describe("ToneAudioNode", () => {
 				connect(split, output, 1, 0);
 			});
 		});
-		
-		it("can disconnect from an explicit channel", () => {
+
+        it("can disconnect from an explicit channel", () => {
 			return PassAudio(input => {
 				const context = input.context;
 				const output = input.context.destination;
@@ -253,8 +253,8 @@ describe("ToneAudioNode", () => {
 				disconnect(split, output, 1, 0);
 			}, false);
 		});
-		
-		it("can disconnect from an audio param", () => {
+
+        it("can disconnect from an audio param", () => {
 			return Offline((context) => {
 				const osc = context.createOscillator();
 				const gain = context.createGain();
@@ -262,8 +262,8 @@ describe("ToneAudioNode", () => {
 				disconnect(gain, osc.frequency);
 			});
 		});
-		
-		it("throws an error if things aren't connected", async () => {
+
+        it("throws an error if things aren't connected", async () => {
 			let threwError = false;
 			await PassAudio(input => {
 				const output = input.context.destination;
@@ -271,8 +271,8 @@ describe("ToneAudioNode", () => {
 			}).catch(() => threwError = true);
 			expect(threwError).to.equal(true);
 		});
-		
-		it("throws an error if the destination has no input", () => {
+
+        it("throws an error if the destination has no input", () => {
 			const source = new Oscillator();
 			const gain = new Gain();
 			expect(() => {
@@ -281,8 +281,8 @@ describe("ToneAudioNode", () => {
 			gain.dispose();
 			source.dispose();
 		});
-		
-		it("throws an error if things aren't connected to a specific channel", async () => {
+
+        it("throws an error if things aren't connected to a specific channel", async () => {
 			let threwError = false;
 			await PassAudio(input => {
 				const context = input.context;

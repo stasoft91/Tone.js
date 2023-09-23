@@ -1,11 +1,9 @@
-import { InputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Compressor, CompressorOptions } from "./Compressor";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { readOnly, RecursivePartial } from "../../core/util/Interface";
-import { Frequency } from "../../core/type/Units";
+import { Gain, type InputNode, optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Frequency } from "../../core/type/Units";
+import { readOnly, type RecursivePartial } from "../../core/util/Interface";
+import { Signal } from "../../signal";
 import { MultibandSplit } from "../channel/MultibandSplit";
-import { Signal } from "../../signal/Signal";
-import { Gain } from "../../core/context/Gain";
+import { Compressor, type CompressorOptions } from "./Compressor";
 
 export interface MultibandCompressorOptions extends ToneAudioNodeOptions {
 	mid: Omit<CompressorOptions, keyof ToneAudioNodeOptions>;
@@ -20,11 +18,11 @@ export interface MultibandCompressorOptions extends ToneAudioNodeOptions {
  *
  * @example
  * const multiband = new Tone.MultibandCompressor({
- * 	lowFrequency: 200,
- * 	highFrequency: 1300,
- * 	low: {
- * 		threshold: -12
- * 	}
+ *    lowFrequency: 200,
+ *    highFrequency: 1300,
+ *    low: {
+ *        threshold: -12
+ *    }
  * });
  * @category Component
  */
@@ -34,36 +32,30 @@ export class MultibandCompressor extends ToneAudioNode<MultibandCompressorOption
 
 	readonly input: InputNode;
 	readonly output: ToneAudioNode;
-
-	/**
-	 * Split the incoming signal into high/mid/low
-	 */
-	private _splitter: MultibandSplit;
-
 	/**
 	 * low/mid crossover frequency.
 	 */
 	readonly lowFrequency: Signal<"frequency">;
-
 	/**
 	 * mid/high crossover frequency.
 	 */
 	readonly highFrequency: Signal<"frequency">;
-
 	/**
 	 * The compressor applied to the low frequencies
 	 */
 	readonly low: Compressor;
-
 	/**
 	 * The compressor applied to the mid frequencies
 	 */
 	readonly mid: Compressor;
-
 	/**
 	 * The compressor applied to the high frequencies
 	 */
 	readonly high: Compressor;
+    /**
+     * Split the incoming signal into high/mid/low
+     */
+    private _splitter: MultibandSplit;
 
 	constructor(options?: RecursivePartial<MultibandCompressorOptions>);
 	constructor() {

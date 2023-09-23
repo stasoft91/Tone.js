@@ -1,6 +1,6 @@
 import { BasicTests } from "test/helper/Basic";
-import { Pow } from "./Pow";
 import { ConstantOutput } from "test/helper/ConstantOutput";
+import { Pow } from "./Pow";
 import { Signal } from "./Signal";
 
 describe("Pow", () => {
@@ -15,7 +15,7 @@ describe("Pow", () => {
 				const pow = new Pow(2);
 				signal.connect(pow);
 				pow.toDestination();
-			}, 0.09); 
+            }, 0.09);
 		});
 
 		it("can compute negative values and powers less than 1", () => {
@@ -24,7 +24,7 @@ describe("Pow", () => {
 				const pow = new Pow(0.5);
 				signal.connect(pow);
 				pow.toDestination();
-			}, 0.7); 
+            }, 0.7);
 		});
 
 		it("can set a new exponent", () => {
@@ -34,7 +34,7 @@ describe("Pow", () => {
 				pow.value = 3;
 				signal.connect(pow);
 				pow.toDestination();
-			}, 0.125); 
+            }, 0.125);
 		});
 	});
 });

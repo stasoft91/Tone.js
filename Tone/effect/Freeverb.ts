@@ -1,9 +1,9 @@
-import { StereoEffect, StereoEffectOptions } from "./StereoEffect";
-import { Frequency, NormalRange } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { LowpassCombFilter } from "../component";
+import { optionsFromArguments } from "../core";
+import type { Frequency, NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { Signal } from "../signal/Signal";
-import { LowpassCombFilter } from "../component/filter/LowpassCombFilter";
+import { Signal } from "../signal";
+import { StereoEffect, type StereoEffectOptions } from "./StereoEffect";
 
 export interface FreeverbOptions extends StereoEffectOptions {
 	dampening: Frequency;
@@ -108,13 +108,6 @@ export class Freeverb extends StereoEffect<FreeverbOptions> {
 		readOnly(this, ["roomSize"]);
 	}
 
-	static getDefaults(): FreeverbOptions {
-		return Object.assign(StereoEffect.getDefaults(), {
-			roomSize: 0.7,
-			dampening: 3000
-		});
-	}
-
 	/**
 	 * The amount of dampening of the reverberant signal.
 	 */
@@ -122,9 +115,17 @@ export class Freeverb extends StereoEffect<FreeverbOptions> {
 	get dampening(): Frequency {
 		return this._combFilters[0].dampening;
 	}
+
 	set dampening(d) {
 		this._combFilters.forEach(c => c.dampening = d);
 	}
+
+    static getDefaults(): FreeverbOptions {
+        return Object.assign(StereoEffect.getDefaults(), {
+            roomSize: 0.7,
+            dampening: 3000
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

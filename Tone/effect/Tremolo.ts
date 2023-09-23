@@ -1,11 +1,10 @@
-import { StereoEffect, StereoEffectOptions } from "./StereoEffect";
-import { LFO } from "../source/oscillator/LFO";
-import { Gain } from "../core/context/Gain";
-import { Signal } from "../signal/Signal";
-import { Degrees, Frequency, NormalRange, Time } from "../core/type/Units";
-import { ToneOscillatorType } from "../source/oscillator/OscillatorInterface";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { Gain, optionsFromArguments } from "../core";
+import type { Degrees, Frequency, NormalRange, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { Signal } from "../signal";
+import type { ToneOscillatorType } from "../source";
+import { LFO } from "../source";
+import { StereoEffect, type StereoEffectOptions } from "./StereoEffect";
 
 export interface TremoloOptions extends StereoEffectOptions {
 	frequency: Frequency;
@@ -23,44 +22,38 @@ export interface TremoloOptions extends StereoEffectOptions {
  * const tremolo = new Tone.Tremolo(9, 0.75).toDestination().start();
  * // route an oscillator through the tremolo and start it
  * const oscillator = new Tone.Oscillator().connect(tremolo).start();
- * 
+ *
  * @category Effect
  */
 export class Tremolo extends StereoEffect<TremoloOptions> {
 
 	readonly name: string = "Tremolo";
-
+    /**
+     * The frequency of the tremolo.
+     */
+    readonly frequency: Signal<"frequency">;
+    /**
+     * The depth of the effect. A depth of 0, has no effect
+     * on the amplitude, and a depth of 1 makes the amplitude
+     * modulate fully between 0 and 1.
+     */
+    readonly depth: Signal<"normalRange">;
 	/**
 	 * The tremolo LFO in the left channel
 	 */
 	private _lfoL: LFO;
-
 	/**
 	 * The tremolo LFO in the left channel
 	 */
 	private _lfoR: LFO;
-
 	/**
 	 * Where the gain is multiplied
 	 */
 	private _amplitudeL: Gain;
-
 	/**
 	 * Where the gain is multiplied
 	 */
 	private _amplitudeR: Gain;
-
-	/**
-	 * The frequency of the tremolo.
-	 */
-	readonly frequency: Signal<"frequency">;
-
-	/**
-	 * The depth of the effect. A depth of 0, has no effect
-	 * on the amplitude, and a depth of 1 makes the amplitude
-	 * modulate fully between 0 and 1.
-	 */
-	readonly depth: Signal<"normalRange">;
 
 	/**
 	 * @param frequency The rate of the effect.
@@ -108,6 +101,31 @@ export class Tremolo extends StereoEffect<TremoloOptions> {
 		this.spread = options.spread;
 	}
 
+    /**
+     * The oscillator type.
+     */
+    get type(): ToneOscillatorType {
+        return this._lfoL.type;
+    }
+
+    set type(type) {
+        this._lfoL.type = type;
+        this._lfoR.type = type;
+    }
+
+    /**
+     * Amount of stereo spread. When set to 0, both LFO's will be panned centrally.
+     * When set to 180, LFO's will be panned hard left and right respectively.
+     */
+    get spread(): Degrees {
+        return this._lfoR.phase - this._lfoL.phase; // 180
+    }
+
+    set spread(spread) {
+        this._lfoL.phase = 90 - (spread / 2);
+        this._lfoR.phase = (spread / 2) + 90;
+    }
+
 	static getDefaults(): TremoloOptions {
 		return Object.assign(StereoEffect.getDefaults(), {
 			frequency: 10,
@@ -153,29 +171,6 @@ export class Tremolo extends StereoEffect<TremoloOptions> {
 		this._lfoR.unsync();
 		this.context.transport.unsyncSignal(this.frequency);
 		return this;
-	}
-
-	/**
-	 * The oscillator type.
-	 */
-	get type(): ToneOscillatorType {
-		return this._lfoL.type;
-	}
-	set type(type) {
-		this._lfoL.type = type;
-		this._lfoR.type = type;
-	}
-
-	/**
-	 * Amount of stereo spread. When set to 0, both LFO's will be panned centrally.
-	 * When set to 180, LFO's will be panned hard left and right respectively.
-	 */
-	get spread(): Degrees {
-		return this._lfoR.phase - this._lfoL.phase; // 180
-	}
-	set spread(spread) {
-		this._lfoL.phase = 90 - (spread / 2);
-		this._lfoR.phase = (spread / 2) + 90;
 	}
 
 	dispose(): this {

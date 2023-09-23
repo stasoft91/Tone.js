@@ -1,6 +1,6 @@
-import { StereoFeedbackEffect, StereoFeedbackEffectOptions } from "./StereoFeedbackEffect";
-import { NormalRange } from "../core/type/Units";
+import type { NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { StereoFeedbackEffect, type StereoFeedbackEffectOptions } from "./StereoFeedbackEffect";
 
 export interface StereoXFeedbackEffectOptions extends StereoFeedbackEffectOptions {
 	feedback: NormalRange;
@@ -20,8 +20,8 @@ export interface StereoXFeedbackEffectOptions extends StereoFeedbackEffectOption
  * ```
  */
 export class StereoXFeedbackEffect<Options extends StereoXFeedbackEffectOptions> extends StereoFeedbackEffect<Options> {
-	
-	constructor(options: StereoXFeedbackEffectOptions) {
+
+    constructor(options: StereoXFeedbackEffectOptions) {
 
 		super(options);
 		// the left output connected to the right input
@@ -31,7 +31,7 @@ export class StereoXFeedbackEffect<Options extends StereoXFeedbackEffectOptions>
 		// the left output connected to the right input
 		this._feedbackR.disconnect();
 		this._feedbackR.connect(this._feedbackMerge, 0, 0);
-		
-		readOnly(this, ["feedback"]);
+
+        readOnly(this, ["feedback"]);
 	}
 }

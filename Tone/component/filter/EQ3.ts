@@ -1,10 +1,7 @@
-import { Gain } from "../../core/context/Gain";
-import { Param } from "../../core/context/Param";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Decibels, Frequency } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Gain, optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Decibels, Frequency } from "../../core/type/Units";
 import { readOnly, writable } from "../../core/util/Interface";
-import { Signal } from "../../signal/Signal";
+import { Signal } from "../../signal";
 import { MultibandSplit } from "../channel/MultibandSplit";
 
 interface EQ3Options extends ToneAudioNodeOptions {
@@ -16,7 +13,7 @@ interface EQ3Options extends ToneAudioNodeOptions {
 }
 
 /**
- * EQ3 provides 3 equalizer bins: Low/Mid/High. 
+ * EQ3 provides 3 equalizer bins: Low/Mid/High.
  * @category Component
  */
 export class EQ3 extends ToneAudioNode<EQ3Options> {
@@ -32,58 +29,47 @@ export class EQ3 extends ToneAudioNode<EQ3Options> {
 	 * the output
 	 */
 	readonly output = new Gain({ context: this.context });
-
-	/**
-	 * Splits the input into three outputs
-	 */
-	private _multibandSplit: MultibandSplit;
-
-	/**
-	 * The gain for the lower signals
-	 */
-	private _lowGain: Gain<"decibels">;
-
-	/**
-	 * The gain for the mid signals
-	 */
-	private _midGain: Gain<"decibels">;
-
-	/**
-	 * The gain for the high signals
-	 */
-	private _highGain: Gain<"decibels">;
-
 	/**
 	 * The gain in decibels of the low part
 	 */
 	readonly low: Param<"decibels">;
-
 	/**
 	 * The gain in decibels of the mid part
 	 */
 	readonly mid: Param<"decibels">;
-
 	/**
 	 * The gain in decibels of the high part
 	 */
 	readonly high: Param<"decibels">;
-
 	/**
 	 * The Q value for all of the filters.
 	 */
 	readonly Q: Signal<"positive">;
-
 	/**
 	 * The low/mid crossover frequency.
 	 */
 	readonly lowFrequency: Signal<"frequency">;
-
 	/**
 	 * The mid/high crossover frequency.
 	 */
 	readonly highFrequency: Signal<"frequency">;
-
 	protected _internalChannels: ToneAudioNode[] = [];
+    /**
+     * Splits the input into three outputs
+     */
+    private _multibandSplit: MultibandSplit;
+    /**
+     * The gain for the lower signals
+     */
+    private _lowGain: Gain<"decibels">;
+    /**
+     * The gain for the mid signals
+     */
+    private _midGain: Gain<"decibels">;
+    /**
+     * The gain for the high signals
+     */
+    private _highGain: Gain<"decibels">;
 
 	constructor(lowLevel?: Decibels, midLevel?: Decibels, highLevel?: Decibels);
 	constructor(options: Partial<EQ3Options>);
@@ -120,7 +106,7 @@ export class EQ3 extends ToneAudioNode<EQ3Options> {
 		this.high = this._highGain.gain;
 		this.Q = this._multibandSplit.Q;
 		this.lowFrequency = this._multibandSplit.lowFrequency;
-		this.highFrequency	= this._multibandSplit.highFrequency;
+        this.highFrequency = this._multibandSplit.highFrequency;
 
 		// the frequency bands
 		this._multibandSplit.low.chain(this._lowGain, this.output);

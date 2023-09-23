@@ -1,4 +1,4 @@
-import { Seconds } from "../type/Units";
+import type { Seconds } from "../type/Units";
 
 export type TickerClockSource = "worker" | "timeout" | "offline";
 
@@ -9,30 +9,17 @@ export type TickerClockSource = "worker" | "timeout" | "offline";
 export class Ticker {
 
 	/**
-	 * Either "worker" or "timeout" or "offline"
-	 */
-	private _type: TickerClockSource;
-
-	/**
-	 * The update interval of the worker
-	 */
-	private _updateInterval!: Seconds;
-
-	/**
 	 * The lowest allowable interval, preferably calculated from context sampleRate
 	 */
 	private _minimumUpdateInterval: Seconds;
-
 	/**
 	 * The callback to invoke at regular intervals
 	 */
 	private _callback: () => void;
-
 	/**
 	 * track the callback interval
 	 */
 	private _timeout!: ReturnType<typeof setTimeout>;
-
 	/**
 	 * private reference to the worker
 	 */
@@ -42,12 +29,56 @@ export class Ticker {
 
 		this._callback = callback;
 		this._type = type;
-		this._minimumUpdateInterval = Math.max(128/(contextSampleRate || 44100), .001);
+        this._minimumUpdateInterval = Math.max(128 / (contextSampleRate || 44100), .001);
 		this.updateInterval = updateInterval;
 
 		// create the clock source for the first time
 		this._createClock();
 	}
+
+    /**
+     * Either "worker" or "timeout" or "offline"
+     */
+    private _type: TickerClockSource;
+
+    /**
+     * The type of the ticker, either a worker or a timeout
+     */
+    get type(): TickerClockSource {
+        return this._type;
+    }
+
+    set type(type: TickerClockSource) {
+        this._disposeClock();
+        this._type = type;
+        this._createClock();
+    }
+
+    /**
+     * The update interval of the worker
+     */
+    private _updateInterval!: Seconds;
+
+    /**
+     * The rate in seconds the ticker will update
+     */
+    get updateInterval(): Seconds {
+        return this._updateInterval;
+    }
+
+    set updateInterval(interval: Seconds) {
+        this._updateInterval = Math.max(interval, this._minimumUpdateInterval);
+        if (this._type === "worker") {
+            this._worker?.postMessage(this._updateInterval * 1000);
+        }
+    }
+
+    /**
+     * Clean up
+     */
+    dispose(): void {
+        this._disposeClock();
+    }
 
 	/**
 	 * Generate a web worker
@@ -118,37 +149,5 @@ export class Ticker {
 			this._worker.terminate();
 			this._worker.onmessage = null;
 		}
-	}
-
-	/**
-	 * The rate in seconds the ticker will update
-	 */
-	get updateInterval(): Seconds {
-		return this._updateInterval;
-	}
-	set updateInterval(interval: Seconds) {
-		this._updateInterval = Math.max(interval, this._minimumUpdateInterval);
-		if (this._type === "worker") {
-			this._worker?.postMessage(this._updateInterval * 1000);
-		}
-	}
-
-	/**
-	 * The type of the ticker, either a worker or a timeout
-	 */
-	get type(): TickerClockSource {
-		return this._type;
-	}
-	set type(type: TickerClockSource) {
-		this._disposeClock();
-		this._type = type;
-		this._createClock();
-	}
-
-	/**
-	 * Clean up
-	 */
-	dispose(): void {
-		this._disposeClock();
 	}
 }

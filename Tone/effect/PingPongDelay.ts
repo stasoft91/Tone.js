@@ -1,9 +1,8 @@
-import { StereoXFeedbackEffect, StereoXFeedbackEffectOptions } from "./StereoXFeedbackEffect";
-import { NormalRange, Seconds, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Delay } from "../core/context/Delay";
-import { Signal } from "../signal/Signal";
+import { Delay, optionsFromArguments } from "../core";
+import type { NormalRange, Seconds, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { Signal } from "../signal";
+import { StereoXFeedbackEffect, type StereoXFeedbackEffectOptions } from "./StereoXFeedbackEffect";
 
 export interface PingPongDelayOptions extends StereoXFeedbackEffectOptions {
 	delayTime: Time;
@@ -27,26 +26,22 @@ export interface PingPongDelayOptions extends StereoXFeedbackEffectOptions {
 export class PingPongDelay extends StereoXFeedbackEffect<PingPongDelayOptions> {
 
 	readonly name: string = "PingPongDelay";
-
+    /**
+     * the delay time signal
+     */
+    readonly delayTime: Signal<"time">;
 	/**
 	 * the delay node on the left side
 	 */
 	private _leftDelay: Delay;
-
 	/**
 	 * the delay node on the right side
 	 */
 	private _rightDelay: Delay;
-
 	/**
 	 * the predelay on the right side
 	 */
 	private _rightPreDelay: Delay;
-
-	/**
-	 * the delay time signal
-	 */
-	readonly delayTime: Signal<"time">;
 
 	/**
 	 * @param delayTime The delayTime between consecutive echos.

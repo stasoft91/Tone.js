@@ -1,18 +1,25 @@
-import { connect, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { Decibels } from "../core/type/Units";
-import { Volume } from "../component/channel/Volume";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { Volume } from "../component";
+import {
+	connect,
+	isDefined,
+	isNumber,
+	optionsFromArguments,
+	type OutputNode,
+	Param,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../core";
+import type { Decibels } from "../core/type/Units";
 import { assert } from "../core/util/Debug";
-import { Param } from "../core/context/Param";
 import { readOnly } from "../core/util/Interface";
-import { isDefined, isNumber } from "../core/util/TypeCheck";
 
 export interface UserMediaOptions extends ToneAudioNodeOptions {
 	volume: Decibels;
 	mute: boolean;
 }
+
 /**
- * UserMedia uses MediaDevices.getUserMedia to open up and external microphone or audio input. 
+ * UserMedia uses MediaDevices.getUserMedia to open up and external microphone or audio input.
  * Check [MediaDevices API Support](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
  * to see which browsers are supported. Access to an external input
  * is limited to secure (HTTPS) connections.
@@ -20,13 +27,13 @@ export interface UserMediaOptions extends ToneAudioNodeOptions {
  * const meter = new Tone.Meter();
  * const mic = new Tone.UserMedia().connect(meter);
  * mic.open().then(() => {
- * 	// promise resolves when input is available
- * 	console.log("mic open");
- * 	// print the incoming mic levels in decibels
- * 	setInterval(() => console.log(meter.getValue()), 100);
+ *    // promise resolves when input is available
+ *    console.log("mic open");
+ *    // print the incoming mic levels in decibels
+ *    setInterval(() => console.log(meter.getValue()), 100);
  * }).catch(e => {
- * 	// promise is rejected when the user doesn't have or allow mic access
- * 	console.log("mic not open");
+ *    // promise is rejected when the user doesn't have or allow mic access
+ *    console.log("mic not open");
  * });
  * @category Source
  */
@@ -37,31 +44,26 @@ export class UserMedia extends ToneAudioNode<UserMediaOptions> {
 
 	readonly input: undefined;
 	readonly output: OutputNode;
-
-	/**
-	 * The MediaStreamNode
-	 */
-	private _mediaStream?: MediaStreamAudioSourceNode;
-
-	/**
-	 * The media stream created by getUserMedia.
-	 */
-	private _stream?: MediaStream;
-
-	/**
-	 * The open device
-	 */
-	private _device?: MediaDeviceInfo;
-
-	/**
-	 * The output volume node
-	 */
-	private _volume: Volume;
-
 	/**
 	 * The volume of the output in decibels.
 	 */
 	readonly volume: Param<"decibels">;
+	/**
+	 * The MediaStreamNode
+	 */
+	private _mediaStream?: MediaStreamAudioSourceNode;
+	/**
+	 * The media stream created by getUserMedia.
+	 */
+	private _stream?: MediaStream;
+	/**
+	 * The open device
+	 */
+	private _device?: MediaDeviceInfo;
+	/**
+	 * The output volume node
+	 */
+	private _volume: Volume;
 
 	/**
 	 * @param volume The level of the input in decibels
@@ -82,10 +84,102 @@ export class UserMedia extends ToneAudioNode<UserMediaOptions> {
 		this.mute = options.mute;
 	}
 
+	/**
+	 * If getUserMedia is supported by the browser.
+	 */
+	static get supported(): boolean {
+		return isDefined(navigator.mediaDevices) &&
+			isDefined(navigator.mediaDevices.getUserMedia);
+	}
+
+	/**
+	 * Returns the playback state of the source, "started" when the microphone is open
+	 * and "stopped" when the mic is closed.
+	 */
+	get state() {
+		return this._stream && this._stream.active ? "started" : "stopped";
+	}
+
+	/**
+	 * Returns an identifier for the represented device that is
+	 * persisted across sessions. It is un-guessable by other applications and
+	 * unique to the origin of the calling application. It is reset when the
+	 * user clears cookies (for Private Browsing, a different identifier is
+	 * used that is not persisted across sessions). Returns undefined when the
+	 * device is not open.
+	 */
+	get deviceId(): string | undefined {
+		if (this._device) {
+			return this._device.deviceId;
+		} else {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Returns a group identifier. Two devices have the
+	 * same group identifier if they belong to the same physical device.
+	 * Returns null  when the device is not open.
+	 */
+	get groupId(): string | undefined {
+		if (this._device) {
+			return this._device.groupId;
+		} else {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Returns a label describing this device (for example "Built-in Microphone").
+	 * Returns undefined when the device is not open or label is not available
+	 * because of permissions.
+	 */
+	get label(): string | undefined {
+		if (this._device) {
+			return this._device.label;
+		} else {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Mute the output.
+	 * @example
+	 * const mic = new Tone.UserMedia();
+	 * mic.open().then(() => {
+	 *    // promise resolves when input is available
+	 * });
+	 * // mute the output
+	 * mic.mute = true;
+	 */
+	get mute(): boolean {
+		return this._volume.mute;
+	}
+
+	set mute(mute) {
+		this._volume.mute = mute;
+	}
+
 	static getDefaults(): UserMediaOptions {
 		return Object.assign(ToneAudioNode.getDefaults(), {
 			mute: false,
 			volume: 0
+		});
+	}
+
+	/**
+	 * Returns a promise which resolves with the list of audio input devices available.
+	 * @return The promise that is resolved with the devices
+	 * @example
+	 * Tone.UserMedia.enumerateDevices().then((devices) => {
+	 *    // print the device labels
+	 *    console.log(devices.map(device => device.label));
+	 * });
+	 */
+	static async enumerateDevices(): Promise<MediaDeviceInfo[]> {
+		const allDevices = await navigator.mediaDevices.enumerateDevices();
+		return allDevices.filter(device => {
+			return device.kind === "audioinput";
 		});
 	}
 
@@ -159,102 +253,11 @@ export class UserMedia extends ToneAudioNode<UserMediaOptions> {
 		return this;
 	}
 
-	/**
-	 * Returns a promise which resolves with the list of audio input devices available.
-	 * @return The promise that is resolved with the devices
-	 * @example
-	 * Tone.UserMedia.enumerateDevices().then((devices) => {
-	 * 	// print the device labels
-	 * 	console.log(devices.map(device => device.label));
-	 * });
-	 */
-	static async enumerateDevices(): Promise<MediaDeviceInfo[]> {
-		const allDevices = await navigator.mediaDevices.enumerateDevices();
-		return allDevices.filter(device => {
-			return device.kind === "audioinput";
-		});
-	}
-
-	/**
-	 * Returns the playback state of the source, "started" when the microphone is open
-	 * and "stopped" when the mic is closed.
-	 */
-	get state() {
-		return this._stream && this._stream.active ? "started" : "stopped";
-	}
-
-	/**
-	 * Returns an identifier for the represented device that is
-	 * persisted across sessions. It is un-guessable by other applications and
-	 * unique to the origin of the calling application. It is reset when the
-	 * user clears cookies (for Private Browsing, a different identifier is
-	 * used that is not persisted across sessions). Returns undefined when the
-	 * device is not open.
-	 */
-	get deviceId(): string | undefined {
-		if (this._device) {
-			return this._device.deviceId;
-		} else {
-			return undefined;
-		}
-	}
-
-	/**
-	 * Returns a group identifier. Two devices have the
-	 * same group identifier if they belong to the same physical device.
-	 * Returns null  when the device is not open.
-	 */
-	get groupId(): string | undefined {
-		if (this._device) {
-			return this._device.groupId;
-		} else {
-			return undefined;
-		}
-	}
-
-	/**
-	 * Returns a label describing this device (for example "Built-in Microphone").
-	 * Returns undefined when the device is not open or label is not available
-	 * because of permissions.
-	 */
-	get label(): string | undefined {
-		if (this._device) {
-			return this._device.label;
-		} else {
-			return undefined;
-		}
-	}
-
-	/**
-	 * Mute the output.
-	 * @example
-	 * const mic = new Tone.UserMedia();
-	 * mic.open().then(() => {
-	 * 	// promise resolves when input is available
-	 * });
-	 * // mute the output
-	 * mic.mute = true;
-	 */
-	get mute(): boolean {
-		return this._volume.mute;
-	}
-	set mute(mute) {
-		this._volume.mute = mute;
-	}
-
 	dispose(): this {
 		super.dispose();
 		this.close();
 		this._volume.dispose();
 		this.volume.dispose();
 		return this;
-	}
-
-	/**
-	 * If getUserMedia is supported by the browser.
-	 */
-	static get supported(): boolean {
-		return isDefined(navigator.mediaDevices) &&
-			isDefined(navigator.mediaDevices.getUserMedia);
 	}
 }

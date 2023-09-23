@@ -69,7 +69,7 @@ describe("Players", () => {
 			const source = new Players({
 				urls: {
 					test: "./nosuchfile.wav"
-				}, 
+                },
 				onerror() {
 					source.dispose();
 					done();

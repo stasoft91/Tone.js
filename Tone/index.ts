@@ -1,14 +1,18 @@
 export { getContext, setContext } from "./core/Global";
 export * from "./classes";
 export * from "./version";
+// this fills in name changes from 13.x to 14.x
+import { ToneAudioBuffer, ToneAudioBuffers } from "./core";
 import { getContext } from "./core/Global";
-import { ToneAudioBuffer } from "./core/context/ToneAudioBuffer";
+import type { Seconds } from "./core/type/Units";
+import { ToneBufferSource } from "./source";
+
 export { start } from "./core/Global";
-import { Seconds } from "./core/type/Units";
+
 export { supported } from "./core/context/AudioContext";
 
 /**
- * The current audio context time of the global [[Context]]. 
+ * The current audio context time of the global [[Context]].
  * See [[Context.now]]
  * @category Core
  */
@@ -77,15 +81,15 @@ export function getListener(): import("./core/context/Listener").Listener {
 }
 
 /**
- * Draw is used to synchronize the draw frame with the Transport's callbacks. 
+ * Draw is used to synchronize the draw frame with the Transport's callbacks.
  * See [[Draw]]
  * @category Core
  */
 export const Draw = getContext().draw;
 
 /**
- * Get the singleton attached to the global context. 
- * Draw is used to synchronize the draw frame with the Transport's callbacks. 
+ * Get the singleton attached to the global context.
+ * Draw is used to synchronize the draw frame with the Transport's callbacks.
  * See [[Draw]]
  * @category Core
  */
@@ -100,7 +104,7 @@ export function getDraw(): import("./core/util/Draw").Draw {
 export const context = getContext();
 
 /**
- * Promise which resolves when all of the loading promises are resolved. 
+ * Promise which resolves when all of the loading promises are resolved.
  * Alias for static [[ToneAudioBuffer.loaded]] method.
  * @category Core
  */
@@ -108,9 +112,6 @@ export function loaded() {
 	return ToneAudioBuffer.loaded();
 }
 
-// this fills in name changes from 13.x to 14.x
-import { ToneAudioBuffers } from "./core/context/ToneAudioBuffers";
-import { ToneBufferSource } from "./source/buffer/ToneBufferSource";
 export const Buffer: typeof ToneAudioBuffer = ToneAudioBuffer;
 export const Buffers: typeof ToneAudioBuffers = ToneAudioBuffers;
 export const BufferSource: typeof ToneBufferSource = ToneBufferSource;

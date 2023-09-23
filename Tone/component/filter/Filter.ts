@@ -1,12 +1,9 @@
-import { Gain } from "../../core/context/Gain";
-import { connectSeries, ToneAudioNode } from "../../core/context/ToneAudioNode";
-import { Frequency } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { readOnly, writable } from "../../core/util/Interface";
-import { isNumber } from "../../core/util/TypeCheck";
-import { Signal } from "../../signal/Signal";
+import { connectSeries, Gain, isNumber, optionsFromArguments, ToneAudioNode } from "../../core";
+import type { Frequency } from "../../core/type/Units";
 import { assert } from "../../core/util/Debug";
-import { BiquadFilter, BiquadFilterOptions } from "./BiquadFilter";
+import { readOnly, writable } from "../../core/util/Interface";
+import { Signal } from "../../signal";
+import { BiquadFilter, type BiquadFilterOptions } from "./BiquadFilter";
 
 export type FilterRollOff = -12 | -24 | -48 | -96;
 
@@ -31,33 +28,23 @@ export class Filter extends ToneAudioNode<FilterOptions> {
 
 	readonly input = new Gain({ context: this.context });
 	readonly output = new Gain({ context: this.context });
-	private _filters: BiquadFilter[] = [];
-
-	/**
-	 * the rolloff value of the filter
-	 */
-	private _rolloff!: FilterRollOff;
-	private _type: BiquadFilterType;
-
 	/**
 	 * The Q or Quality of the filter
 	 */
 	readonly Q: Signal<"positive">;
-
 	/**
 	 * The cutoff frequency of the filter.
 	 */
 	readonly frequency: Signal<"frequency">;
-
 	/**
 	 * The detune parameter
 	 */
 	readonly detune: Signal<"cents">;
-
 	/**
 	 * The gain of the filter, only used in certain filter types
 	 */
 	readonly gain: Signal<"decibels">;
+    private _filters: BiquadFilter[] = [];
 
 	/**
 	 * @param frequency The cutoff frequency of the filter.
@@ -65,7 +52,9 @@ export class Filter extends ToneAudioNode<FilterOptions> {
 	 * @param rolloff The drop in decibels per octave after the cutoff frequency
 	 */
 	constructor(frequency?: Frequency, type?: BiquadFilterType, rolloff?: FilterRollOff);
+
 	constructor(options?: Partial<FilterOptions>);
+
 	constructor() {
 		super(optionsFromArguments(Filter.getDefaults(), arguments, ["frequency", "type", "rolloff"]));
 		const options = optionsFromArguments(Filter.getDefaults(), arguments, ["frequency", "type", "rolloff"]);
@@ -98,31 +87,10 @@ export class Filter extends ToneAudioNode<FilterOptions> {
 		readOnly(this, ["detune", "frequency", "gain", "Q"]);
 	}
 
-	static getDefaults(): FilterOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			Q: 1,
-			detune: 0,
-			frequency: 350,
-			gain: 0,
-			rolloff: -12 as FilterRollOff,
-			type: "lowpass" as BiquadFilterType,
-		});
-	}
-
 	/**
-	 * The type of the filter. Types: "lowpass", "highpass",
-	 * "bandpass", "lowshelf", "highshelf", "notch", "allpass", or "peaking".
+     * the rolloff value of the filter
 	 */
-	get type(): BiquadFilterType {
-		return this._type;
-	}
-	set type(type: BiquadFilterType) {
-		const types: BiquadFilterType[] = ["lowpass", "highpass", "bandpass",
-			"lowshelf", "highshelf", "notch", "allpass", "peaking"];
-		assert(types.indexOf(type) !== -1, `Invalid filter type: ${type}`);
-		this._type = type;
-		this._filters.forEach(filter => filter.type = type);
-	}
+    private _rolloff!: FilterRollOff;
 
 	/**
 	 * The rolloff of the filter which is the drop in db
@@ -132,7 +100,8 @@ export class Filter extends ToneAudioNode<FilterOptions> {
 	get rolloff(): FilterRollOff {
 		return this._rolloff;
 	}
-	set rolloff(rolloff) {
+
+    set rolloff(rolloff) {
 		const rolloffNum = isNumber(rolloff) ? rolloff : parseInt(rolloff, 10) as FilterRollOff;
 		const possibilities = [-12, -24, -48, -96];
 		let cascadingCount = possibilities.indexOf(rolloffNum);
@@ -159,6 +128,35 @@ export class Filter extends ToneAudioNode<FilterOptions> {
 		this._internalChannels = this._filters;
 		connectSeries(this.input, ...this._internalChannels, this.output);
 	}
+
+    private _type: BiquadFilterType;
+
+    /**
+     * The type of the filter. Types: "lowpass", "highpass",
+     * "bandpass", "lowshelf", "highshelf", "notch", "allpass", or "peaking".
+     */
+    get type(): BiquadFilterType {
+        return this._type;
+    }
+
+    set type(type: BiquadFilterType) {
+        const types: BiquadFilterType[] = ["lowpass", "highpass", "bandpass",
+            "lowshelf", "highshelf", "notch", "allpass", "peaking"];
+        assert(types.indexOf(type) !== -1, `Invalid filter type: ${type}`);
+        this._type = type;
+        this._filters.forEach(filter => filter.type = type);
+    }
+
+    static getDefaults(): FilterOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            Q: 1,
+            detune: 0,
+            frequency: 350,
+            gain: 0,
+            rolloff: -12 as FilterRollOff,
+            type: "lowpass" as BiquadFilterType,
+        });
+    }
 
 	/**
 	 * Get the frequency response curve. This curve represents how the filter

@@ -4,11 +4,11 @@ import { Offline } from "test/helper/Offline";
 import { ONLINE_TESTING } from "test/helper/Supports";
 import { Transport } from "../clock/Transport";
 import { getContext } from "../Global";
+import { Draw } from "../util/Draw";
 import { createAudioContext } from "./AudioContext";
 import { Context } from "./Context";
 import { Destination } from "./Destination";
 import { Listener } from "./Listener";
-import { Draw } from "../util/Draw";
 import { connect } from "./ToneAudioNode";
 
 describe("Context", () => {
@@ -189,7 +189,8 @@ describe("Context", () => {
 			});
 
 			it("returns an id", () => {
-				expect(ctx.setTimeout(() => {}, 0.1)).to.be.a("number");
+                expect(ctx.setTimeout(() => {
+                }, 0.1)).to.be.a("number");
 				// try clearing a random ID, shouldn't cause any errors
 				ctx.clearTimeout(-2);
 			});
@@ -246,7 +247,8 @@ describe("Context", () => {
 			});
 
 			it("returns an id", () => {
-				expect(ctx.setInterval(() => {}, 0.1)).to.be.a("number");
+                expect(ctx.setInterval(() => {
+                }, 0.1)).to.be.a("number");
 				// try clearing a random ID, shouldn't cause any errors
 				ctx.clearInterval(-2);
 			});

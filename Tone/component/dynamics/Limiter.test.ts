@@ -1,7 +1,7 @@
-import { Limiter } from "./Limiter";
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { PassAudio } from "test/helper/PassAudio";
-import { expect } from "chai";
+import { Limiter } from "./Limiter";
 
 describe("Limiter", () => {
 

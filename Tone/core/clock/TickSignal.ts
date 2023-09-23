@@ -1,6 +1,6 @@
-import { Signal, SignalOptions } from "../../signal/Signal";
-import { InputNode } from "../context/ToneAudioNode";
-import { Seconds, Ticks, Time, UnitMap, UnitName } from "../type/Units";
+import { Signal, type SignalOptions } from "../../signal";
+import type { InputNode } from "../context/ToneAudioNode";
+import type { Seconds, Ticks, Time, UnitMap, UnitName } from "../type/Units";
 import { optionsFromArguments } from "../util/Defaults";
 import { TickParam } from "./TickParam";
 
@@ -21,12 +21,11 @@ interface TickSignalOptions<TypeName extends UnitName> extends SignalOptions<Typ
 export class TickSignal<TypeName extends "hertz" | "bpm"> extends Signal<TypeName> {
 
 	readonly name: string = "TickSignal";
-
+    readonly input: InputNode;
 	/**
 	 * The param which controls the output signal value
 	 */
 	protected _param: TickParam<TypeName>;
-	readonly input: InputNode;
 
 	/**
 	 * @param value The initial value of the signal
@@ -47,6 +46,17 @@ export class TickSignal<TypeName extends "hertz" | "bpm"> extends Signal<TypeNam
 			value: options.value,
 		});
 	}
+
+    /**
+     * A multiplier on the bpm value. Useful for setting a PPQ relative to the base frequency value.
+     */
+    get multiplier(): number {
+        return this._param.multiplier;
+    }
+
+    set multiplier(m: number) {
+        this._param.multiplier = m;
+    }
 
 	static getDefaults(): TickSignalOptions<any> {
 		return Object.assign(Signal.getDefaults(), {
@@ -74,16 +84,6 @@ export class TickSignal<TypeName extends "hertz" | "bpm"> extends Signal<TypeNam
 
 	getTicksAtTime(time: Time): Ticks {
 		return this._param.getTicksAtTime(time);
-	}
-
-	/**
-	 * A multiplier on the bpm value. Useful for setting a PPQ relative to the base frequency value.
-	 */
-	get multiplier(): number {
-		return this._param.multiplier;
-	}
-	set multiplier(m: number) {
-		this._param.multiplier = m;
 	}
 
 	dispose(): this {

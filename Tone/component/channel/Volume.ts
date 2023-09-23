@@ -1,8 +1,5 @@
-import { Gain } from "../../core/context/Gain";
-import { Param } from "../../core/context/Param";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Decibels } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Gain, optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Decibels } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
 
 interface VolumeOptions extends ToneAudioNodeOptions {
@@ -31,12 +28,6 @@ export class Volume extends ToneAudioNode<VolumeOptions> {
 	 * Input and output are the same
 	 */
 	input: Gain<"decibels">;
-
-	/**
-	 * The unmuted volume
-	 */
-	private _unmutedVolume: Decibels;
-
 	/**
 	 * The volume control in decibels.
 	 * @example
@@ -45,6 +36,10 @@ export class Volume extends ToneAudioNode<VolumeOptions> {
 	 * vol.volume.value = -20;
 	 */
 	volume: Param<"decibels">;
+    /**
+     * The unmuted volume
+     */
+    private _unmutedVolume: Decibels;
 
 	/**
 	 * @param volume the initial volume in decibels
@@ -69,13 +64,6 @@ export class Volume extends ToneAudioNode<VolumeOptions> {
 		this.mute = options.mute;
 	}
 
-	static getDefaults(): VolumeOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			mute: false,
-			volume: 0,
-		});
-	}
-
 	/**
 	 * Mute the output.
 	 * @example
@@ -87,6 +75,7 @@ export class Volume extends ToneAudioNode<VolumeOptions> {
 	get mute(): boolean {
 		return this.volume.value === -Infinity;
 	}
+
 	set mute(mute: boolean) {
 		if (!this.mute && mute) {
 			this._unmutedVolume = this.volume.value;
@@ -96,6 +85,13 @@ export class Volume extends ToneAudioNode<VolumeOptions> {
 			this.volume.value = this._unmutedVolume;
 		}
 	}
+
+    static getDefaults(): VolumeOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            mute: false,
+            volume: 0,
+        });
+    }
 
 	/**
 	 * clean up

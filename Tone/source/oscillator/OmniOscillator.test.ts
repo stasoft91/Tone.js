@@ -6,7 +6,7 @@ import { OutputAudio } from "test/helper/OutputAudio";
 import { SourceTests } from "test/helper/SourceTests";
 import { FMOscillator } from "./FMOscillator";
 import { OmniOscillator } from "./OmniOscillator";
-import { OmniOscillatorType } from "./OscillatorInterface";
+import type { OmniOscillatorType } from "./OscillatorInterface";
 import { PulseOscillator } from "./PulseOscillator";
 import { PWMOscillator } from "./PWMOscillator";
 

@@ -1,10 +1,9 @@
-import { NormalRange } from "../core/type/Units";
-import { StereoEffect, StereoEffectOptions } from "./StereoEffect";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Scale } from "../signal/Scale";
-import { Signal } from "../signal/Signal";
-import { FeedbackCombFilter } from "../component/filter/FeedbackCombFilter";
+import { FeedbackCombFilter } from "../component";
+import { optionsFromArguments } from "../core";
+import type { NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { Scale, Signal } from "../signal";
+import { StereoEffect, type StereoEffectOptions } from "./StereoEffect";
 
 export interface JCReverbOptions extends StereoEffectOptions {
 	roomSize: NormalRange;
@@ -36,7 +35,7 @@ const allpassFilterFreqs = [347, 113, 37];
  * // connecting the synth to reverb through delay
  * const synth = new Tone.DuoSynth().chain(delay, reverb);
  * synth.triggerAttackRelease("A4", "8n");
- * 
+ *
  * @category Effect
  */
 export class JCReverb extends StereoEffect<JCReverbOptions> {
@@ -44,9 +43,9 @@ export class JCReverb extends StereoEffect<JCReverbOptions> {
 	readonly name: string = "JCReverb";
 
 	/**
-	 * Room size control values. 
+     * Room size control values.
 	 */
-	readonly roomSize: Signal<"normalRange">
+    readonly roomSize: Signal<"normalRange">;
 
 	/**
 	 * Scale the room size

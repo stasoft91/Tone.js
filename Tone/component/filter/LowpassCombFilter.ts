@@ -1,8 +1,13 @@
-import { Param } from "../../core/context/Param";
-import { InputNode, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Frequency, NormalRange, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { RecursivePartial } from "../../core/util/Interface";
+import {
+	type InputNode,
+	optionsFromArguments,
+	type OutputNode,
+	Param,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../../core";
+import type { Frequency, NormalRange, Time } from "../../core/type/Units";
+import type { RecursivePartial } from "../../core/util/Interface";
 import { FeedbackCombFilter } from "./FeedbackCombFilter";
 import { OnePoleFilter } from "./OnePoleFilter";
 
@@ -20,29 +25,24 @@ interface LowpassCombFilterOptions extends ToneAudioNodeOptions {
 export class LowpassCombFilter extends ToneAudioNode<LowpassCombFilterOptions> {
 
 	readonly name = "LowpassCombFilter";
-
-	/**
-	 * The delay node
-	 */
-	private _combFilter: FeedbackCombFilter;
-
-	/**
-	 * The lowpass filter
-	 */
-	private _lowpass: OnePoleFilter;
-
 	/**
 	 * The delayTime of the comb filter.
 	 */
 	readonly delayTime: Param<"time">;
-
 	/**
 	 * The amount of feedback of the delayed signal.
 	 */
 	readonly resonance: Param<"normalRange">;
-
 	readonly input: InputNode;
 	readonly output: OutputNode;
+    /**
+     * The delay node
+     */
+    private _combFilter: FeedbackCombFilter;
+    /**
+     * The lowpass filter
+     */
+    private _lowpass: OnePoleFilter;
 
 	/**
 	 * @param delayTime The delay time of the comb filter
@@ -73,23 +73,24 @@ export class LowpassCombFilter extends ToneAudioNode<LowpassCombFilterOptions> {
 		this._lowpass.connect(this._combFilter);
 	}
 
-	static getDefaults(): LowpassCombFilterOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			dampening: 3000,
-			delayTime: 0.1,
-			resonance: 0.5,
-		});
-	}
-	
 	/**
 	 * The dampening control of the feedback
 	 */
 	get dampening(): Frequency {
 		return this._lowpass.frequency;
 	}
+
 	set dampening(fq) {
 		this._lowpass.frequency = fq;
 	}
+
+    static getDefaults(): LowpassCombFilterOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            dampening: 3000,
+            delayTime: 0.1,
+            resonance: 0.5,
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

@@ -1,5 +1,5 @@
+import type { Time } from "../type/Units";
 import { assertRange } from "./Debug";
-import { Time } from "../type/Units";
 
 /**
  * Assert that the number is in the given range.

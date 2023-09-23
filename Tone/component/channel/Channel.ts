@@ -1,11 +1,16 @@
-import { AudioRange, Decibels } from "../../core/type/Units";
-import { InputNode, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { Solo } from "./Solo";
-import { PanVol } from "./PanVol";
-import { Param } from "../../core/context/Param";
+import {
+	Gain,
+	type InputNode,
+	optionsFromArguments,
+	type OutputNode,
+	Param,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../../core";
+import type { AudioRange, Decibels } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { Gain } from "../../core/context/Gain";
+import { PanVol } from "./PanVol";
+import { Solo } from "./Solo";
 
 export interface ChannelOptions extends ToneAudioNodeOptions {
 	pan: AudioRange;
@@ -16,7 +21,7 @@ export interface ChannelOptions extends ToneAudioNodeOptions {
 }
 
 /**
- * Channel provides a channel strip interface with volume, pan, solo and mute controls. 
+ * Channel provides a channel strip interface with volume, pan, solo and mute controls.
  * See [[PanVol]] and [[Solo]]
  * @example
  * // pan the incoming signal left and drop the volume 12db
@@ -25,32 +30,27 @@ export interface ChannelOptions extends ToneAudioNodeOptions {
  */
 export class Channel extends ToneAudioNode<ChannelOptions> {
 
+    /**
+     * Store the send/receive channels by name.
+     */
+    private static buses: Map<string, Gain> = new Map();
 	readonly name: string = "Channel";
-
 	readonly input: InputNode;
 	readonly output: OutputNode;
-
-	/**
-	 * The soloing interface
-	 */
-	private _solo: Solo;
-
-	/**
-	 * The panning and volume node
-	 */
-	private _panVol: PanVol;
-
 	/**
 	 * The L/R panning control. -1 = hard left, 1 = hard right.
 	 * @min -1
 	 * @max 1
 	 */
 	readonly pan: Param<"audioRange">;
-
 	/**
 	 * The volume control in decibels.
 	 */
 	readonly volume: Param<"decibels">;
+    /**
+     * The panning and volume node
+     */
+    private _panVol: PanVol;
 
 	/**
 	 * @param volume The output volume.
@@ -80,15 +80,10 @@ export class Channel extends ToneAudioNode<ChannelOptions> {
 		readOnly(this, ["pan", "volume"]);
 	}
 
-	static getDefaults(): ChannelOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			pan: 0,
-			volume: 0,
-			mute: false,
-			solo: false,
-			channelCount: 1,
-		});
-	}
+    /**
+     * The soloing interface
+     */
+    private _solo: Solo;
 
 	/**
 	 * Solo/unsolo the channel. Soloing is only relative to other [[Channels]] and [[Solo]] instances
@@ -96,6 +91,7 @@ export class Channel extends ToneAudioNode<ChannelOptions> {
 	get solo(): boolean {
 		return this._solo.solo;
 	}
+
 	set solo(solo) {
 		this._solo.solo = solo;
 	}
@@ -114,35 +110,29 @@ export class Channel extends ToneAudioNode<ChannelOptions> {
 	get mute(): boolean {
 		return this._panVol.mute;
 	}
+
 	set mute(mute) {
 		this._panVol.mute = mute;
 	}
 
-	/**
-	 * Store the send/receive channels by name. 
-	 */
-	private static buses: Map<string, Gain> = new Map();
-
-	/**
-	 * Get the gain node belonging to the bus name. Create it if
-	 * it doesn't exist
-	 * @param name The bus name
-	 */
-	private _getBus(name: string): Gain {
-		if (!Channel.buses.has(name)) {
-			Channel.buses.set(name, new Gain({ context: this.context }));
-		}
-		return Channel.buses.get(name) as Gain;
+    static getDefaults(): ChannelOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            pan: 0,
+            volume: 0,
+            mute: false,
+            solo: false,
+            channelCount: 1,
+        });
 	}
 
 	/**
 	 * Send audio to another channel using a string. `send` is a lot like
-	 * [[connect]], except it uses a string instead of an object. This can 
+     * [[connect]], except it uses a string instead of an object. This can
 	 * be useful in large applications to decouple sections since [[send]]
 	 * and [[receive]] can be invoked separately in order to connect an object
 	 * @param name The channel name to send the audio
-	 * @param volume The amount of the signal to send. 
-	 * 	Defaults to 0db, i.e. send the entire signal
+     * @param volume The amount of the signal to send.
+     *    Defaults to 0db, i.e. send the entire signal
 	 * @returns Returns the gain node of this connection.
 	 */
 	send(name: string, volume: Decibels = 0): Gain<"decibels"> {
@@ -158,7 +148,7 @@ export class Channel extends ToneAudioNode<ChannelOptions> {
 	}
 
 	/**
-	 * Receive audio from a channel which was connected with [[send]]. 
+     * Receive audio from a channel which was connected with [[send]].
 	 * @param name The channel name to receive audio from.
 	 */
 	receive(name: string): this {
@@ -175,4 +165,16 @@ export class Channel extends ToneAudioNode<ChannelOptions> {
 		this._solo.dispose();
 		return this;
 	}
+
+    /**
+     * Get the gain node belonging to the bus name. Create it if
+     * it doesn't exist
+     * @param name The bus name
+     */
+    private _getBus(name: string): Gain {
+        if (!Channel.buses.has(name)) {
+            Channel.buses.set(name, new Gain({ context: this.context }));
+        }
+        return Channel.buses.get(name) as Gain;
+    }
 }

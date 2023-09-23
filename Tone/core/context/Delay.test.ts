@@ -2,8 +2,8 @@ import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { connectFrom, connectTo } from "test/helper/Connect";
 import { PassAudio } from "test/helper/PassAudio";
-import { connect } from "../context/ToneAudioNode";
 import { Delay } from "./Delay";
+import { connect } from "./ToneAudioNode";
 
 describe("Delay", () => {
 

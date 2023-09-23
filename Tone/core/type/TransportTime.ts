@@ -1,7 +1,7 @@
 import { getContext } from "../Global";
-import { Seconds, Ticks } from "../type/Units";
 import { TimeClass } from "./Time";
-import { TimeBaseUnit, TimeValue } from "./TimeBase";
+import type { TimeBaseUnit, TimeValue } from "./TimeBase";
+import type { Seconds, Ticks } from "./Units";
 
 /**
  * TransportTime is a time along the Transport's

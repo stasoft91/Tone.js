@@ -1,10 +1,10 @@
-import { SyncedSignal } from "./SyncedSignal";
-import { Offline } from "test/helper/Offline";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { Offline } from "test/helper/Offline";
 import { dbToGain } from "Tone/core/type/Conversions";
 import "../core/clock/Transport";
 import "../core/context/Destination";
-import { BasicTests } from "test/helper/Basic";
+import { SyncedSignal } from "./SyncedSignal";
 
 describe("SyncedSignal", () => {
 
@@ -17,8 +17,8 @@ describe("SyncedSignal", () => {
 			sched.setValueAtTime(2, 0.2);
 			sched.dispose();
 		});
-	
-		it("can schedule setValueAtTime relative to the Transport", () => {
+
+        it("can schedule setValueAtTime relative to the Transport", () => {
 			return Offline(({ transport }) => {
 				const sched = new SyncedSignal(1).toDestination();
 				sched.setValueAtTime(2, 0.1);
@@ -31,8 +31,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(0.301)).to.be.closeTo(3, 0.07);
 			});
 		});
-	
-		it("can schedule linearRampToValueAtTime relative to the Transport", () => {
+
+        it("can schedule linearRampToValueAtTime relative to the Transport", () => {
 			return Offline(({ transport }) => {
 				const sched = new SyncedSignal(1).toDestination();
 				sched.setValueAtTime(1, 0.1);
@@ -46,8 +46,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(0.301)).to.be.closeTo(2, 0.07);
 			});
 		});
-	
-		it("can schedule exponentialRampToValueAtTime relative to the Transport", () => {
+
+        it("can schedule exponentialRampToValueAtTime relative to the Transport", () => {
 			return Offline(({ transport }) => {
 				const sched = new SyncedSignal(1).toDestination();
 				sched.setValueAtTime(1, 0.1);
@@ -61,8 +61,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(0.301)).to.be.closeTo(2, 0.07);
 			});
 		});
-	
-		it("can get exponential ramp value in the future", () => {
+
+        it("can get exponential ramp value in the future", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(0.5).toDestination();
@@ -76,8 +76,8 @@ describe("SyncedSignal", () => {
 				});
 			});
 		});
-	
-		it("can get exponential approach in the future", () => {
+
+        it("can get exponential approach in the future", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(0.5).toDestination();
@@ -90,8 +90,8 @@ describe("SyncedSignal", () => {
 				});
 			});
 		});
-	
-		it("can loop the signal when the Transport loops", () => {
+
+        it("can loop the signal when the Transport loops", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(1).toDestination();
@@ -107,8 +107,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(1.5)).to.be.closeTo(2, 0.01);
 			});
 		});
-	
-		it("can get set a curve in the future", () => {
+
+        it("can get set a curve in the future", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(0).toDestination();
@@ -120,8 +120,8 @@ describe("SyncedSignal", () => {
 				});
 			});
 		});
-	
-		it("can scale a curve value", () => {
+
+        it("can scale a curve value", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(1).toDestination();
@@ -133,8 +133,8 @@ describe("SyncedSignal", () => {
 				});
 			});
 		});
-	
-		it("can schedule a linear ramp between two times", () => {
+
+        it("can schedule a linear ramp between two times", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(0).toDestination();
@@ -148,8 +148,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(2)).to.closeTo(1, 0.1);
 			});
 		});
-	
-		it("can get exponential ramp value between two times", () => {
+
+        it("can get exponential ramp value between two times", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(1).toDestination();
@@ -163,8 +163,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(2)).to.closeTo(3, 0.1);
 			});
 		});
-	
-		it("can cancel and hold a scheduled value", () => {
+
+        it("can cancel and hold a scheduled value", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(0).toDestination();
@@ -179,8 +179,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(0.75)).to.be.closeTo(0.5, 0.1);
 			});
 		});
-	
-		it("can cancel a scheduled value", () => {
+
+        it("can cancel a scheduled value", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(0).toDestination();
@@ -196,8 +196,8 @@ describe("SyncedSignal", () => {
 				expect(buffer.getValueAtTime(0.75)).to.be.closeTo(1, 0.1);
 			});
 		});
-	
-		it("can automate values with different units", () => {
+
+        it("can automate values with different units", () => {
 			let sched;
 			return Offline(({ transport }) => {
 				sched = new SyncedSignal(-10, "decibels").toDestination();

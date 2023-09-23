@@ -13,6 +13,7 @@ function noCopy(key: string, arg: any): boolean {
 /**
  * Recursively merge an object
  * @param target the object to merge into
+ // eslint-disable-next-line jsdoc/check-param-names
  * @param sources the source objects to merge
  */
 export function deepMerge<T>(target: T): T;
@@ -21,7 +22,7 @@ export function deepMerge<T, U, V>(target: T, source1: U, source2: V): T & U & V
 export function deepMerge<T, U, V, W>(target: T, source1: U, source2: V, source3: W): T & U & V & W;
 export function deepMerge(target: any, ...sources: any[]): any {
 	if (!sources.length) {
-		return target; 
+        return target;
 	}
 	const source = sources.shift();
 
@@ -31,7 +32,7 @@ export function deepMerge(target: any, ...sources: any[]): any {
 				target[key] = source[key];
 			} else if (isObject(source[key])) {
 				if (!target[key]) {
-					Object.assign(target, { [key]: {} }); 
+                    Object.assign(target, { [key]: {} });
 				}
 				deepMerge(target[key], source[key] as any);
 			} else {
@@ -90,12 +91,12 @@ export function optionsFromArguments<T extends object>(
  * Return this instances default values by calling Constructor.getDefaults()
  */
 export function getDefaultsFromInstance<T>(instance: T): BaseToneOptions {
-	type ToneClass = {
-		constructor: ToneClass;
-		getDefaults: () => BaseToneOptions;
-	} & T;
+    type ToneClass = {
+        constructor: ToneClass;
+        getDefaults: () => BaseToneOptions;
+    } & T;
 
-	return (instance as ToneClass).constructor.getDefaults();
+    return (instance as ToneClass).constructor.getDefaults();
 }
 
 /**

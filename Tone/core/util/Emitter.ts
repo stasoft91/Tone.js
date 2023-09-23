@@ -21,6 +21,17 @@ export class Emitter<EventType extends string = string> extends Tone {
 	 */
 	private _events?: EmitterEventObject;
 
+    /**
+     * Add Emitter functions (on/off/emit) to the object
+     */
+    static mixin(constr: any): void {
+        // instance._events = {};
+        ["on", "once", "off", "emit"].forEach(name => {
+            const property = Object.getOwnPropertyDescriptor(Emitter.prototype, name) as PropertyDescriptor;
+            Object.defineProperty(constr.prototype, name, property);
+        });
+    }
+
 	/**
 	 * Bind a callback to a specific event.
 	 * @param  event     The name of the event to listen for.
@@ -101,17 +112,6 @@ export class Emitter<EventType extends string = string> extends Tone {
 			}
 		}
 		return this;
-	}
-
-	/**
-	 * Add Emitter functions (on/off/emit) to the object
-	 */
-	static mixin(constr: any): void {
-		// instance._events = {};
-		["on", "once", "off", "emit"].forEach(name => {
-			const property = Object.getOwnPropertyDescriptor(Emitter.prototype, name) as PropertyDescriptor;
-			Object.defineProperty(constr.prototype, name, property);
-		});
 	}
 
 	/**

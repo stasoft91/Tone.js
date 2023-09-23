@@ -1,6 +1,6 @@
+import type { Seconds } from "../type/Units";
+import type { AnyAudioContext } from "./AudioContext";
 import { BaseContext } from "./BaseContext";
-import { Seconds } from "../type/Units";
-import { AnyAudioContext } from "./AudioContext";
 
 type Draw = import("../util/Draw").Draw;
 type Destination = import("./Destination").Destination;
@@ -10,6 +10,48 @@ type Listener = import("./Listener").Listener;
 export class DummyContext extends BaseContext {
 	//---------------------------
 	// BASE AUDIO CONTEXT METHODS
+    lookAhead = 0;
+    latencyHint = 0;
+    readonly isOffline: boolean = false;
+
+    get rawContext(): AnyAudioContext {
+        return {} as AnyAudioContext;
+    }
+
+    get currentTime(): Seconds {
+        return 0;
+    }
+
+    get state(): AudioContextState {
+        return {} as AudioContextState;
+    }
+
+    get sampleRate(): number {
+        return 0;
+    }
+
+    get listener(): Listener {
+        return {} as Listener;
+    }
+
+    get transport(): Transport {
+        return {} as Transport;
+    }
+
+    get draw(): Draw {
+        return {} as Draw;
+    }
+
+    set draw(_d) {
+    }
+
+    get destination(): Destination {
+        return {} as Destination;
+    }
+
+    set destination(_d: Destination) {
+    }
+
 	//---------------------------
 	createAnalyser(): AnalyserNode {
 		return {} as AnalyserNode;
@@ -50,6 +92,10 @@ export class DummyContext extends BaseContext {
 	createConstantSource(): ConstantSourceNode {
 		return {} as ConstantSourceNode;
 	}
+
+    //---------------------------
+    // TONE AUDIO CONTEXT METHODS
+    //---------------------------
 
 	createConvolver(): ConvolverNode {
 		return {} as ConvolverNode;
@@ -112,10 +158,6 @@ export class DummyContext extends BaseContext {
 		return Promise.resolve({} as AudioBuffer);
 	}
 
-	//---------------------------
-	// TONE AUDIO CONTEXT METHODS
-	//---------------------------
-
 	createAudioWorkletNode(
 		_name: string,
 		_options?: Partial<AudioWorkletNodeOptions>
@@ -123,17 +165,9 @@ export class DummyContext extends BaseContext {
 		return {} as AudioWorkletNode;
 	}
 
-	get rawContext(): AnyAudioContext {
-		return {} as AnyAudioContext;
-	}
-
 	async addAudioWorkletModule(_url: string): Promise<void> {
 		return Promise.resolve();
 	}
-
-	lookAhead = 0;
-
-	latencyHint = 0;
 
 	resume(): Promise<void> {
 		return Promise.resolve();
@@ -159,36 +193,6 @@ export class DummyContext extends BaseContext {
 		return {} as AudioBufferSourceNode;
 	}
 
-	get currentTime(): Seconds {
-		return 0;
-	}
-
-	get state(): AudioContextState {
-		return {} as AudioContextState;
-	}
-
-	get sampleRate(): number {
-		return 0;
-	}
-
-	get listener(): Listener {
-		return {} as Listener;
-	}
-
-	get transport(): Transport {
-		return {} as Transport;
-	}
-
-	get draw(): Draw {
-		return {} as Draw;
-	}
-	set draw(_d) {}
-
-	get destination(): Destination {
-		return {} as Destination;
-	}
-	set destination(_d: Destination) {}
-
 	now() {
 		return 0;
 	}
@@ -196,6 +200,4 @@ export class DummyContext extends BaseContext {
 	immediate() {
 		return 0;
 	}
-
-	readonly isOffline: boolean = false;
 }

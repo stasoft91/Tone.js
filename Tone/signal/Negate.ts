@@ -1,4 +1,4 @@
-import { ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
+import type { ToneAudioNodeOptions } from "../core";
 import { Multiply } from "./Multiply";
 import { SignalOperator } from "./SignalOperator";
 

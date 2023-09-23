@@ -1,10 +1,10 @@
-import { Phaser } from "./Phaser";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
 import { ToneAudioBuffer } from "Tone/core";
 import { Player } from "Tone/source/buffer/Player";
+import { Phaser } from "./Phaser";
 
 describe("Phaser", () => {
 

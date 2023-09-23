@@ -1,15 +1,13 @@
-import { AmplitudeEnvelope } from "../component/envelope/AmplitudeEnvelope";
-import { Envelope, EnvelopeOptions } from "../component/envelope/Envelope";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { NormalRange, Seconds, Time } from "../core/type/Units";
+import { AmplitudeEnvelope, Envelope, type EnvelopeOptions } from "../component";
+import { ToneAudioNode, type ToneAudioNodeOptions } from "../core";
+import type { NormalRange, Seconds, Time } from "../core/type/Units";
 import { omitFromObject, optionsFromArguments } from "../core/util/Defaults";
-import { readOnly } from "../core/util/Interface";
-import { RecursivePartial } from "../core/util/Interface";
-import { Signal } from "../signal/Signal";
-import { OmniOscillator } from "../source/oscillator/OmniOscillator";
-import { OmniOscillatorOptions, OmniOscillatorSynthOptions } from "../source/oscillator/OscillatorInterface";
+import { readOnly, type RecursivePartial } from "../core/util/Interface";
+import { Signal } from "../signal";
+import { OmniOscillator } from "../source";
+import type { OmniOscillatorOptions, OmniOscillatorSynthOptions } from "../source/oscillator/OscillatorInterface";
 import { Source } from "../source/Source";
-import { Monophonic, MonophonicOptions } from "./Monophonic";
+import { Monophonic, type MonophonicOptions } from "./Monophonic";
 
 export interface SynthOptions extends MonophonicOptions {
 	oscillator: OmniOscillatorSynthOptions;
@@ -98,6 +96,21 @@ export class Synth<Options extends SynthOptions = SynthOptions> extends Monophon
 		});
 	}
 
+    getLevelAtTime(time: Time): NormalRange {
+        time = this.toSeconds(time);
+        return this.envelope.getValueAtTime(time);
+    }
+
+    /**
+     * clean up
+     */
+    dispose(): this {
+        super.dispose();
+        this.oscillator.dispose();
+        this.envelope.dispose();
+        return this;
+    }
+
 	/**
 	 * start the attack portion of the envelope
 	 * @param time the time the attack should start
@@ -122,20 +135,5 @@ export class Synth<Options extends SynthOptions = SynthOptions> extends Monophon
 	protected _triggerEnvelopeRelease(time: Seconds): void {
 		this.envelope.triggerRelease(time);
 		this.oscillator.stop(time + this.toSeconds(this.envelope.release));
-	}
-
-	getLevelAtTime(time: Time): NormalRange {
-		time = this.toSeconds(time);
-		return this.envelope.getValueAtTime(time);
-	}
-
-	/**
-	 * clean up
-	 */
-	dispose(): this {
-		super.dispose();
-		this.oscillator.dispose();
-		this.envelope.dispose();
-		return this;
 	}
 }

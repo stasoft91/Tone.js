@@ -1,8 +1,8 @@
 import { getContext } from "../Global";
 import { ftom, mtof } from "./Conversions";
-import { FrequencyClass, FrequencyUnit } from "./Frequency";
-import { TimeValue } from "./TimeBase";
-import { Hertz, Interval, MidiNote, Seconds, Ticks } from "./Units";
+import { FrequencyClass, type FrequencyUnit } from "./Frequency";
+import type { TimeValue } from "./TimeBase";
+import type { Hertz, Interval, MidiNote, Seconds, Ticks } from "./Units";
 
 /**
  * Midi is a primitive type for encoding Time values.
@@ -15,34 +15,6 @@ export class MidiClass extends FrequencyClass<MidiNote> {
 	readonly name: string = "MidiClass";
 
 	readonly defaultUnits = "midi";
-
-	/**
-	 * Returns the value of a frequency in the current units
-	 */
-	protected _frequencyToUnits(freq: Hertz): MidiNote {
-		return ftom(super._frequencyToUnits(freq));
-	}
-
-	/**
-	 * Returns the value of a tick in the current time units
-	 */
-	protected _ticksToUnits(ticks: Ticks): MidiNote {
-		return ftom(super._ticksToUnits(ticks));
-	}
-
-	/**
-	 * Return the value of the beats in the current units
-	 */
-	protected _beatsToUnits(beats: number): MidiNote {
-		return ftom(super._beatsToUnits(beats));
-	}
-
-	/**
-	 * Returns the value of a second in the current units
-	 */
-	protected _secondsToUnits(seconds: Seconds): MidiNote {
-		return ftom(super._secondsToUnits(seconds));
-	}
 
 	/**
 	 * Return the value of the frequency as a MIDI note
@@ -71,6 +43,34 @@ export class MidiClass extends FrequencyClass<MidiNote> {
 	transpose(interval: Interval): MidiClass {
 		return new MidiClass(this.context, this.toMidi() + interval);
 	}
+
+    /**
+     * Returns the value of a frequency in the current units
+     */
+    protected _frequencyToUnits(freq: Hertz): MidiNote {
+        return ftom(super._frequencyToUnits(freq));
+    }
+
+    /**
+     * Returns the value of a tick in the current time units
+     */
+    protected _ticksToUnits(ticks: Ticks): MidiNote {
+        return ftom(super._ticksToUnits(ticks));
+    }
+
+    /**
+     * Return the value of the beats in the current units
+     */
+    protected _beatsToUnits(beats: number): MidiNote {
+        return ftom(super._beatsToUnits(beats));
+    }
+
+    /**
+     * Returns the value of a second in the current units
+     */
+    protected _secondsToUnits(seconds: Seconds): MidiNote {
+        return ftom(super._secondsToUnits(seconds));
+    }
 }
 
 /**

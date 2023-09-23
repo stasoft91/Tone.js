@@ -1,7 +1,5 @@
-import { Param } from "../../core/context/Param";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { AudioRange } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { AudioRange } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
 
 interface TonePannerOptions extends ToneAudioNodeOptions {
@@ -14,37 +12,35 @@ interface TonePannerOptions extends ToneAudioNodeOptions {
  * @example
  * return Tone.Offline(() => {
  * // move the input signal from right to left
- * 	const panner = new Tone.Panner(1).toDestination();
- * 	panner.pan.rampTo(-1, 0.5);
- * 	const osc = new Tone.Oscillator(100).connect(panner).start();
+ *    const panner = new Tone.Panner(1).toDestination();
+ *    panner.pan.rampTo(-1, 0.5);
+ *    const osc = new Tone.Oscillator(100).connect(panner).start();
  * }, 0.5, 2);
  * @category Component
  */
 export class Panner extends ToneAudioNode<TonePannerOptions> {
 
 	readonly name: string = "Panner";
-
-	/**
-	 * the panner node
-	 */
-	private _panner: StereoPannerNode = this.context.createStereoPanner();
-	readonly input: StereoPannerNode = this._panner;
-	readonly output: StereoPannerNode = this._panner;
-
 	/**
 	 * The pan control. -1 = hard left, 1 = hard right.
 	 * @min -1
 	 * @max 1
 	 * @example
 	 * return Tone.Offline(() => {
-	 * 	// pan hard right
-	 * 	const panner = new Tone.Panner(1).toDestination();
-	 * 	// pan hard left
-	 * 	panner.pan.setValueAtTime(-1, 0.25);
-	 * 	const osc = new Tone.Oscillator(50, "triangle").connect(panner).start();
+     *    // pan hard right
+     *    const panner = new Tone.Panner(1).toDestination();
+     *    // pan hard left
+     *    panner.pan.setValueAtTime(-1, 0.25);
+     *    const osc = new Tone.Oscillator(50, "triangle").connect(panner).start();
 	 * }, 0.5, 2);
 	 */
 	readonly pan: Param<"audioRange">;
+    /**
+     * the panner node
+     */
+    private _panner: StereoPannerNode = this.context.createStereoPanner();
+    readonly input: StereoPannerNode = this._panner;
+    readonly output: StereoPannerNode = this._panner;
 
 	constructor(options?: Partial<TonePannerOptions>);
 	/**

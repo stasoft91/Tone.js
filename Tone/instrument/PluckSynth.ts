@@ -1,10 +1,9 @@
-import { Frequency, NormalRange, Time } from "../core/type/Units";
-import { LowpassCombFilter } from "../component/filter/LowpassCombFilter";
-import { deepMerge } from "../core/util/Defaults";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { RecursivePartial } from "../core/util/Interface";
-import { Noise } from "../source/Noise";
-import { Instrument, InstrumentOptions } from "./Instrument";
+import { LowpassCombFilter } from "../component";
+import type { Frequency, NormalRange, Time } from "../core/type/Units";
+import { deepMerge, optionsFromArguments } from "../core/util/Defaults";
+import type { RecursivePartial } from "../core/util/Interface";
+import { Noise } from "../source";
+import { Instrument, type InstrumentOptions } from "./Instrument";
 
 export interface PluckSynthOptions extends InstrumentOptions {
 	attackNoise: number;
@@ -26,13 +25,6 @@ export interface PluckSynthOptions extends InstrumentOptions {
 export class PluckSynth extends Instrument<PluckSynthOptions> {
 
 	readonly name = "PluckSynth";
-
-	/**
-	 * Noise burst at the beginning
-	 */
-	private _noise: Noise;
-	private _lfcf: LowpassCombFilter;
-
 	/**
 	 * The amount of noise at the attack.
 	 * Nominal range of [0.1, 20]
@@ -40,16 +32,19 @@ export class PluckSynth extends Instrument<PluckSynthOptions> {
 	 * @max 20
 	 */
 	attackNoise: number;
-
 	/**
 	 * The amount of resonance of the pluck. Also correlates to the sustain duration.
 	 */
 	resonance: NormalRange;
-
 	/**
 	 * The release time which corresponds to a resonance ramp down to 0
 	 */
 	release: Time;
+    /**
+     * Noise burst at the beginning
+     */
+    private _noise: Noise;
+    private _lfcf: LowpassCombFilter;
 
 	constructor(options?: RecursivePartial<PluckSynthOptions>)
 	constructor() {
@@ -77,15 +72,6 @@ export class PluckSynth extends Instrument<PluckSynthOptions> {
 		this._lfcf.connect(this.output);
 	}
 
-	static getDefaults(): PluckSynthOptions {
-		return deepMerge(Instrument.getDefaults(), {
-			attackNoise: 1,
-			dampening: 4000,
-			resonance: 0.7,
-			release: 1,
-		});
-	}
-
 	/**
 	 * The dampening control. i.e. the lowpass filter frequency of the comb filter
 	 * @min 0
@@ -94,9 +80,19 @@ export class PluckSynth extends Instrument<PluckSynthOptions> {
 	get dampening(): Frequency {
 		return this._lfcf.dampening;
 	}
+
 	set dampening(fq) {
 		this._lfcf.dampening = fq;
 	}
+
+    static getDefaults(): PluckSynthOptions {
+        return deepMerge(Instrument.getDefaults(), {
+            attackNoise: 1,
+            dampening: 4000,
+            resonance: 0.7,
+            release: 1,
+        });
+    }
 
 	triggerAttack(note: Frequency, time?: Time): this {
 		const freq = this.toFrequency(note);

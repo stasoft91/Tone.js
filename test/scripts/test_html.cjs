@@ -11,20 +11,20 @@ const { file } = require("tmp-promise");
  * A promise version of exec
  */
 function execPromise(cmd) {
-	return new Promise((done, error) => {
-		exec(cmd, (e, output) => {
-			if (e) {
-				error(output);
-			} else {
-				done();
-			}
-		});
-	});
+    return new Promise((done, error) => {
+        exec(cmd, (e, output) => {
+            if (e) {
+                error(output);
+            } else {
+                done();
+            }
+        });
+    });
 }
 
 async function testExampleString(str) {
-	// str = str.replace("from \"tone\"", `from "${resolve(__dirname, "../../")}"`);
-	str = `
+    // str = str.replace("from \"tone\"", `from "${resolve(__dirname, "../../")}"`);
+    str = `
 		import * as Tone from "${resolve(__dirname, "../../")}"
 		let ui: any;
 		let drawer: any;
@@ -36,34 +36,35 @@ async function testExampleString(str) {
 		let p5: any;
 		${str}
 	`;
-	const { path, cleanup } = await file({ postfix: ".ts" });
-	// work with file here in fd
-	await writeFile(path, str);
-	try {
-		await execPromise(`tsc  --noEmit --target es5 --lib dom,ES2015 ${path}`);
-	} finally {
-		cleanup();
-	}
+    const { path, cleanup } = await file({ postfix: ".ts" });
+    // work with file here in fd
+    await writeFile(path, str);
+    try {
+        await execPromise(`tsc  --noEmit --target es5 --lib dom,ES2015 ${path}`);
+    } finally {
+        cleanup();
+    }
 }
 
 const htmlFiles = glob.sync(resolve(__dirname, "../../examples/*.html"));
 
 async function main() {
-	for (let i = 0; i < htmlFiles.length; i++) {
-		const path = htmlFiles[i];	
-		const fileAsString = (await readFile(path)).toString();
-		const dom = new JSDOM(fileAsString);
-		const scriptTag = dom.window.document.querySelector("body script");
-		if (scriptTag) {
-			try {
-				await testExampleString(scriptTag.textContent);
-				console.log("passed", path);
-			} catch (e) {
-				console.log("failed", path);
-				console.log(e);
-				throw new Error(e);
-			}
-		}
-	}
+    for (let i = 0; i < htmlFiles.length; i++) {
+        const path = htmlFiles[i];
+        const fileAsString = (await readFile(path)).toString();
+        const dom = new JSDOM(fileAsString);
+        const scriptTag = dom.window.document.querySelector("body script");
+        if (scriptTag) {
+            try {
+                await testExampleString(scriptTag.textContent);
+                console.log("passed", path);
+            } catch (e) {
+                console.log("failed", path);
+                console.log(e);
+                throw new Error(e);
+            }
+        }
+    }
 }
+
 main();

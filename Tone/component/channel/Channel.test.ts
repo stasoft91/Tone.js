@@ -1,9 +1,9 @@
-import { Channel } from "./Channel";
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
+import { Offline } from "test/helper/Offline";
 import { PassAudio } from "test/helper/PassAudio";
 import { Signal } from "Tone/signal/Signal";
-import { Offline } from "test/helper/Offline";
-import { expect } from "chai";
+import { Channel } from "./Channel";
 
 describe("Channel", () => {
 
@@ -31,8 +31,8 @@ describe("Channel", () => {
 			expect(channel.solo).to.be.true;
 			channel.dispose();
 		});
-			
-		it("passes the incoming signal through", () => {
+
+        it("passes the incoming signal through", () => {
 			return PassAudio((input) => {
 				const channel = new Channel().toDestination();
 				input.connect(channel);

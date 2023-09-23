@@ -1,14 +1,14 @@
-import { Panner } from "../component/channel/Panner";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { LFOEffect, LFOEffectOptions } from "./LFOEffect";
-import { Frequency } from "../core/type/Units";
+import { Panner } from "../component";
+import { optionsFromArguments } from "../core";
+import type { Frequency } from "../core/type/Units";
+import { LFOEffect, type LFOEffectOptions } from "./LFOEffect";
 
 export interface AutoPannerOptions extends LFOEffectOptions {
 	channelCount: number;
 }
 
 /**
- * AutoPanner is a [[Panner]] with an [[LFO]] connected to the pan amount. 
+ * AutoPanner is a [[Panner]] with an [[LFO]] connected to the pan amount.
  * [Related Reading](https://www.ableton.com/en/blog/autopan-chopper-effect-and-more-liveschool/).
  *
  * @example
@@ -28,7 +28,7 @@ export class AutoPanner extends LFOEffect<AutoPannerOptions> {
 	readonly _panner: Panner;
 
 	/**
-	 * @param frequency Rate of left-right oscillation. 
+     * @param frequency Rate of left-right oscillation.
 	 */
 	constructor(frequency?: Frequency);
 	constructor(options?: Partial<AutoPannerOptions>);

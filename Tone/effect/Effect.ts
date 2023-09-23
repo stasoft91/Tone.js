@@ -1,13 +1,13 @@
-import { CrossFade } from "../component/channel/CrossFade";
-import { Gain } from "../core/context/Gain";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { NormalRange } from "../core/type/Units";
+import { CrossFade } from "../component";
+import { Gain, ToneAudioNode, type ToneAudioNodeOptions } from "../core";
+import type { NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { Signal } from "../signal/Signal";
+import { Signal } from "../signal";
 
 export interface EffectOptions extends ToneAudioNodeOptions {
 	wet: NormalRange;
 }
+
 /**
  * Effect is the base class for effects. Connect the effect between
  * the effectSend and effectReturn GainNodes, then control the amount of
@@ -17,34 +17,28 @@ export abstract class Effect<Options extends EffectOptions>
 	extends ToneAudioNode<Options> {
 
 	readonly name: string = "Effect";
-
+    /**
+     * The effect input node
+     */
+    input: Gain = new Gain({ context: this.context });
+    /**
+     * connect the effectSend to the input of hte effect
+     */
+    protected effectSend: Gain = new Gain({ context: this.context });
+    /**
+     * connect the output of the effect to the effectReturn
+     */
+    protected effectReturn: Gain = new Gain({ context: this.context });
 	/**
 	 * the drywet knob to control the amount of effect
 	 */
 	private _dryWet: CrossFade = new CrossFade({ context: this.context });
-
 	/**
 	 * The wet control is how much of the effected
 	 * will pass through to the output. 1 = 100% effected
 	 * signal, 0 = 100% dry signal.
 	 */
 	wet: Signal<"normalRange"> = this._dryWet.fade;
-
-	/**
-	 * connect the effectSend to the input of hte effect
-	 */
-	protected effectSend: Gain = new Gain({ context: this.context });
-
-	/**
-	 * connect the output of the effect to the effectReturn
-	 */
-	protected effectReturn: Gain = new Gain({ context: this.context });
-
-	/**
-	 * The effect input node
-	 */
-	input: Gain = new Gain({ context: this.context });
-
 	/**
 	 * The effect output
 	 */
@@ -67,16 +61,6 @@ export abstract class Effect<Options extends EffectOptions>
 		});
 	}
 
-	/**
-	 * chains the effect in between the effectSend and effectReturn
-	 */
-	protected connectEffect(effect: ToneAudioNode | AudioNode): this {
-		// add it to the internal channels
-		this._internalChannels.push(effect);
-		this.effectSend.chain(effect, this.effectReturn);
-		return this;
-	}
-
 	dispose(): this {
 		super.dispose();
 		this._dryWet.dispose();
@@ -85,4 +69,14 @@ export abstract class Effect<Options extends EffectOptions>
 		this.wet.dispose();
 		return this;
 	}
+
+    /**
+     * chains the effect in between the effectSend and effectReturn
+     */
+    protected connectEffect(effect: ToneAudioNode | AudioNode): this {
+        // add it to the internal channels
+        this._internalChannels.push(effect);
+        this.effectSend.chain(effect, this.effectReturn);
+        return this;
+    }
 }

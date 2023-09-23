@@ -1,6 +1,6 @@
-import { Timeline, TimelineEvent } from "./Timeline";
 import { Tone } from "../Tone";
-import { Seconds } from "../type/Units";
+import type { Seconds } from "../type/Units";
+import { Timeline, type TimelineEvent } from "./Timeline";
 
 interface TimelineValueEvent<T> extends TimelineEvent {
 	value: T;
@@ -16,7 +16,7 @@ export class TimelineValue<Type> extends Tone {
 	/**
 	 * The timeline which stores the values
 	 */
-	private _timeline: Timeline<TimelineValueEvent<Type>> = new Timeline({ memory: 10 })
+    private _timeline: Timeline<TimelineValueEvent<Type>> = new Timeline({ memory: 10 });
 
 	/**
 	 * Hold the value to return if there is no scheduled values
@@ -41,8 +41,8 @@ export class TimelineValue<Type> extends Tone {
 		});
 		return this;
 	}
-	
-	/**
+
+    /**
 	 * Get the value at the given time
 	 */
 	get(time: Seconds): Type {

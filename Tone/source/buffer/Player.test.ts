@@ -251,7 +251,7 @@ describe("Player", () => {
 
 		it("offset is the loopStart when set to loop", () => {
 			const testSample =
-				buffer.toArray(0)[Math.floor(0.1 * getContext().sampleRate)];
+                buffer.toArray(0)[Math.floor(0.1 * getContext().sampleRate)];
 			return Offline(() => {
 				const player = new Player(buffer);
 				player.loopStart = 0.1;
@@ -403,7 +403,7 @@ describe("Player", () => {
 	context("Start Scheduling", () => {
 		it("can be start with an offset", () => {
 			const testSample =
-				buffer.toArray(0)[Math.floor(0.1 * getContext().sampleRate)];
+                buffer.toArray(0)[Math.floor(0.1 * getContext().sampleRate)];
 			return Offline(() => {
 				const player = new Player(buffer.get());
 				player.toDestination();
@@ -586,9 +586,9 @@ describe("Player", () => {
 
 		it("offsets correctly when started by the Transport", () => {
 			const testSample =
-				buffer.toArray(0)[
-						Math.floor(0.13125 * getContext().sampleRate)
-				];
+                buffer.toArray(0)[
+                    Math.floor(0.13125 * getContext().sampleRate)
+                    ];
 			return Offline(({ transport }) => {
 				const player = new Player(buffer)
 						.sync()

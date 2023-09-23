@@ -1,15 +1,15 @@
-import { AutoFilter } from "./AutoFilter";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
-import teoria from "teoria";
-import { Offline } from "test/helper/Offline";
 import { expect } from "chai";
+import teoria from "teoria";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
+import { Offline } from "test/helper/Offline";
 import { Noise } from "Tone/source";
+import { AutoFilter } from "./AutoFilter";
 
 describe("AutoFilter", () => {
-	
-	BasicTests(AutoFilter);
+
+    BasicTests(AutoFilter);
 	EffectTests(AutoFilter);
 
 	it("matches a file", () => {

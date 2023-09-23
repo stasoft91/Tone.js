@@ -2,11 +2,9 @@ import { expect } from "chai";
 import { BasicTests, warns } from "test/helper/Basic";
 import { PassAudio } from "test/helper/PassAudio";
 import { ONLINE_TESTING } from "test/helper/Supports";
-import { Signal } from "Tone/signal/Signal";
+import { Merge } from "Tone/component/channel/Merge";
 import { Oscillator } from "Tone/source/oscillator/Oscillator";
 import { Meter } from "./Meter";
-import { Panner } from "Tone/component/channel/Panner";
-import { Merge } from "Tone/component/channel/Merge";
 
 describe("Meter", () => {
 
@@ -60,10 +58,10 @@ describe("Meter", () => {
 				meter.dispose();
 			});
 		});
-		
-		if (ONLINE_TESTING) {
-			
-			it("can get the rms level of the incoming signal", (done) => {
+
+        if (ONLINE_TESTING) {
+
+            it("can get the rms level of the incoming signal", (done) => {
 				const meter = new Meter();
 				const osc = new Oscillator().connect(meter).start();
 				osc.volume.value = -6;

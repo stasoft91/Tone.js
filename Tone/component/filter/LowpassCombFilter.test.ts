@@ -1,9 +1,9 @@
-import { LowpassCombFilter } from "./LowpassCombFilter";
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { Offline } from "test/helper/Offline";
 import { PassAudio } from "test/helper/PassAudio";
 import { Oscillator } from "Tone/source/oscillator/Oscillator";
-import { expect } from "chai";
+import { LowpassCombFilter } from "./LowpassCombFilter";
 
 describe("LowpassCombFilter", () => {
 

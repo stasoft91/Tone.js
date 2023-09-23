@@ -1,12 +1,8 @@
-import { Gain } from "../core/context/Gain";
-import {
-	ToneAudioNode,
-	ToneAudioNodeOptions,
-} from "../core/context/ToneAudioNode";
-import { GainFactor, Seconds, Time } from "../core/type/Units";
-import { noOp } from "../core/util/Interface";
+import type { BasicPlaybackState } from "../core";
+import { Gain, ToneAudioNode, type ToneAudioNodeOptions } from "../core";
+import type { GainFactor, Seconds, Time } from "../core/type/Units";
 import { assert } from "../core/util/Debug";
-import { BasicPlaybackState } from "../core/util/StateTimeline";
+import { noOp } from "../core/util/Interface";
 
 export type OneShotSourceCurve = "linear" | "exponential";
 
@@ -35,22 +31,6 @@ export abstract class OneShotSource<
 	 * Sources do not have input nodes
 	 */
 	input: undefined;
-
-	/**
-	 * The start time
-	 */
-	protected _startTime = -1;
-
-	/**
-	 * The stop time
-	 */
-	protected _stopTime = -1;
-
-	/**
-	 * The id of the timeout
-	 */
-	private _timeout = -1;
-
 	/**
 	 * The public output node
 	 */
@@ -58,26 +38,34 @@ export abstract class OneShotSource<
 		context: this.context,
 		gain: 0,
 	});
-
+    /**
+     * The start time
+     */
+    protected _startTime = -1;
+    /**
+     * The stop time
+     */
+    protected _stopTime = -1;
 	/**
 	 * The output gain node.
 	 */
 	protected _gainNode = this.output;
-
 	/**
 	 * The fadeIn time of the amplitude envelope.
 	 */
 	protected _fadeIn: Time;
-
 	/**
 	 * The fadeOut time of the amplitude envelope.
 	 */
 	protected _fadeOut: Time;
-
 	/**
 	 * The curve applied to the fades, either "linear" or "exponential"
 	 */
 	protected _curve: OneShotSourceCurve;
+    /**
+     * The id of the timeout
+     */
+    private _timeout = -1;
 
 	constructor(options: OneShotSourceOptions) {
 		super(options);
@@ -88,6 +76,13 @@ export abstract class OneShotSource<
 		this.onended = options.onended;
 	}
 
+    /**
+     * Get the playback state at the current time
+     */
+    get state(): BasicPlaybackState {
+        return this.getStateAtTime(this.now());
+    }
+
 	static getDefaults(): OneShotSourceOptions {
 		return Object.assign(ToneAudioNode.getDefaults(), {
 			curve: "linear" as OneShotSourceCurve,
@@ -96,6 +91,54 @@ export abstract class OneShotSource<
 			onended: noOp,
 		});
 	}
+
+    /**
+     * Stop the source node at the given time.
+     * @param time When to stop the source
+     */
+    stop(time?: Time): this {
+        this.log("stop", time);
+        this._stopGain(this.toSeconds(time));
+        return this;
+    }
+
+    /**
+     * Get the playback state at the given time
+     */
+    getStateAtTime = function(time: Time): BasicPlaybackState {
+        const computedTime = this.toSeconds(time);
+        if (
+            this._startTime !== -1 &&
+            computedTime >= this._startTime &&
+            (this._stopTime === -1 || computedTime <= this._stopTime)
+        ) {
+            return "started";
+        } else {
+            return "stopped";
+        }
+    };
+
+    /**
+     * Cancel a scheduled stop event
+     */
+    cancelStop(): this {
+        this.log("cancelStop");
+        assert(this._startTime !== -1, "Source is not started");
+        // cancel the stop envelope
+        this._gainNode.gain.cancelScheduledValues(
+            this._startTime + this.sampleTime
+        );
+        this.context.clearTimeout(this._timeout);
+        this._stopTime = -1;
+        return this;
+    }
+
+    dispose(): this {
+        super.dispose();
+        this._gainNode.dispose();
+        this.onended = noOp;
+        return this;
+    }
 
 	/**
 	 * Stop the source node
@@ -107,6 +150,7 @@ export abstract class OneShotSource<
 	 * @param  time When to start the node
 	 */
 	protected abstract start(time?: Time): this;
+
 	/**
 	 * Start the source at the given time
 	 * @param  time When to start the source
@@ -145,16 +189,6 @@ export abstract class OneShotSource<
 	}
 
 	/**
-	 * Stop the source node at the given time.
-	 * @param time When to stop the source
-	 */
-	stop(time?: Time): this {
-		this.log("stop", time);
-		this._stopGain(this.toSeconds(time));
-		return this;
-	}
-
-	/**
 	 * Stop the source at the given time
 	 * @param  time When to stop the source
 	 */
@@ -185,7 +219,7 @@ export abstract class OneShotSource<
 		this._timeout = this.context.setTimeout(() => {
 			// allow additional time for the exponential curve to fully decay
 			const additionalTail =
-				this._curve === "exponential" ? fadeOutTime * 2 : 0;
+                this._curve === "exponential" ? fadeOutTime * 2 : 0;
 			this._stopSource(this.now() + additionalTail);
 			this._onended();
 		}, this._stopTime - this.context.currentTime);
@@ -212,50 +246,5 @@ export abstract class OneShotSource<
 				}
 			}
 		}
-	}
-
-	/**
-	 * Get the playback state at the given time
-	 */
-	getStateAtTime = function(time: Time): BasicPlaybackState {
-		const computedTime = this.toSeconds(time);
-		if (
-			this._startTime !== -1 &&
-			computedTime >= this._startTime &&
-			(this._stopTime === -1 || computedTime <= this._stopTime)
-		) {
-			return "started";
-		} else {
-			return "stopped";
-		}
-	};
-
-	/**
-	 * Get the playback state at the current time
-	 */
-	get state(): BasicPlaybackState {
-		return this.getStateAtTime(this.now());
-	}
-
-	/**
-	 * Cancel a scheduled stop event
-	 */
-	cancelStop(): this {
-		this.log("cancelStop");
-		assert(this._startTime !== -1, "Source is not started");
-		// cancel the stop envelope
-		this._gainNode.gain.cancelScheduledValues(
-			this._startTime + this.sampleTime
-		);
-		this.context.clearTimeout(this._timeout);
-		this._stopTime = -1;
-		return this;
-	}
-
-	dispose(): this {
-		super.dispose();
-		this._gainNode.dispose();
-		this.onended = noOp;
-		return this;
 	}
 }

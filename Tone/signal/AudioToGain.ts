@@ -1,4 +1,4 @@
-import { ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
+import type { ToneAudioNodeOptions } from "../core";
 import { SignalOperator } from "./SignalOperator";
 import { WaveShaper } from "./WaveShaper";
 

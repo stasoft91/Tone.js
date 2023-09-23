@@ -1,7 +1,4 @@
-import { BaseContext } from "../../core/context/BaseContext";
-import { Gain } from "../../core/context/Gain";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { BaseContext, Gain, optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
 
 export interface SoloOptions extends ToneAudioNodeOptions {
 	solo: boolean;
@@ -21,8 +18,15 @@ export interface SoloOptions extends ToneAudioNodeOptions {
  */
 export class Solo extends ToneAudioNode<SoloOptions> {
 
+    /**
+     * Hold all of the solo'ed tracks belonging to a specific context
+     */
+    private static _allSolos: Map<BaseContext, Set<Solo>> = new Map();
+    /**
+     * Hold the currently solo'ed instance(s)
+     */
+    private static _soloed: Map<BaseContext, Set<Solo>> = new Map();
 	readonly name: string = "Solo";
-
 	readonly input: Gain;
 	readonly output: Gain;
 
@@ -30,7 +34,9 @@ export class Solo extends ToneAudioNode<SoloOptions> {
 	 * @param solo If the connection should be initially solo'ed.
 	 */
 	constructor(solo?: boolean);
+
 	constructor(options?: Partial<SoloOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Solo.getDefaults(), arguments, ["solo"]));
@@ -49,22 +55,6 @@ export class Solo extends ToneAudioNode<SoloOptions> {
 		this.solo = options.solo;
 	}
 
-	static getDefaults(): SoloOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			solo: false,
-		});
-	}
-
-	/**
-	 * Hold all of the solo'ed tracks belonging to a specific context
-	 */
-	private static _allSolos: Map<BaseContext, Set<Solo>> = new Map();
-
-	/**
-	 * Hold the currently solo'ed instance(s)
-	 */
-	private static _soloed: Map<BaseContext, Set<Solo>> = new Map();
-
 	/**
 	 * Isolates this instance and mutes all other instances of Solo.
 	 * Only one instance can be soloed at a time. A soloed
@@ -73,7 +63,8 @@ export class Solo extends ToneAudioNode<SoloOptions> {
 	get solo(): boolean {
 		return this._isSoloed();
 	}
-	set solo(solo) {
+
+    set solo(solo) {
 		if (solo) {
 			this._addSolo();
 		} else {
@@ -88,6 +79,19 @@ export class Solo extends ToneAudioNode<SoloOptions> {
 	get muted(): boolean {
 		return this.input.gain.value === 0;
 	}
+
+    static getDefaults(): SoloOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            solo: false,
+        });
+    }
+
+    dispose(): this {
+        super.dispose();
+        (Solo._allSolos.get(this.context) as Set<Solo>).delete(this);
+        this._removeSolo();
+        return this;
+    }
 
 	/**
 	 * Add this to the soloed array
@@ -121,8 +125,8 @@ export class Solo extends ToneAudioNode<SoloOptions> {
 	private _noSolos(): boolean {
 		// either does not have any soloed added
 		return !Solo._soloed.has(this.context) ||
-			// or has a solo set but doesn't include any items
-			(Solo._soloed.has(this.context) && (Solo._soloed.get(this.context) as Set<Solo>).size === 0);
+            // or has a solo set but doesn't include any items
+            (Solo._soloed.has(this.context) && (Solo._soloed.get(this.context) as Set<Solo>).size === 0);
 	}
 
 	/**
@@ -137,12 +141,5 @@ export class Solo extends ToneAudioNode<SoloOptions> {
 		} else {
 			this.input.gain.value = 0;
 		}
-	}
-
-	dispose(): this {
-		super.dispose();
-		(Solo._allSolos.get(this.context) as Set<Solo>).delete(this);
-		this._removeSolo();
-		return this;
 	}
 }

@@ -1,5 +1,5 @@
-import "../../core/worklet/SingleIOProcessor.worklet";
 import "../../core/worklet/DelayLine.worklet";
+import "../../core/worklet/SingleIOProcessor.worklet";
 import { registerProcessor } from "../../core/worklet/WorkletGlobalScope";
 
 export const workletName = "feedback-comb-filter";

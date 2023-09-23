@@ -1,9 +1,9 @@
-import { AutoWah } from "./AutoWah";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
 import { Synth } from "Tone/instrument/Synth";
+import { AutoWah } from "./AutoWah";
 
 describe("AutoWah", () => {
 

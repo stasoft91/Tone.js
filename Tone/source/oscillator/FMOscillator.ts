@@ -1,17 +1,20 @@
-import { Gain } from "../../core/context/Gain";
-import { Degrees, Frequency, Seconds, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Gain, optionsFromArguments } from "../../core";
+import type { Degrees, Frequency, Seconds, Time } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { Multiply } from "../../signal/Multiply";
-import { Signal } from "../../signal/Signal";
+import { Multiply, Signal } from "../../signal";
 import { Source } from "../Source";
 import { Oscillator } from "./Oscillator";
 import {
-	FMConstructorOptions, FMOscillatorOptions,
-	generateWaveform, NonCustomOscillatorType, ToneOscillatorInterface, ToneOscillatorType
+	type FMConstructorOptions,
+	type FMOscillatorOptions,
+	generateWaveform,
+	type NonCustomOscillatorType,
+	type ToneOscillatorInterface,
+	type ToneOscillatorType
 } from "./OscillatorInterface";
 
-export { FMOscillatorOptions } from "./OscillatorInterface";
+export type { FMOscillatorOptions } from "./OscillatorInterface";
+
 /**
  * FMOscillator implements a frequency modulation synthesis
  * ```
@@ -28,33 +31,21 @@ export { FMOscillatorOptions } from "./OscillatorInterface";
  *
  * @example
  * return Tone.Offline(() => {
- * 	const fmOsc = new Tone.FMOscillator({
- * 		frequency: 200,
- * 		type: "square",
- * 		modulationType: "triangle",
- * 		harmonicity: 0.2,
- * 		modulationIndex: 3
- * 	}).toDestination().start();
+ *    const fmOsc = new Tone.FMOscillator({
+ *        frequency: 200,
+ *        type: "square",
+ *        modulationType: "triangle",
+ *        harmonicity: 0.2,
+ *        modulationIndex: 3
+ *    }).toDestination().start();
  * }, 0.1, 1);
  * @category Source
  */
 export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOscillatorInterface {
 
 	readonly name: string = "FMOscillator";
-
-	/**
-	 * The carrier oscillator
-	 */
-	private _carrier: Oscillator;
-
 	readonly frequency: Signal<"frequency">;
 	readonly detune: Signal<"cents">;
-
-	/**
-	 * The modulating oscillator
-	 */
-	private _modulator: Oscillator;
-
 	/**
 	 * Harmonicity is the frequency ratio between the carrier and the modulator oscillators.
 	 * A harmonicity of 1 gives both oscillators the same frequency.
@@ -65,14 +56,20 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 	 * fmOsc.harmonicity.value = 0.5;
 	 */
 	readonly harmonicity: Signal<"positive">;
-
 	/**
 	 * The modulation index which is in essence the depth or amount of the modulation. In other terms it is the
 	 * ratio of the frequency of the modulating signal (mf) to the amplitude of the
 	 * modulating signal (ma) -- as in ma/mf.
 	 */
 	readonly modulationIndex: Signal<"positive">;
-
+    /**
+     * The carrier oscillator
+     */
+    private _carrier: Oscillator;
+    /**
+     * The modulating oscillator
+     */
+    private _modulator: Oscillator;
 	/**
 	 * the node where the modulation happens
 	 */
@@ -140,39 +137,10 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 		readOnly(this, ["modulationIndex", "frequency", "detune", "harmonicity"]);
 	}
 
-	static getDefaults(): FMOscillatorOptions {
-		return Object.assign(Oscillator.getDefaults(), {
-			harmonicity: 1,
-			modulationIndex: 2,
-			modulationType: "square" as NonCustomOscillatorType,
-		});
-	}
-
-	/**
-	 * start the oscillator
-	 */
-	protected _start(time: Time): void {
-		this._modulator.start(time);
-		this._carrier.start(time);
-	}
-
-	/**
-	 * stop the oscillator
-	 */
-	protected _stop(time: Time): void {
-		this._modulator.stop(time);
-		this._carrier.stop(time);
-	}
-
-	protected _restart(time: Seconds): this {
-		this._modulator.restart(time);
-		this._carrier.restart(time);
-		return this;
-	}
-
 	get type(): ToneOscillatorType {
 		return this._carrier.type;
 	}
+
 	set type(type: ToneOscillatorType) {
 		this._carrier.type = type;
 	}
@@ -180,6 +148,7 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 	get baseType(): OscillatorType {
 		return this._carrier.baseType;
 	}
+
 	set baseType(baseType: OscillatorType) {
 		this._carrier.baseType = baseType;
 	}
@@ -187,7 +156,8 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 	get partialCount(): number {
 		return this._carrier.partialCount;
 	}
-	set partialCount(partialCount: number) {
+
+    set partialCount(partialCount: number) {
 		this._carrier.partialCount = partialCount;
 	}
 
@@ -197,14 +167,16 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 	get modulationType(): ToneOscillatorType {
 		return this._modulator.type;
 	}
-	set modulationType(type: ToneOscillatorType) {
+
+    set modulationType(type: ToneOscillatorType) {
 		this._modulator.type = type;
 	}
 
 	get phase(): Degrees {
 		return this._carrier.phase;
 	}
-	set phase(phase: Degrees) {
+
+    set phase(phase: Degrees) {
 		this._carrier.phase = phase;
 		this._modulator.phase = phase;
 	}
@@ -212,9 +184,18 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 	get partials(): number[] {
 		return this._carrier.partials;
 	}
-	set partials(partials: number[]) {
+
+    set partials(partials: number[]) {
 		this._carrier.partials = partials;
 	}
+
+    static getDefaults(): FMOscillatorOptions {
+        return Object.assign(Oscillator.getDefaults(), {
+            harmonicity: 1,
+            modulationIndex: 2,
+            modulationType: "square" as NonCustomOscillatorType,
+        });
+    }
 
 	async asArray(length = 1024): Promise<Float32Array> {
 		return generateWaveform(this, length);
@@ -233,4 +214,26 @@ export class FMOscillator extends Source<FMOscillatorOptions> implements ToneOsc
 		this.modulationIndex.dispose();
 		return this;
 	}
+
+    /**
+     * start the oscillator
+     */
+    protected _start(time: Time): void {
+        this._modulator.start(time);
+        this._carrier.start(time);
+    }
+
+    /**
+     * stop the oscillator
+     */
+    protected _stop(time: Time): void {
+        this._modulator.stop(time);
+        this._carrier.stop(time);
+    }
+
+    protected _restart(time: Seconds): this {
+        this._modulator.restart(time);
+        this._carrier.restart(time);
+        return this;
+    }
 }

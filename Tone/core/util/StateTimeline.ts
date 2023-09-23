@@ -1,6 +1,6 @@
-import { Seconds } from "../type/Units";
-import { Timeline, TimelineEvent } from "./Timeline";
+import type { Seconds } from "../type/Units";
 import { assertRange } from "./Debug";
+import { Timeline, type TimelineEvent } from "./Timeline";
 
 export type BasicPlaybackState = "started" | "stopped";
 export type PlaybackState = BasicPlaybackState | "paused";

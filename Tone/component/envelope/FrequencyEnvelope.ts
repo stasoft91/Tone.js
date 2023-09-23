@@ -1,25 +1,25 @@
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { Frequency, Hertz, NormalRange, Time } from "../../core/type/Units";
-import { Envelope, EnvelopeOptions } from "./Envelope";
-import { Scale } from "../../signal/Scale";
-import { Pow } from "../../signal/Pow";
+import { optionsFromArguments } from "../../core";
+import type { Frequency, Hertz, NormalRange, Time } from "../../core/type/Units";
 import { assertRange } from "../../core/util/Debug";
+import { Pow, Scale } from "../../signal";
+import { Envelope, type EnvelopeOptions } from "./Envelope";
 
 export interface FrequencyEnvelopeOptions extends EnvelopeOptions {
 	baseFrequency: Frequency;
 	octaves: number;
 	exponent: number;
 }
+
 /**
  * FrequencyEnvelope is an [[Envelope]] which ramps between [[baseFrequency]]
  * and [[octaves]]. It can also have an optional [[exponent]] to adjust the curve
- * which it ramps. 
+ * which it ramps.
  * @example
  * const oscillator = new Tone.Oscillator().toDestination().start();
  * const freqEnv = new Tone.FrequencyEnvelope({
- * 	attack: 0.2,
- * 	baseFrequency: "C2",
- * 	octaves: 4
+ *    attack: 0.2,
+ *    baseFrequency: "C2",
+ *    octaves: 4
  * });
  * freqEnv.connect(oscillator.frequency);
  * freqEnv.triggerAttack();
@@ -28,35 +28,18 @@ export interface FrequencyEnvelopeOptions extends EnvelopeOptions {
 export class FrequencyEnvelope extends Envelope {
 
 	readonly name: string = "FrequencyEnvelope";
-
-	/**
-	 * Private reference to the base frequency as a number
-	 */
-	private _baseFrequency: Hertz;
-
-	/**
-	 * The number of octaves
-	 */
-	private _octaves: number;
-
 	/**
 	 * Internal scaler from 0-1 to the final output range
 	 */
 	private _scale: Scale;
 
-	/**
-	 * Apply a power curve to the output
-	 */
-	private _exponent: Pow;
+    /**
+     * Private reference to the base frequency as a number
+     */
+    private _baseFrequency: Hertz;
 
-	/**
-	 * @param attack	the attack time in seconds
-	 * @param decay		the decay time in seconds
-	 * @param sustain 	a percentage (0-1) of the full amplitude
-	 * @param release	the release time in seconds
-	 */
-	constructor(attack?: Time, decay?: Time, sustain?: NormalRange, release?: Time);
 	constructor(options?: Partial<FrequencyEnvelopeOptions>)
+
 	constructor() {
 		super(optionsFromArguments(FrequencyEnvelope.getDefaults(), arguments, ["attack", "decay", "sustain", "release"]));
 		const options = optionsFromArguments(FrequencyEnvelope.getDefaults(), arguments, ["attack", "decay", "sustain", "release"]);
@@ -75,14 +58,10 @@ export class FrequencyEnvelope extends Envelope {
 		});
 		this._sig.chain(this._exponent, this._scale);
 	}
-
-	static getDefaults(): FrequencyEnvelopeOptions {
-		return Object.assign(Envelope.getDefaults(), {
-			baseFrequency: 200,
-			exponent: 1,
-			octaves: 4,
-		});
-	}
+    /**
+     * The number of octaves
+     */
+    private _octaves: number;
 
 	/**
 	 * The envelope's minimum output value. This is the value which it
@@ -91,14 +70,18 @@ export class FrequencyEnvelope extends Envelope {
 	get baseFrequency(): Frequency {
 		return this._baseFrequency;
 	}
-	set baseFrequency(min) {
-		const freq = this.toFrequency(min);
-		assertRange(freq, 0);
-		this._baseFrequency = freq;
-		this._scale.min = this._baseFrequency;
-		// update the max value when the min changes
-		this.octaves = this._octaves;
-	}
+    /**
+     * Apply a power curve to the output
+     */
+    private _exponent: Pow;
+
+	/**
+     * @param attack    the attack time in seconds
+     * @param decay        the decay time in seconds
+     * @param sustain    a percentage (0-1) of the full amplitude
+     * @param release    the release time in seconds
+	 */
+	constructor(attack?: Time, decay?: Time, sustain?: NormalRange, release?: Time);
 
 	/**
 	 * The number of octaves above the baseFrequency that the
@@ -107,7 +90,17 @@ export class FrequencyEnvelope extends Envelope {
 	get octaves(): number {
 		return this._octaves;
 	}
-	set octaves(octaves: number) {
+
+    set baseFrequency(min) {
+		const freq = this.toFrequency(min);
+		assertRange(freq, 0);
+		this._baseFrequency = freq;
+		this._scale.min = this._baseFrequency;
+		// update the max value when the min changes
+		this.octaves = this._octaves;
+	}
+
+    set octaves(octaves: number) {
 		this._octaves = octaves;
 		this._scale.max = this._baseFrequency * Math.pow(2, octaves);
 	}
@@ -118,9 +111,18 @@ export class FrequencyEnvelope extends Envelope {
 	get exponent(): number {
 		return this._exponent.value;
 	}
-	set exponent(exponent) {
+
+    set exponent(exponent) {
 		this._exponent.value = exponent;
 	}
+
+    static getDefaults(): FrequencyEnvelopeOptions {
+        return Object.assign(Envelope.getDefaults(), {
+            baseFrequency: 200,
+            exponent: 1,
+            octaves: 4,
+        });
+    }
 
 	/**
 	 * Clean up

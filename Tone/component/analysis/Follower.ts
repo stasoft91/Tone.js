@@ -1,16 +1,21 @@
-import { Time } from "../../core/type/Units";
-import { InputNode, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import {
+	type InputNode,
+	optionsFromArguments,
+	type OutputNode,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../../core";
+import type { Time } from "../../core/type/Units";
+import { Abs } from "../../signal";
 import { OnePoleFilter } from "../filter/OnePoleFilter";
-import { Abs } from "../../signal/Abs";
 
 export interface FollowerOptions extends ToneAudioNodeOptions {
 	smoothing: Time;
 }
 
 /**
- * Follower is a simple envelope follower. 
- * It's implemented by applying a lowpass filter to the absolute value of the incoming signal. 
+ * Follower is a simple envelope follower.
+ * It's implemented by applying a lowpass filter to the absolute value of the incoming signal.
  * ```
  *          +-----+    +---------------+
  * Input +--> Abs +----> OnePoleFilter +--> Output
@@ -24,17 +29,10 @@ export class Follower extends ToneAudioNode<FollowerOptions> {
 
 	readonly input: InputNode;
 	readonly output: OutputNode;
-
-	/**
-	 * Private reference to the smoothing parameter
-	 */
-	private _smoothing: Time;
-
 	/**
 	 * The lowpass filter
 	 */
 	private _lowpass: OnePoleFilter;
-
 	/**
 	 * The absolute value
 	 */
@@ -44,7 +42,9 @@ export class Follower extends ToneAudioNode<FollowerOptions> {
 	 * @param smoothing The rate of change of the follower.
 	 */
 	constructor(smoothing?: Time);
+
 	constructor(options?: Partial<FollowerOptions>);
+
 	constructor() {
 		super(optionsFromArguments(Follower.getDefaults(), arguments, ["smoothing"]));
 		const options = optionsFromArguments(Follower.getDefaults(), arguments, ["smoothing"]);
@@ -59,22 +59,28 @@ export class Follower extends ToneAudioNode<FollowerOptions> {
 		this._smoothing = options.smoothing;
 	}
 
-	static getDefaults(): FollowerOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			smoothing: 0.05
-		});
-	}
+    /**
+     * Private reference to the smoothing parameter
+     */
+    private _smoothing: Time;
 
 	/**
-	 * The amount of time it takes a value change to arrive at the updated value. 
+     * The amount of time it takes a value change to arrive at the updated value.
 	 */
 	get smoothing(): Time {
 		return this._smoothing;
 	}
-	set smoothing(smoothing) {
+
+    set smoothing(smoothing) {
 		this._smoothing = smoothing;
 		this._lowpass.frequency = 1 / this.toSeconds(this.smoothing);
 	}
+
+    static getDefaults(): FollowerOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            smoothing: 0.05
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

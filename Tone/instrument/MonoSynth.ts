@@ -1,16 +1,21 @@
-import { AmplitudeEnvelope } from "../component/envelope/AmplitudeEnvelope";
-import { Envelope, EnvelopeOptions } from "../component/envelope/Envelope";
-import { Filter, FilterOptions } from "../component/filter/Filter";
+import {
+	AmplitudeEnvelope,
+	Envelope,
+	type EnvelopeOptions,
+	Filter,
+	type FilterOptions,
+	FrequencyEnvelope,
+	type FrequencyEnvelopeOptions
+} from "../component";
+import { ToneAudioNode, type ToneAudioNodeOptions } from "../core";
+import type { NormalRange, Seconds, Time } from "../core/type/Units";
 import { omitFromObject, optionsFromArguments } from "../core/util/Defaults";
-import { readOnly, RecursivePartial } from "../core/util/Interface";
-import { Monophonic, MonophonicOptions } from "../instrument/Monophonic";
-import { OmniOscillator } from "../source/oscillator/OmniOscillator";
+import { readOnly, type RecursivePartial } from "../core/util/Interface";
+import { Signal } from "../signal";
+import { OmniOscillator } from "../source";
+import type { OmniOscillatorSynthOptions } from "../source/oscillator/OscillatorInterface";
 import { Source } from "../source/Source";
-import { FrequencyEnvelope, FrequencyEnvelopeOptions } from "../component/envelope/FrequencyEnvelope";
-import { NormalRange, Seconds, Time } from "../core/type/Units";
-import { Signal } from "../signal/Signal";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { OmniOscillatorSynthOptions } from "../source/oscillator/OscillatorInterface";
+import { Monophonic, type MonophonicOptions } from "./Monophonic";
 
 export interface MonoSynthOptions extends MonophonicOptions {
 	oscillator: OmniOscillatorSynthOptions;
@@ -26,12 +31,12 @@ export interface MonoSynthOptions extends MonophonicOptions {
  * <img src="https://docs.google.com/drawings/d/1gaY1DF9_Hzkodqf8JI1Cg2VZfwSElpFQfI94IQwad38/pub?w=924&h=240">
  * @example
  * const synth = new Tone.MonoSynth({
- * 	oscillator: {
- * 		type: "square"
- * 	},
- * 	envelope: {
- * 		attack: 0.1
- * 	}
+ *    oscillator: {
+ *        type: "square"
+ *    },
+ *    envelope: {
+ *        attack: 0.1
+ *    }
  * }).toDestination();
  * synth.triggerAttackRelease("C4", "8n");
  * @category Instrument
@@ -135,6 +140,20 @@ export class MonoSynth extends Monophonic<MonoSynthOptions> {
 		});
 	}
 
+    getLevelAtTime(time: Time): NormalRange {
+        time = this.toSeconds(time);
+        return this.envelope.getValueAtTime(time);
+    }
+
+    dispose(): this {
+        super.dispose();
+        this.oscillator.dispose();
+        this.envelope.dispose();
+        this.filterEnvelope.dispose();
+        this.filter.dispose();
+        return this;
+    }
+
 	/**
 	 * start the attack portion of the envelope
 	 * @param time the time the attack should start
@@ -159,19 +178,5 @@ export class MonoSynth extends Monophonic<MonoSynthOptions> {
 		this.envelope.triggerRelease(time);
 		this.filterEnvelope.triggerRelease(time);
 		this.oscillator.stop(time + this.toSeconds(this.envelope.release));
-	}
-
-	getLevelAtTime(time: Time): NormalRange {
-		time = this.toSeconds(time);
-		return this.envelope.getValueAtTime(time);
-	}
-
-	dispose(): this {
-		super.dispose();
-		this.oscillator.dispose();
-		this.envelope.dispose();
-		this.filterEnvelope.dispose();
-		this.filter.dispose();
-		return this;
 	}
 }

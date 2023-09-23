@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
-import { connectFrom, connectTo } from "test/helper/Connect";
 import { Offline } from "test/helper/Offline";
 import { Signal } from "Tone/signal/Signal";
 import { Oscillator } from "Tone/source/oscillator/Oscillator";

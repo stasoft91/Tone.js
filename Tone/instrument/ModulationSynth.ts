@@ -1,71 +1,51 @@
-import { Signal } from "../signal/Signal";
-import { Multiply } from "../signal/Multiply";
-import { Gain } from "../core/context/Gain";
-import { NormalRange, Positive, Seconds, Time } from "../core/type/Units";
-import { Envelope, EnvelopeOptions } from "../component/envelope/Envelope";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { Monophonic } from "./Monophonic";
-import { OmniOscillator } from "../source/oscillator/OmniOscillator";
-import { OmniOscillatorSynthOptions } from "../source/oscillator/OscillatorInterface";
-import { Source } from "../source/Source";
-import { Synth, SynthOptions } from "./Synth";
-import { AmplitudeEnvelope } from "../component/envelope/AmplitudeEnvelope";
-import { readOnly, RecursivePartial } from "../core/util/Interface";
+import { AmplitudeEnvelope, Envelope, type EnvelopeOptions } from "../component";
+import { Gain, ToneAudioNode, type ToneAudioNodeOptions } from "../core";
+import type { NormalRange, Positive, Seconds, Time } from "../core/type/Units";
 import { omitFromObject, optionsFromArguments } from "../core/util/Defaults";
+import { readOnly, type RecursivePartial } from "../core/util/Interface";
+import { Multiply, Signal } from "../signal";
+import { OmniOscillator } from "../source";
+import type { OmniOscillatorSynthOptions } from "../source/oscillator/OscillatorInterface";
+import { Source } from "../source/Source";
+import { Monophonic } from "./Monophonic";
+import { Synth, type SynthOptions } from "./Synth";
 
 export interface ModulationSynthOptions extends SynthOptions {
 	harmonicity: Positive;
 	modulationEnvelope: Omit<EnvelopeOptions, keyof ToneAudioNodeOptions>;
 	modulation: OmniOscillatorSynthOptions;
 }
+
 /**
  * Base class for both AM and FM synths
  */
 export abstract class ModulationSynth<Options extends ModulationSynthOptions> extends Monophonic<Options> {
 
 	readonly name: string = "ModulationSynth";
-
-	/**
-	 * The carrier voice.
-	 */
-	protected _carrier: Synth;
-
-	/**
-	 * The modulator voice.
-	 */
-
-	protected _modulator: Synth;
-
 	/**
 	 * The carrier's oscillator
 	 */
 	readonly oscillator: OmniOscillator<any>;
-
 	/**
 	 * The carrier's envelope
 	 */
 	readonly envelope: AmplitudeEnvelope;
-
 	/**
 	 * The modulator's oscillator which is applied to the amplitude of the oscillator
 	 */
 	readonly modulation: OmniOscillator<any>;
-
 	/**
 	 * The modulator's envelope
 	 */
 	readonly modulationEnvelope: AmplitudeEnvelope;
-
 	/**
 	 * The frequency control
 	 */
 	readonly frequency: Signal<"frequency">;
-
 	/**
 	 * The detune in cents
 	 */
 	readonly detune: Signal<"cents">;
-
 	/**
 	 * Harmonicity is the ratio between the two voices. A harmonicity of
 	 * 1 is no change. Harmonicity = 2 means a change of an octave.
@@ -76,7 +56,15 @@ export abstract class ModulationSynth<Options extends ModulationSynthOptions> ex
 	 * amSynth.triggerAttackRelease("C5", "4n");
 	 */
 	readonly harmonicity: Multiply;
+    /**
+     * The carrier voice.
+     */
+    protected _carrier: Synth;
+    /**
+     * The modulator voice.
+     */
 
+    protected _modulator: Synth;
 	/**
 	 * The node where the modulation happens
 	 */
@@ -178,6 +166,22 @@ export abstract class ModulationSynth<Options extends ModulationSynthOptions> ex
 		});
 	}
 
+    getLevelAtTime(time: Time): NormalRange {
+        time = this.toSeconds(time);
+        return this.envelope.getValueAtTime(time);
+    }
+
+    dispose(): this {
+        super.dispose();
+        this._carrier.dispose();
+        this._modulator.dispose();
+        this.frequency.dispose();
+        this.detune.dispose();
+        this.harmonicity.dispose();
+        this._modulationNode.dispose();
+        return this;
+    }
+
 	/**
 	 * Trigger the attack portion of the note
 	 */
@@ -196,22 +200,6 @@ export abstract class ModulationSynth<Options extends ModulationSynthOptions> ex
 		this._carrier._triggerEnvelopeRelease(time);
 		// @ts-ignore
 		this._modulator._triggerEnvelopeRelease(time);
-		return this;
-	}
-
-	getLevelAtTime(time: Time): NormalRange {
-		time = this.toSeconds(time);
-		return this.envelope.getValueAtTime(time);
-	}
-
-	dispose(): this {
-		super.dispose();
-		this._carrier.dispose();
-		this._modulator.dispose();
-		this.frequency.dispose();
-		this.detune.dispose();
-		this.harmonicity.dispose();
-		this._modulationNode.dispose();
 		return this;
 	}
 }

@@ -11,7 +11,7 @@ const masterVersion = execSync("npm show tone version").toString();
 // go with whichever is the latest version
 let version = masterVersion;
 if (tsVersion && semver.gt(tsVersion, masterVersion)) {
-	version = tsVersion;
+    version = tsVersion;
 }
 
 // increment the patch
@@ -23,17 +23,17 @@ const packageObj = JSON.parse(fs.readFileSync(packageFile, "utf-8"));
 
 // if the package version if the latest, go with that one
 if (semver.gt(packageObj.version, version)) {
-	version = packageObj.version;
+    version = packageObj.version;
 }
 
 console.log(`incrementing to version ${version}`);
 packageObj.version = version;
 // only if it's travis, update the package.json
 if (process.env.TRAVIS) {
-	fs.writeFileSync(packageFile, JSON.stringify(packageObj, undefined, "  "));
-	
-	// write a version file
-	const versionFile = `export const version: string = ${JSON.stringify(version)};\n`;
-	fs.writeFileSync(resolve(__dirname, "../Tone/version.ts"), versionFile);
+    fs.writeFileSync(packageFile, JSON.stringify(packageObj, undefined, "  "));
+
+    // write a version file
+    const versionFile = `export const version: string = ${JSON.stringify(version)};\n`;
+    fs.writeFileSync(resolve(__dirname, "../Tone/version.ts"), versionFile);
 }
 

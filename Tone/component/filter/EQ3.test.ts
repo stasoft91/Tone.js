@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
-import { connectFrom } from "test/helper/Connect";
 import { PassAudio } from "test/helper/PassAudio";
 import { EQ3 } from "./EQ3";
 

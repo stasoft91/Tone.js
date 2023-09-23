@@ -1,8 +1,6 @@
-import { connect } from "../core/context/ToneAudioNode";
-import { Param } from "../core/context/Param";
-import { Seconds, Time, UnitMap, UnitName } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { OneShotSource, OneShotSourceOptions } from "../source/OneShotSource";
+import { connect, optionsFromArguments, Param } from "../core";
+import type { Seconds, Time, UnitMap, UnitName } from "../core/type/Units";
+import { OneShotSource, type OneShotSourceOptions } from "../source/OneShotSource";
 
 export interface ToneConstantSourceOptions<TypeName extends UnitName> extends OneShotSourceOptions {
 	convert: boolean;
@@ -20,16 +18,14 @@ export interface ToneConstantSourceOptions<TypeName extends UnitName> extends On
 export class ToneConstantSource<TypeName extends UnitName = "number"> extends OneShotSource<ToneConstantSourceOptions<TypeName>> {
 
 	readonly name: string = "ToneConstantSource";
-
-	/**
-	 * The signal generator
-	 */
-	private _source = this.context.createConstantSource();
-
 	/**
 	 * The offset of the signal generator
 	 */
 	readonly offset: Param<TypeName>;
+    /**
+     * The signal generator
+     */
+    private _source = this.context.createConstantSource();
 
 	/**
 	 * @param  offset   The offset value
@@ -74,10 +70,6 @@ export class ToneConstantSource<TypeName extends UnitName = "number"> extends On
 		return this;
 	}
 
-	protected _stopSource(time?: Seconds): void {
-		this._source.stop(time);
-	}
-
 	dispose(): this {
 		super.dispose();
 		if (this.state === "started") {
@@ -87,4 +79,8 @@ export class ToneConstantSource<TypeName extends UnitName = "number"> extends On
 		this.offset.dispose();
 		return this;
 	}
+
+    protected _stopSource(time?: Seconds): void {
+        this._source.stop(time);
+    }
 }

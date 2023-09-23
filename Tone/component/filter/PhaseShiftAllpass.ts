@@ -1,5 +1,4 @@
-import { Gain } from "../../core/context/Gain";
-import { connectSeries, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
+import { connectSeries, Gain, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
 
 /**
  * PhaseShiftAllpass is an very efficient implementation of a Hilbert Transform
@@ -14,31 +13,26 @@ export class PhaseShiftAllpass extends ToneAudioNode<ToneAudioNodeOptions> {
 	readonly name: string = "PhaseShiftAllpass";
 
 	readonly input = new Gain({ context: this.context });
-
+    /**
+     * The phase shifted output
+     */
+    readonly output = new Gain({ context: this.context });
+    /**
+     * The PhaseShifted allpass output
+     */
+    readonly offset90 = new Gain({ context: this.context });
 	/**
 	 * The Allpass filter in the first bank
 	 */
 	private _bank0: IIRFilterNode[];
-
 	/**
 	 * The Allpass filter in the seconds bank
 	 */
 	private _bank1: IIRFilterNode[];
-
 	/**
 	 * A IIR filter implementing a delay by one sample used by the first bank
 	 */
 	private _oneSampleDelay: IIRFilterNode;
-
-	/**
-	 * The phase shifted output
-	 */
-	readonly output = new Gain({ context: this.context });
-
-	/**
-	 * The PhaseShifted allpass output
-	 */
-	readonly offset90 = new Gain({ context: this.context });
 
 	constructor(options?: Partial<ToneAudioNodeOptions>) {
 
@@ -56,18 +50,6 @@ export class PhaseShiftAllpass extends ToneAudioNode<ToneAudioNodeOptions> {
 		connectSeries(this.input, ...this._bank1, this.offset90);
 	}
 
-	/**
-	 * Create all of the IIR filters from an array of values using the coefficient calculation.
-	 */
-	private _createAllPassFilterBank(bankValues: number[]): IIRFilterNode[] {
-		const nodes: IIRFilterNode[] = bankValues.map(value => {
-			const coefficients = [[value * value, 0, -1], [1, 0, -(value * value)]];
-			return this.context.createIIRFilter(coefficients[0], coefficients[1]);
-		});
-
-		return nodes;
-	}
-
 	dispose(): this {
 		super.dispose();
 		this.input.dispose();
@@ -78,4 +60,16 @@ export class PhaseShiftAllpass extends ToneAudioNode<ToneAudioNodeOptions> {
 		this._oneSampleDelay.disconnect();
 		return this;
 	}
+
+    /**
+     * Create all of the IIR filters from an array of values using the coefficient calculation.
+     */
+    private _createAllPassFilterBank(bankValues: number[]): IIRFilterNode[] {
+        const nodes: IIRFilterNode[] = bankValues.map(value => {
+            const coefficients = [[value * value, 0, -1], [1, 0, -(value * value)]];
+            return this.context.createIIRFilter(coefficients[0], coefficients[1]);
+        });
+
+        return nodes;
+    }
 }

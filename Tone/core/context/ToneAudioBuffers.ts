@@ -1,12 +1,13 @@
 import { Tone } from "../Tone";
+import { assert } from "../util/Debug";
 import { optionsFromArguments } from "../util/Defaults";
 import { noOp } from "../util/Interface";
 import { isString } from "../util/TypeCheck";
 import { ToneAudioBuffer } from "./ToneAudioBuffer";
-import { assert } from "../util/Debug";
 
 export interface ToneAudioBuffersUrlMap {
 	[name: string]: string | AudioBuffer | ToneAudioBuffer;
+
 	[name: number]: string | AudioBuffer | ToneAudioBuffer;
 }
 
@@ -22,40 +23,37 @@ interface ToneAudioBuffersOptions {
  *
  * @example
  * const pianoSamples = new Tone.ToneAudioBuffers({
- * 	A1: "https://tonejs.github.io/audio/casio/A1.mp3",
- * 	A2: "https://tonejs.github.io/audio/casio/A2.mp3",
+ *    A1: "https://tonejs.github.io/audio/casio/A1.mp3",
+ *    A2: "https://tonejs.github.io/audio/casio/A2.mp3",
  * }, () => {
- * 	const player = new Tone.Player().toDestination();
- * 	// play one of the samples when they all load
- * 	player.buffer = pianoSamples.get("A2");
- * 	player.start();
+ *    const player = new Tone.Player().toDestination();
+ *    // play one of the samples when they all load
+ *    player.buffer = pianoSamples.get("A2");
+ *    player.start();
  * });
  * @example
  * // To pass in additional parameters in the second parameter
  * const buffers = new Tone.ToneAudioBuffers({
- * 	 urls: {
- * 		 A1: "A1.mp3",
- * 		 A2: "A2.mp3",
- * 	 },
- * 	 onload: () => console.log("loaded"),
- * 	 baseUrl: "https://tonejs.github.io/audio/casio/"
+ *     urls: {
+ *         A1: "A1.mp3",
+ *         A2: "A2.mp3",
+ *     },
+ *     onload: () => console.log("loaded"),
+ *     baseUrl: "https://tonejs.github.io/audio/casio/"
  * });
  * @category Core
  */
 export class ToneAudioBuffers extends Tone {
 
 	readonly name: string = "ToneAudioBuffers";
-
-	/**
-	 * All of the buffers
-	 */
-	private _buffers: Map<string, ToneAudioBuffer> = new Map();
-
 	/**
 	 * A path which is prefixed before every url.
 	 */
 	baseUrl: string;
-
+    /**
+     * All of the buffers
+     */
+    private _buffers: Map<string, ToneAudioBuffer> = new Map();
 	/**
 	 * Keep track of the number of loaded buffers
 	 */
@@ -89,6 +87,13 @@ export class ToneAudioBuffers extends Tone {
 
 	}
 
+    /**
+     * If the buffers are loaded or not
+     */
+    get loaded(): boolean {
+        return Array.from(this._buffers).every(([_, buffer]) => buffer.loaded);
+    }
+
 	static getDefaults(): ToneAudioBuffersOptions {
 		return {
 			baseUrl: "",
@@ -114,23 +119,6 @@ export class ToneAudioBuffers extends Tone {
 	get(name: string | number): ToneAudioBuffer {
 		assert(this.has(name), `ToneAudioBuffers has no buffer named: ${name}`);
 		return this._buffers.get(name.toString()) as ToneAudioBuffer;
-	}
-
-	/**
-	 * A buffer was loaded. decrement the counter.
-	 */
-	private _bufferLoaded(callback: () => void): void {
-		this._loadingCount--;
-		if (this._loadingCount === 0 && callback) {
-			callback();
-		}
-	}
-
-	/**
-	 * If the buffers are loaded or not
-	 */
-	get loaded(): boolean {
-		return Array.from(this._buffers).every(([_, buffer]) => buffer.loaded);
 	}
 
 	/**
@@ -164,4 +152,14 @@ export class ToneAudioBuffers extends Tone {
 		this._buffers.clear();
 		return this;
 	}
+
+    /**
+     * A buffer was loaded. decrement the counter.
+     */
+    private _bufferLoaded(callback: () => void): void {
+        this._loadingCount--;
+        if (this._loadingCount === 0 && callback) {
+            callback();
+        }
+    }
 }

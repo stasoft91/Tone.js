@@ -1,4 +1,4 @@
-import { ToneAudioNode, ToneAudioNodeOptions } from "../context/ToneAudioNode";
+import { ToneAudioNode, type ToneAudioNodeOptions } from "../context/ToneAudioNode";
 import { noOp } from "../util/Interface";
 import { getWorkletGlobalScope } from "./WorkletGlobalScope";
 
@@ -7,17 +7,14 @@ export type ToneAudioWorkletOptions = ToneAudioNodeOptions;
 export abstract class ToneAudioWorklet<Options extends ToneAudioWorkletOptions> extends ToneAudioNode<Options> {
 
 	readonly name: string = "ToneAudioWorklet";
-
+    /**
+     * Callback which is invoked when there is an error in the processing
+     */
+    onprocessorerror: (e: string) => void = noOp;
 	/**
 	 * The processing node
 	 */
 	protected _worklet!: AudioWorkletNode;
-
-	/**
-	 * A dummy gain node to create a dummy audio param from
-	 */
-	private _dummyGain: GainNode;
-
 	/**
 	 * A dummy audio param to use when creating Params
 	 */
@@ -27,21 +24,10 @@ export abstract class ToneAudioWorklet<Options extends ToneAudioWorkletOptions> 
 	 * The constructor options for the node
 	 */
 	protected workletOptions: Partial<AudioWorkletNodeOptions> = {};
-
 	/**
-	 * Get the name of the audio worklet
+     * A dummy gain node to create a dummy audio param from
 	 */
-	protected abstract _audioWorkletName(): string;
-
-	/**
-	 * Invoked when the module is loaded and the node is created
-	 */
-	protected abstract onReady(node: AudioWorkletNode): void;
-
-	/**
-	 * Callback which is invoked when there is an error in the processing
-	 */
-	onprocessorerror: (e: string) => void = noOp;
+    private _dummyGain: GainNode;
 
 	constructor(options: Options) {
 		super(options);
@@ -72,5 +58,15 @@ export abstract class ToneAudioWorklet<Options extends ToneAudioWorkletOptions> 
 		}
 		return this;
 	}
+
+    /**
+     * Get the name of the audio worklet
+     */
+    protected abstract _audioWorkletName(): string;
+
+    /**
+     * Invoked when the module is loaded and the node is created
+     */
+    protected abstract onReady(node: AudioWorkletNode): void;
 
 }

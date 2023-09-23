@@ -1,22 +1,21 @@
-import { Volume } from "../component/channel/Volume";
-import "../core/context/Destination";
-import "../core/clock/Transport";
-import { Param } from "../core/context/Param";
+import { Volume } from "../component";
 import {
-	OutputNode,
-	ToneAudioNode,
-	ToneAudioNodeOptions,
-} from "../core/context/ToneAudioNode";
-import { Decibels, Seconds, Time } from "../core/type/Units";
-import { defaultArg } from "../core/util/Defaults";
-import { noOp, readOnly } from "../core/util/Interface";
-import {
-	BasicPlaybackState,
+	type BasicPlaybackState,
+	defaultArg,
+	isDefined,
+	isUndef,
+	type OutputNode,
+	Param,
 	StateTimeline,
-	StateTimelineEvent,
-} from "../core/util/StateTimeline";
-import { isDefined, isUndef } from "../core/util/TypeCheck";
+	type StateTimelineEvent,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../core";
+import "../core/clock/Transport";
+import "../core/context/Destination";
+import type { Decibels, Seconds, Time } from "../core/type/Units";
 import { assert, assertContextRunning } from "../core/util/Debug";
+import { noOp, readOnly } from "../core/util/Interface";
 import { GT } from "../core/util/Math";
 
 type onStopCallback = (source: Source<any>) => void;
@@ -48,20 +47,13 @@ export abstract class Source<
 	Options extends SourceOptions
 > extends ToneAudioNode<Options> {
 	/**
-	 * The output volume node
-	 */
-	private _volume: Volume;
-
-	/**
 	 * The output node
 	 */
 	output: OutputNode;
-
 	/**
 	 * Sources have no inputs
 	 */
 	input = undefined;
-
 	/**
 	 * The volume of the output in decibels.
 	 * @example
@@ -69,35 +61,22 @@ export abstract class Source<
 	 * source.volume.value = -6;
 	 */
 	volume: Param<"decibels">;
-
 	/**
 	 * The callback to invoke when the source is stopped.
 	 */
 	onstop: onStopCallback;
-
-	/**
-	 * Keep track of the scheduled state.
-	 */
-	protected _state: StateTimeline<{
-		duration?: Seconds;
-		offset?: Seconds;
-		/**
-		 * Either the buffer is explicitly scheduled to end using the stop method,
-		 * or it's implicitly ended when the buffer is over.
-		 */
-		implicitEnd?: boolean;
-	}> = new StateTimeline("stopped");
-
 	/**
 	 * The synced `start` callback function from the transport
 	 */
 	protected _synced = false;
-
+    /**
+     * The output volume node
+     */
+    private _volume: Volume;
 	/**
 	 * Keep track of all of the scheduled event ids
 	 */
 	private _scheduled: number[] = [];
-
 	/**
 	 * Placeholder functions for syncing/unsyncing to transport
 	 */
@@ -119,20 +98,25 @@ export abstract class Source<
 		this.onstop = options.onstop;
 	}
 
-	static getDefaults(): SourceOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			mute: false,
-			onstop: noOp,
-			volume: 0,
-		});
-	}
+    /**
+     * Keep track of the scheduled state.
+     */
+    protected _state: StateTimeline<{
+        duration?: Seconds;
+        offset?: Seconds;
+        /**
+         * Either the buffer is explicitly scheduled to end using the stop method,
+         * or it's implicitly ended when the buffer is over.
+         */
+        implicitEnd?: boolean;
+    }> = new StateTimeline("stopped");
 
 	/**
 	 * Returns the playback state of the source, either "started" or "stopped".
 	 * @example
 	 * const player = new Tone.Player("https://tonejs.github.io/audio/berklee/ahntone_c3.mp3", () => {
-	 * 	player.start();
-	 * 	console.log(player.state);
+     *    player.start();
+     *    console.log(player.state);
 	 * }).toDestination();
 	 */
 	get state(): BasicPlaybackState {
@@ -159,29 +143,17 @@ export abstract class Source<
 	get mute(): boolean {
 		return this._volume.mute;
 	}
+
 	set mute(mute: boolean) {
 		this._volume.mute = mute;
 	}
 
-	// overwrite these functions
-	protected abstract _start(time: Time, offset?: Time, duration?: Time): void;
-	protected abstract _stop(time: Time): void;
-	protected abstract _restart(
-		time: Seconds,
-		offset?: Time,
-		duration?: Time
-	): void;
-
-	/**
-	 * Ensure that the scheduled time is not before the current time.
-	 * Should only be used when scheduled unsynced.
-	 */
-	private _clampToCurrentTime(time: Seconds): Seconds {
-		if (this._synced) {
-			return time;
-		} else {
-			return Math.max(time, this.context.currentTime);
-		}
+    static getDefaults(): SourceOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            mute: false,
+            onstop: noOp,
+            volume: 0,
+        });
 	}
 
 	/**
@@ -194,14 +166,14 @@ export abstract class Source<
 	 */
 	start(time?: Time, offset?: Time, duration?: Time): this {
 		let computedTime =
-			isUndef(time) && this._synced
-				? this.context.transport.seconds
-				: this.toSeconds(time);
+            isUndef(time) && this._synced
+                ? this.context.transport.seconds
+                : this.toSeconds(time);
 		computedTime = this._clampToCurrentTime(computedTime);
 		// if it's started, stop it and restart it
 		if (
 			!this._synced &&
-			this._state.getValueAtTime(computedTime) === "started"
+            this._state.getValueAtTime(computedTime) === "started"
 		) {
 			// time should be strictly greater than the previous start time
 			assert(
@@ -236,8 +208,8 @@ export abstract class Source<
 				// and the time is greater than where the transport is
 				if (
 					this.context.transport.state === "started" &&
-					this.context.transport.getSecondsAtTime(this.immediate()) >
-						computedTime
+                    this.context.transport.getSecondsAtTime(this.immediate()) >
+                    computedTime
 				) {
 					this._syncedStart(
 						this.now(),
@@ -263,13 +235,13 @@ export abstract class Source<
 	 */
 	stop(time?: Time): this {
 		let computedTime =
-			isUndef(time) && this._synced
-				? this.context.transport.seconds
-				: this.toSeconds(time);
+            isUndef(time) && this._synced
+                ? this.context.transport.seconds
+                : this.toSeconds(time);
 		computedTime = this._clampToCurrentTime(computedTime);
 		if (
 			this._state.getValueAtTime(computedTime) === "started" ||
-			isDefined(this._state.getNextState("started", computedTime))
+            isDefined(this._state.getNextState("started", computedTime))
 		) {
 			this.log("stop", computedTime);
 			if (!this._synced) {
@@ -324,17 +296,17 @@ export abstract class Source<
 					// listen for start events which may occur in the middle of the sync'ed time
 					if (
 						stateEvent &&
-						stateEvent.state === "started" &&
-						stateEvent.time !== offset
+                        stateEvent.state === "started" &&
+                        stateEvent.time !== offset
 					) {
 						// get the offset
 						const startOffset =
-							offset - this.toSeconds(stateEvent.time);
+                            offset - this.toSeconds(stateEvent.time);
 						let duration: number | undefined;
 						if (stateEvent.duration) {
 							duration =
-								this.toSeconds(stateEvent.duration) -
-								startOffset;
+                                this.toSeconds(stateEvent.duration) -
+                                startOffset;
 						}
 						this._start(
 							time,
@@ -393,4 +365,27 @@ export abstract class Source<
 		this._state.dispose();
 		return this;
 	}
+
+    // overwrite these functions
+    protected abstract _start(time: Time, offset?: Time, duration?: Time): void;
+
+    protected abstract _stop(time: Time): void;
+
+    protected abstract _restart(
+        time: Seconds,
+        offset?: Time,
+        duration?: Time
+    ): void;
+
+    /**
+     * Ensure that the scheduled time is not before the current time.
+     * Should only be used when scheduled unsynced.
+     */
+    private _clampToCurrentTime(time: Seconds): Seconds {
+        if (this._synced) {
+            return time;
+        } else {
+            return Math.max(time, this.context.currentTime);
+        }
+    }
 }

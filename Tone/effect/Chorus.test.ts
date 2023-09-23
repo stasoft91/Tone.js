@@ -1,10 +1,10 @@
-import { Chorus } from "./Chorus";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
-import { Oscillator } from "Tone/source";
+import { EffectTests } from "test/helper/EffectTests";
 import { Offline } from "test/helper/Offline";
+import { Oscillator } from "Tone/source";
+import { Chorus } from "./Chorus";
 
 describe("Chorus", () => {
 	BasicTests(Chorus);

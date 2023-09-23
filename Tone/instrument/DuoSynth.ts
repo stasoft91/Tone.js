@@ -1,13 +1,11 @@
-import { Monophonic, MonophonicOptions } from "./Monophonic";
-import { MonoSynth, MonoSynthOptions } from "./MonoSynth";
-import { Signal } from "../signal/Signal";
-import { readOnly, RecursivePartial } from "../core/util/Interface";
-import { LFO } from "../source/oscillator/LFO";
-import { Gain, } from "../core/context/Gain";
-import { Multiply } from "../signal/Multiply";
-import { Frequency, NormalRange, Positive, Seconds, Time } from "../core/type/Units";
+import { Gain, Param, } from "../core";
+import type { Frequency, NormalRange, Positive, Seconds, Time } from "../core/type/Units";
 import { deepMerge, omitFromObject, optionsFromArguments } from "../core/util/Defaults";
-import { Param } from "../core/context/Param";
+import { readOnly, type RecursivePartial } from "../core/util/Interface";
+import { Multiply, Signal } from "../signal";
+import { LFO } from "../source";
+import { Monophonic, type MonophonicOptions } from "./Monophonic";
+import { MonoSynth, type MonoSynthOptions } from "./MonoSynth";
 
 export interface DuoSynthOptions extends MonophonicOptions {
 	voice0: Omit<MonoSynthOptions, keyof MonophonicOptions>;
@@ -134,11 +132,6 @@ export class DuoSynth extends Monophonic<DuoSynthOptions> {
 		readOnly(this, ["voice0", "voice1", "frequency", "vibratoAmount", "vibratoRate"]);
 	}
 
-	getLevelAtTime(time: Time): NormalRange {
-		time = this.toSeconds(time);
-		return this.voice0.envelope.getValueAtTime(time) + this.voice1.envelope.getValueAtTime(time);
-	}
-
 	static getDefaults(): DuoSynthOptions {
 		return deepMerge(Monophonic.getDefaults(), {
 			vibratoAmount: 0.5,
@@ -179,6 +172,25 @@ export class DuoSynth extends Monophonic<DuoSynthOptions> {
 				}),
 		}) as unknown as DuoSynthOptions;
 	}
+
+    getLevelAtTime(time: Time): NormalRange {
+        time = this.toSeconds(time);
+        return this.voice0.envelope.getValueAtTime(time) + this.voice1.envelope.getValueAtTime(time);
+    }
+
+    dispose(): this {
+        super.dispose();
+        this.voice0.dispose();
+        this.voice1.dispose();
+        this.frequency.dispose();
+        this.detune.dispose();
+        this._vibrato.dispose();
+        this.vibratoRate.dispose();
+        this._vibratoGain.dispose();
+        this.harmonicity.dispose();
+        return this;
+    }
+
 	/**
 	 * Trigger the attack portion of the note
 	 */
@@ -197,19 +209,6 @@ export class DuoSynth extends Monophonic<DuoSynthOptions> {
 		this.voice0._triggerEnvelopeRelease(time);
 		// @ts-ignore
 		this.voice1._triggerEnvelopeRelease(time);
-		return this;
-	}
-
-	dispose(): this {
-		super.dispose();
-		this.voice0.dispose();
-		this.voice1.dispose();
-		this.frequency.dispose();
-		this.detune.dispose();
-		this._vibrato.dispose();
-		this.vibratoRate.dispose();
-		this._vibratoGain.dispose();
-		this.harmonicity.dispose();
 		return this;
 	}
 }

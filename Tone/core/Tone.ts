@@ -13,11 +13,12 @@ import { log } from "./util/Debug";
 //-------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface BaseToneOptions { }
+export interface BaseToneOptions {
+}
 
 /**
  * Tone is the base class of all other classes.
- * 
+ *
  * @category Core
  * @constructor
  */
@@ -27,11 +28,35 @@ export abstract class Tone {
 	 * The version number semver
 	 */
 	static version: string = version;
-
+    /**
+     * Set this debug flag to log all events that happen in this class.
+     */
+    debug = false;
 	/**
 	 * The name of the class
 	 */
 	protected abstract name: string;
+
+    //-------------------------------------
+    // 	DEBUGGING
+    //-------------------------------------
+    /**
+     * Indicates if the instance was disposed
+     */
+    private _wasDisposed = false;
+
+    /**
+     * Indicates if the instance was disposed. 'Disposing' an
+     * instance means that all of the Web Audio nodes that were
+     * created for the instance are disconnected and freed for garbage collection.
+     */
+    get disposed(): boolean {
+        return this._wasDisposed;
+    }
+
+    //-------------------------------------
+    // 	DISPOSING
+    //-------------------------------------
 
 	/**
 	 * Returns all of the default options belonging to the class.
@@ -40,14 +65,23 @@ export abstract class Tone {
 		return {};
 	}
 
-	//-------------------------------------
-	// 	DEBUGGING
-	//-------------------------------------
+    /**
+     * disconnect and dispose.
+     */
+    dispose(): this {
+        this._wasDisposed = true;
+        return this;
+    }
 
 	/**
-	 * Set this debug flag to log all events that happen in this class.
+     * Convert the class to a string
+     * @example
+     * const osc = new Tone.Oscillator();
+     * console.log(osc.toString());
 	 */
-	debug = false;
+    toString(): string {
+        return this.name;
+    }
 
 	/**
 	 * Prints the outputs to the console log for debugging purposes.
@@ -67,41 +101,5 @@ export abstract class Tone {
 		if (this.debug || (theWindow && this.toString() === theWindow.TONE_DEBUG_CLASS)) {
 			log(this, ...args);
 		}
-	}
-
-	//-------------------------------------
-	// 	DISPOSING
-	//-------------------------------------
-
-	/**
-	 * Indicates if the instance was disposed
-	 */
-	private _wasDisposed = false;
-
-	/**
-	 * disconnect and dispose.
-	 */
-	dispose(): this {
-		this._wasDisposed = true;
-		return this;
-	}
-
-	/**
-	 * Indicates if the instance was disposed. 'Disposing' an
-	 * instance means that all of the Web Audio nodes that were
-	 * created for the instance are disconnected and freed for garbage collection.
-	 */
-	get disposed(): boolean {
-		return this._wasDisposed;
-	}
-
-	/**
-	 * Convert the class to a string
-	 * @example
-	 * const osc = new Tone.Oscillator();
-	 * console.log(osc.toString());
-	 */
-	toString(): string {
-		return this.name;
 	}
 }

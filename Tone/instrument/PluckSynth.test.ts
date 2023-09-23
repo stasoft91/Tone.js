@@ -25,8 +25,8 @@ describe("PluckSynth", () => {
 			synth.triggerAttackRelease("C4", 0.6);
 		}, "pluckSynth2.wav", 0.06);
 	});
-	
-	context("API", () => {
+
+    context("API", () => {
 
 		it("can get and set resonance", () => {
 			const pluck = new PluckSynth();

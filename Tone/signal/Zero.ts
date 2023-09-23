@@ -1,6 +1,4 @@
-import { Gain } from "../core/context/Gain";
-import { connect, disconnect, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { connect, disconnect, Gain, optionsFromArguments, type ToneAudioNodeOptions } from "../core";
 import { SignalOperator } from "./SignalOperator";
 
 /**
@@ -12,21 +10,18 @@ import { SignalOperator } from "./SignalOperator";
 export class Zero extends SignalOperator<ToneAudioNodeOptions> {
 
 	readonly name: string = "Zero";
-
+    /**
+     * no input node
+     */
+    input = undefined;
 	/**
 	 * The gain node which connects the constant source to the output
 	 */
 	private _gain = new Gain({ context: this.context });
-
 	/**
 	 * Only outputs 0
 	 */
 	output = this._gain;
-
-	/**
-	 * no input node
-	 */
-	input = undefined;
 
 	constructor(options?: Partial<ToneAudioNodeOptions>);
 	constructor() {

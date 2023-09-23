@@ -1,9 +1,9 @@
-import { JCReverb } from "./JCReverb";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
 import { Noise } from "Tone/source/Noise";
+import { JCReverb } from "./JCReverb";
 
 describe("JCReverb", () => {
 

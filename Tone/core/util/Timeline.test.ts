@@ -540,7 +540,8 @@ describe("Timeline", () => {
 				time: number;
 				added?: boolean;
 			}
-			const sched = new Timeline<AddedInterface>();
+
+            const sched = new Timeline<AddedInterface>();
 			for (let i = 0; i < 1000; i++) {
 				sched.add({ time: i });
 			}

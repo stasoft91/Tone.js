@@ -1,9 +1,9 @@
-import { StereoEffect, StereoEffectOptions } from "./StereoEffect";
-import { Frequency, Hertz, Positive } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { LFO } from "../source/oscillator/LFO";
-import { Signal } from "../signal/Signal";
+import { optionsFromArguments } from "../core";
+import type { Frequency, Hertz, Positive } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { Signal } from "../signal";
+import { LFO } from "../source";
+import { StereoEffect, type StereoEffectOptions } from "./StereoEffect";
 
 export interface PhaserOptions extends StereoEffectOptions {
 	frequency: Frequency;
@@ -20,9 +20,9 @@ export interface PhaserOptions extends StereoEffectOptions {
  * Inspiration for this phaser comes from [Tuna.js](https://github.com/Dinahmoe/tuna/).
  * @example
  * const phaser = new Tone.Phaser({
- * 	frequency: 15,
- * 	octaves: 5,
- * 	baseFrequency: 1000
+ *    frequency: 15,
+ *    octaves: 5,
+ *    baseFrequency: 1000
  * }).toDestination();
  * const synth = new Tone.FMSynth().connect(phaser);
  * synth.triggerAttackRelease("E3", "2n");
@@ -31,46 +31,30 @@ export interface PhaserOptions extends StereoEffectOptions {
 export class Phaser extends StereoEffect<PhaserOptions> {
 
 	readonly name: string = "Phaser";
-
+    /**
+     * The quality factor of the filters
+     */
+    readonly Q: Signal<"positive">;
+    /**
+     * the frequency of the effect
+     */
+    readonly frequency: Signal<"frequency">;
 	/**
 	 * the lfo which controls the frequency on the left side
 	 */
 	private _lfoL: LFO;
-
 	/**
 	 * the lfo which controls the frequency on the right side
 	 */
 	private _lfoR: LFO;
-
-	/**
-	 * the base modulation frequency
-	 */
-	private _baseFrequency: Hertz;
-
-	/**
-	 * the octaves of the phasing
-	 */
-	private _octaves: Positive;
-
-	/**
-	 * The quality factor of the filters
-	 */
-	readonly Q: Signal<"positive">;
-
 	/**
 	 * the array of filters for the left side
 	 */
 	private _filtersL: BiquadFilterNode[];
-
 	/**
 	 * the array of filters for the left side
 	 */
 	private _filtersR: BiquadFilterNode[];
-
-	/**
-	 * the frequency of the effect
-	 */
-	readonly frequency: Signal<"frequency">;
 
 	/**
 	 * @param frequency The speed of the phasing.
@@ -78,7 +62,9 @@ export class Phaser extends StereoEffect<PhaserOptions> {
 	 * @param baseFrequency The base frequency of the filters.
 	 */
 	constructor(frequency?: Frequency, octaves?: Positive, baseFrequency?: Frequency);
+
 	constructor(options?: Partial<PhaserOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Phaser.getDefaults(), arguments, ["frequency", "octaves", "baseFrequency"]));
@@ -124,41 +110,10 @@ export class Phaser extends StereoEffect<PhaserOptions> {
 		readOnly(this, ["frequency", "Q"]);
 	}
 
-	static getDefaults(): PhaserOptions {
-		return Object.assign(StereoEffect.getDefaults(), {
-			frequency: 0.5,
-			octaves: 3,
-			stages: 10,
-			Q: 10,
-			baseFrequency: 350,
-		});
-	}
-
-	private _makeFilters(stages: number, connectToFreq: LFO): BiquadFilterNode[] {
-		const filters: BiquadFilterNode[] = [];
-		// make all the filters
-		for (let i = 0; i < stages; i++) {
-			const filter = this.context.createBiquadFilter();
-			filter.type = "allpass";
-			this.Q.connect(filter.Q);
-			connectToFreq.connect(filter.frequency);
-			filters.push(filter);
-		}
-		return filters;
-	}
-
 	/**
-	 * The number of octaves the phase goes above the baseFrequency
+     * the base modulation frequency
 	 */
-	get octaves() {
-		return this._octaves;
-	}
-	set octaves(octaves) {
-		this._octaves = octaves;
-		const max = this._baseFrequency * Math.pow(2, octaves);
-		this._lfoL.max = max;
-		this._lfoR.max = max;
-	}
+    private _baseFrequency: Hertz;
 
 	/**
 	 * The the base frequency of the filters.
@@ -166,12 +121,42 @@ export class Phaser extends StereoEffect<PhaserOptions> {
 	get baseFrequency(): Frequency {
 		return this._baseFrequency;
 	}
-	set baseFrequency(freq) {
+
+    set baseFrequency(freq) {
 		this._baseFrequency = this.toFrequency(freq);
 		this._lfoL.min = this._baseFrequency;
 		this._lfoR.min = this._baseFrequency;
 		this.octaves = this._octaves;
 	}
+
+    /**
+     * the octaves of the phasing
+     */
+    private _octaves: Positive;
+
+    /**
+     * The number of octaves the phase goes above the baseFrequency
+     */
+    get octaves() {
+        return this._octaves;
+    }
+
+    set octaves(octaves) {
+        this._octaves = octaves;
+        const max = this._baseFrequency * Math.pow(2, octaves);
+        this._lfoL.max = max;
+        this._lfoR.max = max;
+    }
+
+    static getDefaults(): PhaserOptions {
+        return Object.assign(StereoEffect.getDefaults(), {
+            frequency: 0.5,
+            octaves: 3,
+            stages: 10,
+            Q: 10,
+            baseFrequency: 350,
+        });
+    }
 
 	dispose(): this {
 		super.dispose();
@@ -183,5 +168,18 @@ export class Phaser extends StereoEffect<PhaserOptions> {
 		this.frequency.dispose();
 		return this;
 	}
+
+    private _makeFilters(stages: number, connectToFreq: LFO): BiquadFilterNode[] {
+        const filters: BiquadFilterNode[] = [];
+        // make all the filters
+        for (let i = 0; i < stages; i++) {
+            const filter = this.context.createBiquadFilter();
+            filter.type = "allpass";
+            this.Q.connect(filter.Q);
+            connectToFreq.connect(filter.frequency);
+            filters.push(filter);
+        }
+        return filters;
+    }
 }
 

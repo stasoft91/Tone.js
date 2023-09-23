@@ -1,9 +1,9 @@
-import { Freeverb } from "./Freeverb";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
-import { CompareToFile } from "test/helper/CompareToFile";
-import { Oscillator } from "Tone/source/oscillator/Oscillator";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
+import { Oscillator } from "Tone/source/oscillator/Oscillator";
+import { Freeverb } from "./Freeverb";
 
 describe("Freeverb", () => {
 

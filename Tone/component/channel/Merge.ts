@@ -1,6 +1,5 @@
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Positive } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Positive } from "../../core/type/Units";
 
 interface MergeOptions extends ToneAudioNodeOptions {
 	channels: Positive;
@@ -20,21 +19,18 @@ interface MergeOptions extends ToneAudioNodeOptions {
 export class Merge extends ToneAudioNode<MergeOptions> {
 
 	readonly name: string = "Merge";
-
-	/**
-	 * The merger node for the channels.
-	 */
-	private _merger: ChannelMergerNode;
-
 	/**
 	 * The output is the input channels combined into a single (multichannel) output
 	 */
 	readonly output: ChannelMergerNode;
-
 	/**
 	 * Multiple input connections combine into a single output.
 	 */
 	readonly input: ChannelMergerNode;
+    /**
+     * The merger node for the channels.
+     */
+    private _merger: ChannelMergerNode;
 
 	/**
 	 * @param channels The number of channels to merge.

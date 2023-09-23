@@ -27,9 +27,11 @@ describe("DummyContext", () => {
 		context.rawContext;
 		context.addAudioWorkletModule("test.js");
 		context.resume();
-		context.setTimeout(() => {}, 1);
+        context.setTimeout(() => {
+        }, 1);
 		context.clearTimeout(1);
-		context.setInterval(() => {}, 1);
+        context.setInterval(() => {
+        }, 1);
 		context.clearInterval(1);
 		context.getConstant(1);
 		context.currentTime;

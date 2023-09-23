@@ -1,13 +1,13 @@
 import { TestAudioBuffer } from "@tonejs/plot";
 import { OfflineContext } from "Tone/core/context/OfflineContext";
 import { getContext, setContext } from "Tone/core/Global";
-import { Seconds } from "Tone/core/type/Units";
+import type { Seconds } from "Tone/core/type/Units";
 import { isArray, isFunction } from "Tone/core/util/TypeCheck";
 
 type ReturnFunction = (time: Seconds) => void;
 
 export async function Offline(
-	callback: (context: OfflineContext) => void | ReturnFunction | ReturnFunction[] | Promise<void | ReturnFunction> | void,
+    callback: (context: OfflineContext) => void | ReturnFunction | ReturnFunction[] | Promise<void | ReturnFunction>,
 	duration = 0.1, channels = 1, sampleRate = 44100,
 ): Promise<TestAudioBuffer> {
 	const originalContext = getContext();

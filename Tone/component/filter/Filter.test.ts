@@ -2,8 +2,8 @@ import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { Offline } from "test/helper/Offline";
 import { PassAudio } from "test/helper/PassAudio";
-import { Oscillator } from "../../source/oscillator/Oscillator";
-import { Filter, FilterRollOff } from "./Filter";
+import { Oscillator } from "../../source";
+import { Filter, type FilterRollOff } from "./Filter";
 
 describe("Filter", () => {
 

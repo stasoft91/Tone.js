@@ -1,9 +1,9 @@
-import { AMSynth } from "./AMSynth";
-import { BasicTests } from "test/helper/Basic";
-import { InstrumentTest } from "test/helper/InstrumentTests";
-import { CompareToFile } from "test/helper/CompareToFile";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { CompareToFile } from "test/helper/CompareToFile";
+import { InstrumentTest } from "test/helper/InstrumentTests";
 import { Offline } from "test/helper/Offline";
+import { AMSynth } from "./AMSynth";
 
 describe("AMSynth", () => {
 

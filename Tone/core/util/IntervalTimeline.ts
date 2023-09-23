@@ -1,6 +1,6 @@
 import { Tone } from "../Tone";
-import { isDefined } from "./TypeCheck";
 import { assert } from "./Debug";
+import { isDefined } from "./TypeCheck";
 
 /**
  * An IntervalTimeline event must have a time and duration
@@ -8,6 +8,7 @@ import { assert } from "./Debug";
 export interface IntervalTimelineEvent {
 	time: number;
 	duration: number;
+
 	[propName: string]: any;
 }
 
@@ -34,6 +35,14 @@ export class IntervalTimeline extends Tone {
 	 * Keep track of the length of the timeline.
 	 */
 	private _length = 0;
+
+    /**
+     * The number of items in the timeline.
+     * @readOnly
+     */
+    get length(): number {
+        return this._length;
+    }
 
 	/**
 	 * The event to add to the timeline. All events must
@@ -82,14 +91,6 @@ export class IntervalTimeline extends Tone {
 	}
 
 	/**
-	 * The number of items in the timeline.
-	 * @readOnly
-	 */
-	get length(): number {
-		return this._length;
-	}
-
-	/**
 	 * Remove events whose time time is after the given time
 	 * @param  after  The time to query.
 	 */
@@ -97,6 +98,95 @@ export class IntervalTimeline extends Tone {
 		this.forEachFrom(after, event => this.remove(event));
 		return this;
 	}
+
+    /**
+     * Get an event whose time and duration span the give time. Will
+     * return the match whose "time" value is closest to the given time.
+     * @return  The event which spans the desired time
+     */
+    get(time: number): IntervalTimelineEvent | null {
+        if (this._root !== null) {
+            const results: IntervalNode[] = [];
+            this._root.search(time, results);
+            if (results.length > 0) {
+                let max = results[0];
+                for (let i = 1; i < results.length; i++) {
+                    if (results[i].low > max.low) {
+                        max = results[i];
+                    }
+                }
+                return max.event;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Iterate over everything in the timeline.
+     * @param  callback The callback to invoke with every item
+     */
+    forEach(callback: IteratorCallback): this {
+        if (this._root !== null) {
+            const allNodes: IntervalNode[] = [];
+            this._root.traverse(node => allNodes.push(node));
+            allNodes.forEach(node => {
+                if (node.event) {
+                    callback(node.event);
+                }
+            });
+        }
+        return this;
+    }
+
+    /**
+     * Iterate over everything in the array in which the given time
+     * overlaps with the time and duration time of the event.
+     * @param  time The time to check if items are overlapping
+     * @param  callback The callback to invoke with every item
+     */
+    forEachAtTime(time: number, callback: IteratorCallback): this {
+        if (this._root !== null) {
+            const results: IntervalNode[] = [];
+            this._root.search(time, results);
+            results.forEach(node => {
+                if (node.event) {
+                    callback(node.event);
+                }
+            });
+        }
+        return this;
+    }
+
+    /**
+     * Iterate over everything in the array in which the time is greater
+     * than or equal to the given time.
+     * @param  time The time to check if items are before
+     * @param  callback The callback to invoke with every item
+     */
+    forEachFrom(time: number, callback: IteratorCallback): this {
+        if (this._root !== null) {
+            const results: IntervalNode[] = [];
+            this._root.searchAfter(time, results);
+            results.forEach(node => {
+                if (node.event) {
+                    callback(node.event);
+                }
+            });
+        }
+        return this;
+    }
+
+    /**
+     * Clean up
+     */
+    dispose(): this {
+        super.dispose();
+        if (this._root !== null) {
+            this._root.traverse(node => node.dispose());
+        }
+        this._root = null;
+        return this;
+    }
 
 	/**
 	 * Set the root node as the given node
@@ -258,95 +348,6 @@ export class IntervalTimeline extends Tone {
 			}
 		}
 	}
-
-	/**
-	 * Get an event whose time and duration span the give time. Will
-	 * return the match whose "time" value is closest to the given time.
-	 * @return  The event which spans the desired time
-	 */
-	get(time: number): IntervalTimelineEvent | null {
-		if (this._root !== null) {
-			const results: IntervalNode[] = [];
-			this._root.search(time, results);
-			if (results.length > 0) {
-				let max = results[0];
-				for (let i = 1; i < results.length; i++) {
-					if (results[i].low > max.low) {
-						max = results[i];
-					}
-				}
-				return max.event;
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Iterate over everything in the timeline.
-	 * @param  callback The callback to invoke with every item
-	 */
-	forEach(callback: IteratorCallback): this {
-		if (this._root !== null) {
-			const allNodes: IntervalNode[] = [];
-			this._root.traverse(node => allNodes.push(node));
-			allNodes.forEach(node => {
-				if (node.event) {
-					callback(node.event);
-				}
-			});
-		}
-		return this;
-	}
-
-	/**
-	 * Iterate over everything in the array in which the given time
-	 * overlaps with the time and duration time of the event.
-	 * @param  time The time to check if items are overlapping
-	 * @param  callback The callback to invoke with every item
-	 */
-	forEachAtTime(time: number, callback: IteratorCallback): this {
-		if (this._root !== null) {
-			const results: IntervalNode[] = [];
-			this._root.search(time, results);
-			results.forEach(node => {
-				if (node.event) {
-					callback(node.event);
-				}
-			});
-		}
-		return this;
-	}
-
-	/**
-	 * Iterate over everything in the array in which the time is greater
-	 * than or equal to the given time.
-	 * @param  time The time to check if items are before
-	 * @param  callback The callback to invoke with every item
-	 */
-	forEachFrom(time: number, callback: IteratorCallback): this {
-		if (this._root !== null) {
-			const results: IntervalNode[] = [];
-			this._root.searchAfter(time, results);
-			results.forEach(node => {
-				if (node.event) {
-					callback(node.event);
-				}
-			});
-		}
-		return this;
-	}
-
-	/**
-	 * Clean up
-	 */
-	dispose(): this {
-		super.dispose();
-		if (this._root !== null) {
-			this._root.traverse(node => node.dispose());
-		}
-		this._root = null;
-		return this;
-	}
 }
 
 //-------------------------------------
@@ -373,10 +374,6 @@ class IntervalNode {
 	high: number;
 	// the high value for this and all child nodes
 	max: number;
-	// the nodes to the left
-	private _left: IntervalNode | null = null;
-	// the nodes to the right
-	private _right: IntervalNode | null = null;
 	// the parent node
 	parent: IntervalNode | null = null;
 	// the number of child nodes
@@ -391,6 +388,44 @@ class IntervalNode {
 		// the high value for this and all child nodes
 		this.max = this.high;
 	}
+
+    // the nodes to the left
+    private _left: IntervalNode | null = null;
+
+    /**
+     * get/set the left node
+     */
+    get left(): IntervalNode | null {
+        return this._left;
+    }
+
+    set left(node: IntervalNode | null) {
+        this._left = node;
+        if (node !== null) {
+            node.parent = this;
+        }
+        this.updateHeight();
+        this.updateMax();
+    }
+
+    // the nodes to the right
+    private _right: IntervalNode | null = null;
+
+    /**
+     * get/set the right node
+     */
+    get right(): IntervalNode | null {
+        return this._right;
+    }
+
+    set right(node: IntervalNode | null) {
+        this._right = node;
+        if (node !== null) {
+            node.parent = this;
+        }
+        this.updateHeight();
+        this.updateMax();
+    }
 
 	/**
 	 * Insert a node into the correct spot in the tree
@@ -523,38 +558,6 @@ class IntervalNode {
 	 */
 	isLeftChild(): boolean {
 		return this.parent !== null && this.parent.left === this;
-	}
-
-	/**
-	 * get/set the left node
-	 */
-	get left(): IntervalNode | null {
-		return this._left;
-	}
-
-	set left(node: IntervalNode | null) {
-		this._left = node;
-		if (node !== null) {
-			node.parent = this;
-		}
-		this.updateHeight();
-		this.updateMax();
-	}
-
-	/**
-	 * get/set the right node
-	 */
-	get right(): IntervalNode | null {
-		return this._right;
-	}
-
-	set right(node: IntervalNode | null) {
-		this._right = node;
-		if (node !== null) {
-			node.parent = this;
-		}
-		this.updateHeight();
-		this.updateMax();
 	}
 
 	/**

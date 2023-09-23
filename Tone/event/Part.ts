@@ -1,18 +1,24 @@
-import { TicksClass } from "../core/type/Ticks";
-import { TransportTimeClass } from "../core/type/TransportTime";
-import { NormalRange, Positive, Seconds, Ticks, Time, TransportTime } from "../core/type/Units";
-import { defaultArg, optionsFromArguments } from "../core/util/Defaults";
-import { StateTimeline } from "../core/util/StateTimeline";
-import { isArray, isDefined, isObject, isUndef } from "../core/util/TypeCheck";
-import { ToneEvent, ToneEventCallback, ToneEventOptions } from "./ToneEvent";
+import {
+	defaultArg,
+	isArray,
+	isDefined,
+	isObject,
+	isUndef,
+	optionsFromArguments,
+	StateTimeline,
+	TicksClass,
+	TransportTimeClass
+} from "../core";
+import type { NormalRange, Positive, Seconds, Ticks, Time, TransportTime } from "../core/type/Units";
+import { ToneEvent, type ToneEventCallback, type ToneEventOptions } from "./ToneEvent";
 
 type CallbackType<T> =
-	T extends {
-		time: Time;
-		[key: string]: any;
-	} ? T :
-		T extends ArrayLike<any> ? T[1] :
-			T extends Time ? null : never;
+    T extends {
+            time: Time;
+            [key: string]: any;
+        } ? T :
+        T extends ArrayLike<any> ? T[1] :
+            T extends Time ? null : never;
 
 export interface PartOptions<T> extends Omit<ToneEventOptions<CallbackType<T>>, "value"> {
 	events: T[];
@@ -24,19 +30,19 @@ export interface PartOptions<T> extends Omit<ToneEventOptions<CallbackType<T>>, 
  * @example
  * const synth = new Tone.Synth().toDestination();
  * const part = new Tone.Part(((time, note) => {
- * 	// the notes given as the second element in the array
- * 	// will be passed in as the second argument
- * 	synth.triggerAttackRelease(note, "8n", time);
+ *    // the notes given as the second element in the array
+ *    // will be passed in as the second argument
+ *    synth.triggerAttackRelease(note, "8n", time);
  * }), [[0, "C2"], ["0:2", "C3"], ["0:3:2", "G2"]]).start(0);
  * Tone.Transport.start();
  * @example
  * const synth = new Tone.Synth().toDestination();
  * // use an array of objects as long as the object has a "time" attribute
  * const part = new Tone.Part(((time, value) => {
- * 	// the value is an object which contains both the note and the velocity
- * 	synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
+ *    // the value is an object which contains both the note and the velocity
+ *    synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
  * }), [{ time: 0, note: "C3", velocity: 0.9 },
- * 	{ time: "0:2", note: "C4", velocity: 0.5 }
+ *    { time: "0:2", note: "C4", velocity: 0.5 }
  * ]).start(0);
  * Tone.Transport.start();
  * @category Event
@@ -60,7 +66,7 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 
 	/**
 	 * @param callback The callback to invoke on each event
-	 * @param events the array of events
+     * @param value events the array of events
 	 */
 	constructor(callback?: ToneEventCallback<CallbackType<ValueType>>, value?: ValueType[]);
 	constructor(options?: Partial<PartOptions<ValueType>>);
@@ -81,6 +87,118 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 			}
 		});
 	}
+
+    get startOffset(): Ticks {
+        return this._startOffset;
+    }
+
+    set startOffset(offset) {
+        this._startOffset = offset;
+        this._forEach(event => {
+            event.startOffset += this._startOffset;
+        });
+    }
+
+    get probability(): NormalRange {
+        return this._probability;
+    }
+
+    set probability(prob) {
+        this._probability = prob;
+        this._setAll("probability", prob);
+    }
+
+    get humanize(): boolean | Time {
+        return this._humanize;
+    }
+
+    set humanize(variation) {
+        this._humanize = variation;
+        this._setAll("humanize", variation);
+    }
+
+    /**
+     * If the part should loop or not
+     * between Part.loopStart and
+     * Part.loopEnd. If set to true,
+     * the part will loop indefinitely,
+     * if set to a number greater than 1
+     * it will play a specific number of
+     * times, if set to false, 0 or 1, the
+     * part will only play once.
+     * @example
+     * const part = new Tone.Part();
+     * // loop the part 8 times
+     * part.loop = 8;
+     */
+    get loop(): boolean | number {
+        return this._loop;
+    }
+
+    set loop(loop) {
+        this._loop = loop;
+        this._forEach(event => {
+            event.loopStart = this.loopStart;
+            event.loopEnd = this.loopEnd;
+            event.loop = loop;
+            this._testLoopBoundries(event);
+        });
+    }
+
+    /**
+     * The loopEnd point determines when it will
+     * loop if Part.loop is true.
+     */
+    get loopEnd(): Time {
+        return new TicksClass(this.context, this._loopEnd).toSeconds();
+    }
+
+    set loopEnd(loopEnd) {
+        this._loopEnd = this.toTicks(loopEnd);
+        if (this._loop) {
+            this._forEach(event => {
+                event.loopEnd = loopEnd;
+                this._testLoopBoundries(event);
+            });
+        }
+    }
+
+    /**
+     * The loopStart point determines when it will
+     * loop if Part.loop is true.
+     */
+    get loopStart(): Time {
+        return new TicksClass(this.context, this._loopStart).toSeconds();
+    }
+
+    set loopStart(loopStart) {
+        this._loopStart = this.toTicks(loopStart);
+        if (this._loop) {
+            this._forEach(event => {
+                event.loopStart = this.loopStart;
+                this._testLoopBoundries(event);
+            });
+        }
+    }
+
+    /**
+     * The playback rate of the part
+     */
+    get playbackRate(): Positive {
+        return this._playbackRate;
+    }
+
+    set playbackRate(rate) {
+        this._playbackRate = rate;
+        this._setAll("playbackRate", rate);
+    }
+
+    /**
+     * The number of scheduled notes in the part.
+     */
+    get length(): number {
+        return this._events.size;
+    }
 
 	static getDefaults(): PartOptions<any> {
 		return Object.assign(ToneEvent.getDefaults(), {
@@ -114,41 +232,6 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 			});
 		}
 		return this;
-	}
-
-	/**
-	 * Start the event in the given event at the correct time given
-	 * the ticks and offset and looping.
-	 * @param  event
-	 * @param  ticks
-	 * @param  offset
-	 */
-	private _startNote(event: ToneEvent, ticks: Ticks, offset: Ticks): void {
-		ticks -= offset;
-		if (this._loop) {
-			if (event.startOffset >= this._loopStart && event.startOffset < this._loopEnd) {
-				if (event.startOffset < offset) {
-					// start it on the next loop
-					ticks += this._getLoopDuration();
-				}
-				event.start(new TicksClass(this.context, ticks));
-			} else if (event.startOffset < this._loopStart && event.startOffset >= offset) {
-				event.loop = false;
-				event.start(new TicksClass(this.context, ticks));
-			}
-		} else if (event.startOffset >= offset) {
-			event.start(new TicksClass(this.context, ticks));
-		}
-	}
-
-	get startOffset(): Ticks {
-		return this._startOffset;
-	}
-	set startOffset(offset) {
-		this._startOffset = offset;
-		this._forEach(event => {
-			event.startOffset += this._startOffset;
-		});
 	}
 
 	/**
@@ -208,7 +291,7 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 	/**
 	 * Add a an event to the part.
 	 * @param time The time the note should start. If an object is passed in, it should
-	 * 		have a 'time' attribute and the rest of the object will be used as the 'value'.
+     *        have a 'time' attribute and the rest of the object will be used as the 'value'.
 	 * @param  value
 	 * @example
 	 * const part = new Tone.Part();
@@ -218,8 +301,10 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 		time: Time;
 		[key: string]: any;
 	}): this;
+
 	add(time: Time, value?: any): this;
-	add(time: Time | object, value?: any): this {
+
+    add(time: Time | object, value?: any): this {
 		// extract the parameters
 		if (time instanceof Object && Reflect.has(time, "time")) {
 			value = time;
@@ -258,20 +343,6 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 	}
 
 	/**
-	 * Restart the given event
-	 */
-	private _restartEvent(event: ToneEvent): void {
-		this._state.forEach((stateEvent) => {
-			if (stateEvent.state === "started") {
-				this._startNote(event, stateEvent.time, stateEvent.offset);
-			} else {
-				// stop the note
-				event.stop(new TicksClass(this.context, stateEvent.time));
-			}
-		});
-	}
-
-	/**
 	 * Remove an event from the part. If the event at that time is a Part,
 	 * it will remove the entire part.
 	 * @param time The time of the event
@@ -281,8 +352,10 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 		time: Time;
 		[key: string]: any;
 	}): this;
-	remove(time: Time, value?: any): this;
-	remove(time: Time | object, value?: any): this {
+
+    remove(time: Time, value?: any): this;
+
+    remove(time: Time | object, value?: any): this {
 		// extract the parameters
 		if (isObject(time) && time.hasOwnProperty("time")) {
 			value = time;
@@ -319,6 +392,61 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 		return this;
 	}
 
+    dispose(): this {
+        super.dispose();
+        this.clear();
+        return this;
+    }
+
+    /**
+     * Internal tick method
+     * @param  time  The time of the event in seconds
+     */
+    protected _tick(time: Seconds, value?: any): void {
+        if (!this.mute) {
+            this.callback(time, value);
+        }
+    }
+
+    /**
+     * Start the event in the given event at the correct time given
+     * the ticks and offset and looping.
+     * @param  event
+     * @param  ticks
+     * @param  offset
+     */
+    private _startNote(event: ToneEvent, ticks: Ticks, offset: Ticks): void {
+        ticks -= offset;
+        if (this._loop) {
+            if (event.startOffset >= this._loopStart && event.startOffset < this._loopEnd) {
+                if (event.startOffset < offset) {
+                    // start it on the next loop
+                    ticks += this._getLoopDuration();
+                }
+                event.start(new TicksClass(this.context, ticks));
+            } else if (event.startOffset < this._loopStart && event.startOffset >= offset) {
+                event.loop = false;
+                event.start(new TicksClass(this.context, ticks));
+            }
+        } else if (event.startOffset >= offset) {
+            event.start(new TicksClass(this.context, ticks));
+        }
+    }
+
+    /**
+     * Restart the given event
+     */
+    private _restartEvent(event: ToneEvent): void {
+        this._state.forEach((stateEvent) => {
+            if (stateEvent.state === "started") {
+                this._startNote(event, stateEvent.time, stateEvent.offset);
+            } else {
+                // stop the note
+                event.stop(new TicksClass(this.context, stateEvent.time));
+            }
+        });
+    }
+
 	/**
 	 * Iterate over all of the events
 	 */
@@ -347,16 +475,6 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 	}
 
 	/**
-	 * Internal tick method
-	 * @param  time  The time of the event in seconds
-	 */
-	protected _tick(time: Seconds, value?: any): void {
-		if (!this.mute) {
-			this.callback(time, value);
-		}
-	}
-
-	/**
 	 * Determine if the event should be currently looping
 	 * given the loop boundries of this Part.
 	 * @param  event  The event to test
@@ -368,106 +486,5 @@ export class Part<ValueType = any> extends ToneEvent<ValueType> {
 			// reschedule it if it's stopped
 			this._restartEvent(event);
 		}
-	}
-
-	get probability(): NormalRange {
-		return this._probability;
-	}
-	set probability(prob) {
-		this._probability = prob;
-		this._setAll("probability", prob);
-	}
-
-	get humanize(): boolean | Time {
-		return this._humanize;
-	}
-	set humanize(variation) {
-		this._humanize = variation;
-		this._setAll("humanize", variation);
-	}
-
-	/**
-	 * If the part should loop or not
-	 * between Part.loopStart and
-	 * Part.loopEnd. If set to true,
-	 * the part will loop indefinitely,
-	 * if set to a number greater than 1
-	 * it will play a specific number of
-	 * times, if set to false, 0 or 1, the
-	 * part will only play once.
-	 * @example
-	 * const part = new Tone.Part();
-	 * // loop the part 8 times
-	 * part.loop = 8;
-	 */
-	get loop(): boolean | number {
-		return this._loop;
-	}
-	set loop(loop) {
-		this._loop = loop;
-		this._forEach(event => {
-			event.loopStart = this.loopStart;
-			event.loopEnd = this.loopEnd;
-			event.loop = loop;
-			this._testLoopBoundries(event);
-		});
-	}
-
-	/**
-	 * The loopEnd point determines when it will
-	 * loop if Part.loop is true.
-	 */
-	get loopEnd(): Time {
-		return new TicksClass(this.context, this._loopEnd).toSeconds();
-	}
-	set loopEnd(loopEnd) {
-		this._loopEnd = this.toTicks(loopEnd);
-		if (this._loop) {
-			this._forEach(event => {
-				event.loopEnd = loopEnd;
-				this._testLoopBoundries(event);
-			});
-		}
-	}
-
-	/**
-	 * The loopStart point determines when it will
-	 * loop if Part.loop is true.
-	 */
-	get loopStart(): Time {
-		return new TicksClass(this.context, this._loopStart).toSeconds();
-	}
-	set loopStart(loopStart) {
-		this._loopStart = this.toTicks(loopStart);
-		if (this._loop) {
-			this._forEach(event => {
-				event.loopStart = this.loopStart;
-				this._testLoopBoundries(event);
-			});
-		}
-	}
-
-	/**
-	 * The playback rate of the part
-	 */
-	get playbackRate(): Positive {
-		return this._playbackRate;
-	}
-	set playbackRate(rate) {
-		this._playbackRate = rate;
-		this._setAll("playbackRate", rate);
-	}
-
-	/**
-	 * The number of scheduled notes in the part.
-	 */
-	get length(): number {
-		return this._events.size;
-	}
-
-	dispose(): this {
-		super.dispose();
-		this.clear();
-		return this;
 	}
 }

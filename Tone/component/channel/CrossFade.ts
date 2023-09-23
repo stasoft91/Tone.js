@@ -1,10 +1,7 @@
-import { Gain } from "../../core/context/Gain";
-import { connect, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { NormalRange } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { connect, Gain, optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { NormalRange } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { GainToAudio } from "../../signal/GainToAudio";
-import { Signal } from "../../signal/Signal";
+import { GainToAudio, Signal } from "../../signal";
 
 interface CrossFadeOptions extends ToneAudioNodeOptions {
 	fade: NormalRange;
@@ -39,23 +36,6 @@ interface CrossFadeOptions extends ToneAudioNodeOptions {
 export class CrossFade extends ToneAudioNode<CrossFadeOptions> {
 
 	readonly name: string = "CrossFade";
-
-	/**
-	 * The crossfading is done by a StereoPannerNode
-	 */
-	private _panner: StereoPannerNode = this.context.createStereoPanner();
-
-	/**
-	 * Split the output of the panner node into two values used to control the gains.
-	 */
-	private _split: ChannelSplitterNode = this.context.createChannelSplitter(2);
-
-	/**
-	 * Convert the fade value into an audio range value so it can be connected
-	 * to the panner.pan AudioParam
-	 */
-	private _g2a: GainToAudio = new GainToAudio({ context: this.context });
-
 	/**
 	 * The input which is at full level when fade = 0
 	 */
@@ -63,7 +43,6 @@ export class CrossFade extends ToneAudioNode<CrossFadeOptions> {
 		context: this.context,
 		gain: 0,
 	});
-
 	/**
 	 * The input which is at full level when fade = 1
 	 */
@@ -71,25 +50,34 @@ export class CrossFade extends ToneAudioNode<CrossFadeOptions> {
 		context: this.context,
 		gain: 0,
 	});
-
 	/**
 	 * The output is a mix between `a` and `b` at the ratio of `fade`
 	 */
 	readonly output: Gain = new Gain({ context: this.context });
-
 	/**
 	 * CrossFade has no input, you must choose either `a` or `b`
 	 */
 	readonly input: undefined;
-
 	/**
 	 * The mix between the two inputs. A fade value of 0
 	 * will output 100% crossFade.a and
 	 * a value of 1 will output 100% crossFade.b.
 	 */
 	readonly fade: Signal<"normalRange">;
-
 	protected _internalChannels = [this.a, this.b];
+    /**
+     * The crossfading is done by a StereoPannerNode
+     */
+    private _panner: StereoPannerNode = this.context.createStereoPanner();
+    /**
+     * Split the output of the panner node into two values used to control the gains.
+     */
+    private _split: ChannelSplitterNode = this.context.createChannelSplitter(2);
+    /**
+     * Convert the fade value into an audio range value so it can be connected
+     * to the panner.pan AudioParam
+     */
+    private _g2a: GainToAudio = new GainToAudio({ context: this.context });
 
 	/**
 	 * @param fade The initial fade value [0, 1].

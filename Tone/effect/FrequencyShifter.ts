@@ -1,13 +1,9 @@
 import { PhaseShiftAllpass } from "../component/filter/PhaseShiftAllpass";
-import { Frequency } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Effect, EffectOptions } from "../effect/Effect";
-import { Add } from "../signal/Add";
-import { Multiply } from "../signal/Multiply";
-import { Negate } from "../signal/Negate";
-import { Signal } from "../signal/Signal";
-import { Oscillator } from "../source/oscillator/Oscillator";
-import { ToneOscillatorNode } from "../source/oscillator/ToneOscillatorNode";
+import { optionsFromArguments } from "../core";
+import type { Frequency } from "../core/type/Units";
+import { Add, Multiply, Negate, Signal } from "../signal";
+import { Oscillator, ToneOscillatorNode } from "../source";
+import { Effect, type EffectOptions } from "./Effect";
 
 export interface FrequencyShifterOptions extends EffectOptions {
 	frequency: Frequency;

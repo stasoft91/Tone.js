@@ -1,21 +1,12 @@
-import { TimeClass } from "../../core/type/Time";
-import { PlaybackState } from "../../core/util/StateTimeline";
-import { TimelineValue } from "../../core/util/TimelineValue";
-import { ToneAudioNode } from "../../core/context/ToneAudioNode";
-import { Pow } from "../../signal/Pow";
-import { Signal } from "../../signal/Signal";
-import {
-	onContextClose,
-	onContextInit,
-} from "../context/ContextInitialization";
+import { Pow, Signal } from "../../signal";
+import { onContextClose, onContextInit, } from "../context/ContextInitialization";
 import { Gain } from "../context/Gain";
-import {
-	ToneWithContext,
-	ToneWithContextOptions,
-} from "../context/ToneWithContext";
+import { ToneAudioNode } from "../context/ToneAudioNode";
+import { ToneWithContext, type ToneWithContextOptions, } from "../context/ToneWithContext";
 import { TicksClass } from "../type/Ticks";
+import { TimeClass } from "../type/Time";
 import { TransportTimeClass } from "../type/TransportTime";
-import {
+import type {
 	BarsBeatsSixteenths,
 	BPM,
 	NormalRange,
@@ -31,7 +22,9 @@ import { optionsFromArguments } from "../util/Defaults";
 import { Emitter } from "../util/Emitter";
 import { readOnly, writable } from "../util/Interface";
 import { IntervalTimeline } from "../util/IntervalTimeline";
+import type { PlaybackState } from "../util/StateTimeline";
 import { Timeline } from "../util/Timeline";
+import { TimelineValue } from "../util/TimelineValue";
 import { isArray, isDefined } from "../util/TypeCheck";
 import { Clock } from "./Clock";
 import { TickParam } from "./TickParam";
@@ -80,8 +73,8 @@ type TransportCallback = (time: Seconds) => void;
  * const osc = new Tone.Oscillator().toDestination();
  * // repeated event every 8th note
  * Tone.Transport.scheduleRepeat((time) => {
- * 	// use the callback time to schedule events
- * 	osc.start(time).stop(time + 0.1);
+ *    // use the callback time to schedule events
+ *    osc.start(time).stop(time + 0.1);
  * }, "8n");
  * // transport must be started before it starts invoking events
  * Tone.Transport.start();
@@ -95,37 +88,6 @@ export class Transport
 	//-------------------------------------
 	// 	LOOPING
 	//-------------------------------------
-
-	/**
-	 * If the transport loops or not.
-	 */
-	private _loop: TimelineValue<boolean> = new TimelineValue(false);
-
-	/**
-	 * The loop start position in ticks
-	 */
-	private _loopStart: Ticks = 0;
-
-	/**
-	 * The loop end position in ticks
-	 */
-	private _loopEnd: Ticks = 0;
-
-	//-------------------------------------
-	// 	CLOCK/TEMPO
-	//-------------------------------------
-
-	/**
-	 * Pulses per quarter is the number of ticks per quarter note.
-	 */
-	private _ppq: number;
-
-	/**
-	 * watches the main oscillator for timing ticks
-	 * initially starts at 120bpm
-	 */
-	private _clock: Clock<"bpm">;
-
 	/**
 	 * The Beats Per Minute of the Transport.
 	 * @example
@@ -133,24 +95,43 @@ export class Transport
 	 * Tone.Transport.bpm.value = 80;
 	 * // start/stop the oscillator every quarter note
 	 * Tone.Transport.scheduleRepeat(time => {
-	 * 	osc.start(time).stop(time + 0.1);
+	 *    osc.start(time).stop(time + 0.1);
 	 * }, "4n");
 	 * Tone.Transport.start();
 	 * // ramp the bpm to 120 over 10 seconds
 	 * Tone.Transport.bpm.rampTo(120, 10);
 	 */
 	bpm: TickParam<"bpm">;
+	on!: (
+		event: TransportEventNames,
+		callback: (...args: any[]) => void
+	) => this;
+	once!: (
+		event: TransportEventNames,
+		callback: (...args: any[]) => void
+	) => this;
 
+	//-------------------------------------
+	// 	CLOCK/TEMPO
+	//-------------------------------------
+	off!: (
+		event: TransportEventNames,
+		callback?: ((...args: any[]) => void) | undefined
+	) => this;
+	emit!: (event: any, ...args: any[]) => this;
 	/**
-	 * The time signature, or more accurately the numerator
-	 * of the time signature over a denominator of 4.
+	 * Pulses per quarter is the number of ticks per quarter note.
 	 */
-	private _timeSignature: number;
+	private _ppq: number;
+	/**
+	 * watches the main oscillator for timing ticks
+	 * initially starts at 120bpm
+	 */
+	private _clock: Clock<"bpm">;
 
 	//-------------------------------------
 	// 	TIMELINE EVENTS
 	//-------------------------------------
-
 	/**
 	 * All the events in an object to keep track by ID
 	 */
@@ -212,6 +193,214 @@ export class Transport
 		this._swingTicks = options.ppq / 2; // 8n
 	}
 
+	/**
+	 * If the transport loops or not.
+	 */
+	private _loop: TimelineValue<boolean> = new TimelineValue(false);
+
+	//-------------------------------------
+	// 	TICKS
+	//-------------------------------------
+
+	/**
+	 * If the transport loops or not.
+	 */
+	get loop(): boolean {
+		return this._loop.get(this.now());
+	}
+
+	//-------------------------------------
+	// 	SCHEDULABLE EVENTS
+	//-------------------------------------
+
+	set loop(loop) {
+		this._loop.set(loop, this.now());
+	}
+
+	/**
+	 * The loop start position in ticks
+	 */
+	private _loopStart: Ticks = 0;
+
+	/**
+	 * When the Transport.loop = true, this is the starting position of the loop.
+	 */
+	get loopStart(): Time {
+		return new TimeClass(this.context, this._loopStart, "i").toSeconds();
+	}
+
+	set loopStart(startPosition: Time) {
+		this._loopStart = this.toTicks(startPosition);
+	}
+
+	/**
+	 * The loop end position in ticks
+	 */
+	private _loopEnd: Ticks = 0;
+
+	/**
+	 * When the Transport.loop = true, this is the ending position of the loop.
+	 */
+	get loopEnd(): Time {
+		return new TimeClass(this.context, this._loopEnd, "i").toSeconds();
+	}
+
+	//-------------------------------------
+	// 	START/STOP/PAUSE
+	//-------------------------------------
+
+	set loopEnd(endPosition: Time) {
+		this._loopEnd = this.toTicks(endPosition);
+	}
+
+	/**
+	 * The time signature, or more accurately the numerator
+	 * of the time signature over a denominator of 4.
+	 */
+	private _timeSignature: number;
+
+	/**
+	 * The time signature as just the numerator over 4.
+	 * For example 4/4 would be just 4 and 6/8 would be 3.
+	 * @example
+	 * // common time
+	 * Tone.Transport.timeSignature = 4;
+	 * // 7/8
+	 * Tone.Transport.timeSignature = [7, 8];
+	 * // this will be reduced to a single number
+	 * Tone.Transport.timeSignature; // returns 3.5
+	 */
+	get timeSignature(): TimeSignature {
+		return this._timeSignature;
+	}
+
+	set timeSignature(timeSig: TimeSignature) {
+		if (isArray(timeSig)) {
+			timeSig = (timeSig[0] / timeSig[1]) * 4;
+		}
+		this._timeSignature = timeSig;
+	}
+
+	/**
+	 * Returns the playback state of the source, either "started", "stopped", or "paused"
+	 */
+	get state(): PlaybackState {
+		return this._clock.getStateAtTime(this.now());
+	}
+
+	/**
+	 * The swing value. Between 0-1 where 1 equal to the note + half the subdivision.
+	 */
+	get swing(): NormalRange {
+		return this._swingAmount;
+	}
+
+	//-------------------------------------
+	// 	SETTERS/GETTERS
+	//-------------------------------------
+
+	set swing(amount: NormalRange) {
+		// scale the values to a normal range
+		this._swingAmount = amount;
+	}
+
+	/**
+	 * Set the subdivision which the swing will be applied to.
+	 * The default value is an 8th note. Value must be less
+	 * than a quarter note.
+	 */
+	get swingSubdivision(): Subdivision {
+		return new TicksClass(this.context, this._swingTicks).toNotation();
+	}
+
+	set swingSubdivision(subdivision: Subdivision) {
+		this._swingTicks = this.toTicks(subdivision);
+	}
+
+	/**
+	 * The Transport's position in Bars:Beats:Sixteenths.
+	 * Setting the value will jump to that position right away.
+	 */
+	get position(): BarsBeatsSixteenths | Time {
+		const now = this.now();
+		const ticks = this._clock.getTicksAtTime(now);
+		return new TicksClass(this.context, ticks).toBarsBeatsSixteenths();
+	}
+
+	set position(progress: Time) {
+		this.ticks = this.toTicks(progress);
+	}
+
+	/**
+	 * The Transport's position in seconds.
+	 * Setting the value will jump to that position right away.
+	 */
+	get seconds(): Seconds {
+		return this._clock.seconds;
+	}
+
+	set seconds(s: Seconds) {
+		const now = this.now();
+		this.ticks = this._clock.frequency.timeToTicks(s, now);
+	}
+
+	/**
+	 * The Transport's loop position as a normalized value. Always
+	 * returns 0 if the Transport.loop = false.
+	 */
+	get progress(): NormalRange {
+		if (this.loop) {
+			const now = this.now();
+			const ticks = this._clock.getTicksAtTime(now);
+			return (
+				(ticks - this._loopStart) / (this._loopEnd - this._loopStart)
+			);
+		} else {
+			return 0;
+		}
+	}
+
+	/**
+	 * The Transport's current tick position.
+	 */
+	get ticks(): Ticks {
+		return this._clock.ticks;
+	}
+
+	set ticks(t: Ticks) {
+		if (this._clock.ticks !== t) {
+			const now = this.now();
+			// stop everything synced to the transport
+			if (this.state === "started") {
+				const ticks = this._clock.getTicksAtTime(now);
+				// schedule to start on the next tick, #573
+				const remainingTick = this._clock.frequency.getDurationOfTicks(Math.ceil(ticks) - ticks, now);
+				const time = now + remainingTick;
+				this.emit("stop", time);
+				this._clock.setTicksAtTime(t, time);
+				// restart it with the new time
+				this.emit("start", time, this._clock.getSecondsAtTime(time));
+			} else {
+				this.emit("ticks", now);
+				this._clock.setTicksAtTime(t, now);
+			}
+		}
+	}
+
+	/**
+	 * Pulses Per Quarter note. This is the smallest resolution
+	 * the Transport timing supports. This should be set once
+	 * on initialization and not set again. Changing this value
+	 * after other objects have been created can cause problems.
+	 */
+	get PPQ(): number {
+		return this._clock.frequency.multiplier;
+	}
+
+	set PPQ(ppq: number) {
+		this._clock.frequency.multiplier = ppq;
+	}
+
 	static getDefaults(): TransportOptions {
 		return Object.assign(ToneWithContext.getDefaults(), {
 			bpm: 120,
@@ -224,55 +413,6 @@ export class Transport
 		});
 	}
 
-	//-------------------------------------
-	// 	TICKS
-	//-------------------------------------
-
-	/**
-	 * called on every tick
-	 * @param  tickTime clock relative tick time
-	 */
-	private _processTick(tickTime: Seconds, ticks: Ticks): void {
-		// do the loop test
-		if (this._loop.get(tickTime)) {
-			if (ticks >= this._loopEnd) {
-				this.emit("loopEnd", tickTime);
-				this._clock.setTicksAtTime(this._loopStart, tickTime);
-				ticks = this._loopStart;
-				this.emit(
-					"loopStart",
-					tickTime,
-					this._clock.getSecondsAtTime(tickTime)
-				);
-				this.emit("loop", tickTime);
-			}
-		}
-		// handle swing
-		if (
-			this._swingAmount > 0 &&
-			ticks % this._ppq !== 0 && // not on a downbeat
-			ticks % (this._swingTicks * 2) !== 0
-		) {
-			// add some swing
-			const progress =
-				(ticks % (this._swingTicks * 2)) / (this._swingTicks * 2);
-			const amount = Math.sin(progress * Math.PI) * this._swingAmount;
-			tickTime +=
-				new TicksClass(
-					this.context,
-					(this._swingTicks * 2) / 3
-				).toSeconds() * amount;
-		}
-		// invoke the timeline events scheduled on this tick
-		enterScheduledCallback(true);
-		this._timeline.forEachAtTime(ticks, (event) => event.invoke(tickTime));
-		enterScheduledCallback(false);
-	}
-
-	//-------------------------------------
-	// 	SCHEDULABLE EVENTS
-	//-------------------------------------
-
 	/**
 	 * Schedule an event along the timeline.
 	 * @param callback The callback to be invoked at the time.
@@ -281,8 +421,8 @@ export class Transport
 	 * @example
 	 * // schedule an event on the 16th measure
 	 * Tone.Transport.schedule((time) => {
-	 * 	// invoked on measure 16
-	 * 	console.log("measure 16!");
+	 *    // invoked on measure 16
+	 *    console.log("measure 16!");
 	 * }, "16:0:0");
 	 */
 	schedule(
@@ -309,7 +449,7 @@ export class Transport
 	 * const osc = new Tone.Oscillator().toDestination().start();
 	 * // a callback invoked every eighth note after the first measure
 	 * Tone.Transport.scheduleRepeat((time) => {
-	 * 	osc.start(time).stop(time + 0.1);
+	 *    osc.start(time).stop(time + 0.1);
 	 * }, "8n", "1m");
 	 */
 	scheduleRepeat(
@@ -362,20 +502,6 @@ export class Transport
 	}
 
 	/**
-	 * Add an event to the correct timeline. Keep track of the
-	 * timeline it was added to.
-	 * @returns the event id which was just added
-	 */
-	private _addEvent(event: TransportEvent, timeline: Timeline<TransportEvent>): number {
-		this._scheduledEvents[event.id.toString()] = {
-			event,
-			timeline,
-		};
-		timeline.add(event);
-		return event.id;
-	}
-
-	/**
 	 * Remove scheduled events from the timeline after
 	 * the given time. Repeated events will be removed
 	 * if their startTime is after the given time
@@ -390,35 +516,6 @@ export class Transport
 			this.clear(event.id)
 		);
 		return this;
-	}
-
-	//-------------------------------------
-	// 	START/STOP/PAUSE
-	//-------------------------------------
-
-	/**
-	 * Bind start/stop/pause events from the clock and emit them.
-	 */
-	private _bindClockEvents(): void {
-		this._clock.on("start", (time, offset) => {
-			offset = new TicksClass(this.context, offset).toSeconds();
-			this.emit("start", time, offset);
-		});
-
-		this._clock.on("stop", (time) => {
-			this.emit("stop", time);
-		});
-
-		this._clock.on("pause", (time) => {
-			this.emit("pause", time);
-		});
-	}
-
-	/**
-	 * Returns the playback state of the source, either "started", "stopped", or "paused"
-	 */
-	get state(): PlaybackState {
-		return this._clock.getStateAtTime(this.now());
 	}
 
 	/**
@@ -475,61 +572,6 @@ export class Transport
 		return this;
 	}
 
-	//-------------------------------------
-	// 	SETTERS/GETTERS
-	//-------------------------------------
-
-	/**
-	 * The time signature as just the numerator over 4.
-	 * For example 4/4 would be just 4 and 6/8 would be 3.
-	 * @example
-	 * // common time
-	 * Tone.Transport.timeSignature = 4;
-	 * // 7/8
-	 * Tone.Transport.timeSignature = [7, 8];
-	 * // this will be reduced to a single number
-	 * Tone.Transport.timeSignature; // returns 3.5
-	 */
-	get timeSignature(): TimeSignature {
-		return this._timeSignature;
-	}
-	set timeSignature(timeSig: TimeSignature) {
-		if (isArray(timeSig)) {
-			timeSig = (timeSig[0] / timeSig[1]) * 4;
-		}
-		this._timeSignature = timeSig;
-	}
-
-	/**
-	 * When the Transport.loop = true, this is the starting position of the loop.
-	 */
-	get loopStart(): Time {
-		return new TimeClass(this.context, this._loopStart, "i").toSeconds();
-	}
-	set loopStart(startPosition: Time) {
-		this._loopStart = this.toTicks(startPosition);
-	}
-
-	/**
-	 * When the Transport.loop = true, this is the ending position of the loop.
-	 */
-	get loopEnd(): Time {
-		return new TimeClass(this.context, this._loopEnd, "i").toSeconds();
-	}
-	set loopEnd(endPosition: Time) {
-		this._loopEnd = this.toTicks(endPosition);
-	}
-
-	/**
-	 * If the transport loops or not.
-	 */
-	get loop(): boolean {
-		return this._loop.get(this.now());
-	}
-	set loop(loop) {
-		this._loop.set(loop, this.now());
-	}
-
 	/**
 	 * Set the loop start and stop at the same time.
 	 * @example
@@ -547,98 +589,6 @@ export class Transport
 	}
 
 	/**
-	 * The swing value. Between 0-1 where 1 equal to the note + half the subdivision.
-	 */
-	get swing(): NormalRange {
-		return this._swingAmount;
-	}
-	set swing(amount: NormalRange) {
-		// scale the values to a normal range
-		this._swingAmount = amount;
-	}
-
-	/**
-	 * Set the subdivision which the swing will be applied to.
-	 * The default value is an 8th note. Value must be less
-	 * than a quarter note.
-	 */
-	get swingSubdivision(): Subdivision {
-		return new TicksClass(this.context, this._swingTicks).toNotation();
-	}
-	set swingSubdivision(subdivision: Subdivision) {
-		this._swingTicks = this.toTicks(subdivision);
-	}
-
-	/**
-	 * The Transport's position in Bars:Beats:Sixteenths.
-	 * Setting the value will jump to that position right away.
-	 */
-	get position(): BarsBeatsSixteenths | Time {
-		const now = this.now();
-		const ticks = this._clock.getTicksAtTime(now);
-		return new TicksClass(this.context, ticks).toBarsBeatsSixteenths();
-	}
-	set position(progress: Time) {
-		const ticks = this.toTicks(progress);
-		this.ticks = ticks;
-	}
-
-	/**
-	 * The Transport's position in seconds.
-	 * Setting the value will jump to that position right away.
-	 */
-	get seconds(): Seconds {
-		return this._clock.seconds;
-	}
-	set seconds(s: Seconds) {
-		const now = this.now();
-		const ticks = this._clock.frequency.timeToTicks(s, now);
-		this.ticks = ticks;
-	}
-
-	/**
-	 * The Transport's loop position as a normalized value. Always
-	 * returns 0 if the Transport.loop = false.
-	 */
-	get progress(): NormalRange {
-		if (this.loop) {
-			const now = this.now();
-			const ticks = this._clock.getTicksAtTime(now);
-			return (
-				(ticks - this._loopStart) / (this._loopEnd - this._loopStart)
-			);
-		} else {
-			return 0;
-		}
-	}
-
-	/**
-	 * The Transport's current tick position.
-	 */
-	get ticks(): Ticks {
-		return this._clock.ticks;
-	}
-	set ticks(t: Ticks) {
-		if (this._clock.ticks !== t) {
-			const now = this.now();
-			// stop everything synced to the transport
-			if (this.state === "started") {
-				const ticks = this._clock.getTicksAtTime(now);
-				// schedule to start on the next tick, #573
-				const remainingTick = this._clock.frequency.getDurationOfTicks(Math.ceil(ticks) - ticks, now);
-				const time = now + remainingTick;
-				this.emit("stop", time);
-				this._clock.setTicksAtTime(t, time);
-				// restart it with the new time
-				this.emit("start", time, this._clock.getSecondsAtTime(time));
-			} else {
-				this.emit("ticks", now);
-				this._clock.setTicksAtTime(t, now);
-			}
-		}
-	}
-
-	/**
 	 * Get the clock's ticks at the given time.
 	 * @param  time  When to get the tick value
 	 * @return The tick value at the given time.
@@ -646,6 +596,10 @@ export class Transport
 	getTicksAtTime(time?: Time): Ticks {
 		return this._clock.getTicksAtTime(time);
 	}
+
+	//-------------------------------------
+	// 	SYNCING
+	//-------------------------------------
 
 	/**
 	 * Return the elapsed seconds at the given time.
@@ -655,23 +609,6 @@ export class Transport
 	getSecondsAtTime(time: Time): Seconds {
 		return this._clock.getSecondsAtTime(time);
 	}
-
-	/**
-	 * Pulses Per Quarter note. This is the smallest resolution
-	 * the Transport timing supports. This should be set once
-	 * on initialization and not set again. Changing this value
-	 * after other objects have been created can cause problems.
-	 */
-	get PPQ(): number {
-		return this._clock.frequency.multiplier;
-	}
-	set PPQ(ppq: number) {
-		this._clock.frequency.multiplier = ppq;
-	}
-
-	//-------------------------------------
-	// 	SYNCING
-	//-------------------------------------
 
 	/**
 	 * Returns the time aligned to the next subdivision
@@ -706,13 +643,13 @@ export class Transport
 	 *
 	 * @param signal
 	 * @param ratio Optionally pass in the ratio between the two signals.
-	 * 			Otherwise it will be computed based on their current values.
+	 *            Otherwise it will be computed based on their current values.
 	 */
 	syncSignal(signal: Signal<any>, ratio?: number): this {
 		const now = this.now();
-		let source : TickParam<"bpm"> | ToneAudioNode<any> = this.bpm;
+		let source: TickParam<"bpm"> | ToneAudioNode<any> = this.bpm;
 		let sourceValue = 1 / (60 / source.getValueAtTime(now) / this.PPQ);
-		let nodes : ToneAudioNode<any>[] = [];
+		let nodes: ToneAudioNode<any>[] = [];
 		// If the signal is in the time domain, sync it to the reciprocal of
 		// the tempo instead of the tempo.
 		if (signal.units === "time") {
@@ -770,6 +707,10 @@ export class Transport
 		return this;
 	}
 
+	//-------------------------------------
+	// EMITTER MIXIN TO SATISFY COMPILER
+	//-------------------------------------
+
 	/**
 	 * Clean up.
 	 */
@@ -782,23 +723,79 @@ export class Transport
 		return this;
 	}
 
-	//-------------------------------------
-	// EMITTER MIXIN TO SATISFY COMPILER
-	//-------------------------------------
+	/**
+	 * called on every tick
+	 * @param  tickTime clock relative tick time
+	 * @param ticks
+	 */
+	private _processTick(tickTime: Seconds, ticks: Ticks): void {
+		// do the loop test
+		if (this._loop.get(tickTime)) {
+			if (ticks >= this._loopEnd) {
+				this.emit("loopEnd", tickTime);
+				this._clock.setTicksAtTime(this._loopStart, tickTime);
+				ticks = this._loopStart;
+				this.emit(
+					"loopStart",
+					tickTime,
+					this._clock.getSecondsAtTime(tickTime)
+				);
+				this.emit("loop", tickTime);
+			}
+		}
+		// handle swing
+		if (
+			this._swingAmount > 0 &&
+			ticks % this._ppq !== 0 && // not on a downbeat
+			ticks % (this._swingTicks * 2) !== 0
+		) {
+			// add some swing
+			const progress =
+				(ticks % (this._swingTicks * 2)) / (this._swingTicks * 2);
+			const amount = Math.sin(progress * Math.PI) * this._swingAmount;
+			tickTime +=
+				new TicksClass(
+					this.context,
+					(this._swingTicks * 2) / 3
+				).toSeconds() * amount;
+		}
+		// invoke the timeline events scheduled on this tick
+		enterScheduledCallback(true);
+		this._timeline.forEachAtTime(ticks, (event) => event.invoke(tickTime));
+		enterScheduledCallback(false);
+	}
 
-	on!: (
-		event: TransportEventNames,
-		callback: (...args: any[]) => void
-	) => this;
-	once!: (
-		event: TransportEventNames,
-		callback: (...args: any[]) => void
-	) => this;
-	off!: (
-		event: TransportEventNames,
-		callback?: ((...args: any[]) => void) | undefined
-	) => this;
-	emit!: (event: any, ...args: any[]) => this;
+	/**
+	 * Add an event to the correct timeline. Keep track of the
+	 * timeline it was added to.
+	 * @returns the event id which was just added
+	 */
+	private _addEvent(event: TransportEvent, timeline: Timeline<TransportEvent>): number {
+		this._scheduledEvents[event.id.toString()] = {
+			event,
+			timeline,
+		};
+		timeline.add(event);
+		return event.id;
+	}
+
+	/**
+	 * Bind start/stop/pause events from the clock and emit them.
+	 */
+	private _bindClockEvents(): void {
+		this._clock.on("start", (time, offset) => {
+			offset = new TicksClass(this.context, offset).toSeconds();
+			this.emit("start", time, offset);
+		});
+
+		this._clock.on("stop", (time) => {
+			this.emit("stop", time);
+		});
+
+		this._clock.on("pause", (time) => {
+			this.emit("pause", time);
+		});
+	}
 }
 
 Emitter.mixin(Transport);

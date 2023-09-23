@@ -1,5 +1,5 @@
 import { Gain } from "../../core/context/Gain";
-import { OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
+import { type OutputNode, ToneAudioNode, type ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
 import { optionsFromArguments } from "../../core/util/Defaults";
 import { Merge } from "./Merge";
 
@@ -14,21 +14,18 @@ export type MonoOptions = ToneAudioNodeOptions;
 export class Mono extends ToneAudioNode<MonoOptions> {
 
 	readonly name: string = "Mono";
-
-	/**
-	 * merge the signal
-	 */
-	private _merge: Merge;
-
 	/**
 	 * The summed output of the multiple inputs
 	 */
 	readonly output: OutputNode;
-
 	/**
 	 * The stereo signal to sum to mono
 	 */
 	readonly input: Gain;
+    /**
+     * merge the signal
+     */
+    private _merge: Merge;
 
 	constructor(options?: Partial<MonoOptions>);
 	constructor() {

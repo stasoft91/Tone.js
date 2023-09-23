@@ -1,8 +1,8 @@
 import { BaseContext } from "../context/BaseContext";
 import { TicksClass } from "../type/Ticks";
-import { Seconds, Ticks, Time } from "../type/Units";
-import { TransportEvent, TransportEventOptions } from "./TransportEvent";
+import type { Seconds, Ticks, Time } from "../type/Units";
 import { GT, LT } from "../util/Math";
+import { TransportEvent, type TransportEventOptions } from "./TransportEvent";
 
 type Transport = import("../clock/Transport").Transport;
 
@@ -17,43 +17,38 @@ interface TransportRepeatEventOptions extends TransportEventOptions {
  */
 export class TransportRepeatEvent extends TransportEvent {
 
+    /**
+     * The audio context belonging to this event
+     */
+    protected context: BaseContext;
 	/**
 	 * When the event should stop repeating
 	 */
 	private duration: Ticks;
-
 	/**
 	 * The interval of the repeated event
 	 */
 	private _interval: Ticks;
-
 	/**
 	 * The ID of the current timeline event
 	 */
 	private _currentId = -1;
-
 	/**
 	 * The ID of the next timeline event
 	 */
 	private _nextId = -1;
-
 	/**
 	 * The time of the next event
 	 */
 	private _nextTick = this.time;
-
 	/**
 	 * a reference to the bound start method
 	 */
 	private _boundRestart = this._restart.bind(this);
 
 	/**
-	 * The audio context belonging to this event
-	 */
-	protected context: BaseContext;
-
-	/**
 	 * @param transport The transport object which the event belongs to
+     * @param opts
 	 */
 	constructor(transport: Transport, opts: Partial<TransportRepeatEventOptions>) {
 
@@ -90,6 +85,19 @@ export class TransportRepeatEvent extends TransportEvent {
 		// call the super class
 		super.invoke(time);
 	}
+
+    /**
+     * Clean up
+     */
+    dispose(): this {
+        super.dispose();
+        this.transport.clear(this._currentId);
+        this.transport.clear(this._nextId);
+        this.transport.off("start", this._boundRestart);
+        this.transport.off("loopStart", this._boundRestart);
+        this.transport.off("ticks", this._boundRestart);
+        return this;
+    }
 
 	/**
 	 * Create an event on the transport on the nextTick
@@ -133,18 +141,5 @@ export class TransportRepeatEvent extends TransportEvent {
 		this._currentId = this._createEvent();
 		this._nextTick += this._interval;
 		this._nextId = this._createEvent();
-	}
-
-	/**
-	 * Clean up
-	 */
-	dispose(): this {
-		super.dispose();
-		this.transport.clear(this._currentId);
-		this.transport.clear(this._nextId);
-		this.transport.off("start", this._boundRestart);
-		this.transport.off("loopStart", this._boundRestart);
-		this.transport.off("ticks", this._boundRestart);
-		return this;
 	}
 }

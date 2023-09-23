@@ -1,14 +1,14 @@
 import { expect } from "chai";
+import { warns } from "test/helper/Basic";
 import { atTime, Offline, whenBetween } from "test/helper/Offline";
 import { Time } from "Tone/core/type/Time";
 import { noOp } from "Tone/core/util/Interface";
-import { Signal } from "../../signal/Signal";
-import { TransportTime } from "../type/TransportTime";
-import { Transport } from "./Transport";
+import { Synth } from "Tone/instrument/Synth";
+import { Signal } from "../../signal";
 // importing for side affects
 import "../context/Destination";
-import { warns } from "test/helper/Basic";
-import { Synth } from "Tone/instrument/Synth";
+import { TransportTime } from "../type/TransportTime";
+import { Transport } from "./Transport";
 
 describe("Transport", () => {
 
@@ -414,7 +414,8 @@ describe("Transport", () => {
 		it("can schedule an event on the timeline", () => {
 			return Offline(context => {
 				const transport = new Transport({ context });
-				const eventID = transport.schedule(() => { }, 0);
+                const eventID = transport.schedule(() => {
+                }, 0);
 				expect(eventID).to.be.a("number");
 			});
 		});
@@ -757,7 +758,8 @@ describe("Transport", () => {
 		it("can schedule a single event on the timeline", () => {
 			return Offline(context => {
 				const transport = new Transport({ context });
-				const eventID = transport.scheduleOnce(() => {}, 0);
+                const eventID = transport.scheduleOnce(() => {
+                }, 0);
 				expect(eventID).to.be.a("number");
 			});
 		});

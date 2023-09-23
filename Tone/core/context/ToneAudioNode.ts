@@ -1,8 +1,8 @@
 import { isAudioNode, isAudioParam } from "../util/AdvancedTypeCheck";
+import { assert, warn } from "../util/Debug";
 import { isDefined } from "../util/TypeCheck";
 import { Param } from "./Param";
-import { ToneWithContext, ToneWithContextOptions } from "./ToneWithContext";
-import { assert, warn } from "../util/Debug";
+import { ToneWithContext, type ToneWithContextOptions } from "./ToneWithContext";
 
 export type InputNode = ToneAudioNode | AudioNode | Param<any> | AudioParam;
 export type OutputNode = ToneAudioNode | AudioNode;
@@ -40,6 +40,10 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 	 * it does not have any output and this.output is undefined.
 	 */
 	abstract output: OutputNode | undefined;
+    /**
+     * List all of the node that must be set to match the ChannelProperties
+     */
+    protected _internalChannels: OutputNode[] = [];
 
 	/**
 	 * The number of inputs feeding into the AudioNode.
@@ -74,69 +78,9 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 		}
 	}
 
-	/**
-	 * List all of the node that must be set to match the ChannelProperties
-	 */
-	protected _internalChannels: OutputNode[] = [];
-
 	//-------------------------------------
 	// AUDIO PROPERTIES
 	//-------------------------------------
-
-	/**
-	 * Used to decide which nodes to get/set properties on
-	 */
-	private _isAudioNode(node: any): node is AudioNode | ToneAudioNode {
-		return isDefined(node) && (node instanceof ToneAudioNode || isAudioNode(node));
-	}
-
-	/**
-	 * Get all of the audio nodes (either internal or input/output) which together
-	 * make up how the class node responds to channel input/output
-	 */
-	private _getInternalNodes(): OutputNode[] {
-		const nodeList = this._internalChannels.slice(0);
-		if (this._isAudioNode(this.input)) {
-			nodeList.push(this.input);
-		}
-		if (this._isAudioNode(this.output)) {
-			if (this.input !== this.output) {
-				nodeList.push(this.output);
-			}
-		}
-		return nodeList;
-	}
-
-	/**
-	 * Set the audio options for this node such as channelInterpretation
-	 * channelCount, etc.
-	 * @param options
-	 */
-	private _setChannelProperties(options: ChannelProperties): void {
-		const nodeList = this._getInternalNodes();
-		nodeList.forEach(node => {
-			node.channelCount = options.channelCount;
-			node.channelCountMode = options.channelCountMode;
-			node.channelInterpretation = options.channelInterpretation;
-		});
-	}
-
-	/**
-	 * Get the current audio options for this node such as channelInterpretation
-	 * channelCount, etc.
-	 */
-	private _getChannelProperties(): ChannelProperties {
-		const nodeList = this._getInternalNodes();
-		assert(nodeList.length > 0, "ToneAudioNode does not have any internal nodes");
-		// use the first node to get properties
-		// they should all be the same
-		const node = nodeList[0];
-		return {
-			channelCount: node.channelCount,
-			channelCountMode: node.channelCountMode,
-			channelInterpretation: node.channelInterpretation,
-		};
-	}
 
 	/**
 	 * channelCount is the number of channels used when up-mixing and down-mixing
@@ -146,6 +90,7 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 	get channelCount(): number {
 		return this._getChannelProperties().channelCount;
 	}
+
 	set channelCount(channelCount) {
 		const props = this._getChannelProperties();
 		// merge it with the other properties
@@ -163,6 +108,7 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 	get channelCountMode(): ChannelCountMode {
 		return this._getChannelProperties().channelCountMode;
 	}
+
 	set channelCountMode(channelCountMode) {
 		const props = this._getChannelProperties();
 		// merge it with the other properties
@@ -177,15 +123,12 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 	get channelInterpretation(): ChannelInterpretation {
 		return this._getChannelProperties().channelInterpretation;
 	}
-	set channelInterpretation(channelInterpretation) {
+
+    set channelInterpretation(channelInterpretation) {
 		const props = this._getChannelProperties();
 		// merge it with the other properties
 		this._setChannelProperties(Object.assign(props, { channelInterpretation }));
 	}
-
-	//-------------------------------------
-	// CONNECTIONS
-	//-------------------------------------
 
 	/**
 	 * connect the output of a ToneAudioNode to an AudioParam, AudioNode, or ToneAudioNode
@@ -226,6 +169,10 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 		disconnect(this, destination, outputNum, inputNum);
 		return this;
 	}
+
+    //-------------------------------------
+    // CONNECTIONS
+    //-------------------------------------
 
 	/**
 	 * Connect the output of this node to the rest of the nodes in series.
@@ -279,6 +226,61 @@ export abstract class ToneAudioNode<Options extends ToneAudioNodeOptions = ToneA
 		this._internalChannels = [];
 		return this;
 	}
+
+    /**
+     * Used to decide which nodes to get/set properties on
+     */
+    private _isAudioNode(node: any): node is AudioNode | ToneAudioNode {
+        return isDefined(node) && (node instanceof ToneAudioNode || isAudioNode(node));
+    }
+
+    /**
+     * Get all of the audio nodes (either internal or input/output) which together
+     * make up how the class node responds to channel input/output
+     */
+    private _getInternalNodes(): OutputNode[] {
+        const nodeList = this._internalChannels.slice(0);
+        if (this._isAudioNode(this.input)) {
+            nodeList.push(this.input);
+        }
+        if (this._isAudioNode(this.output)) {
+            if (this.input !== this.output) {
+                nodeList.push(this.output);
+            }
+        }
+        return nodeList;
+    }
+
+    /**
+     * Set the audio options for this node such as channelInterpretation
+     * channelCount, etc.
+     * @param options
+     */
+    private _setChannelProperties(options: ChannelProperties): void {
+        const nodeList = this._getInternalNodes();
+        nodeList.forEach(node => {
+            node.channelCount = options.channelCount;
+            node.channelCountMode = options.channelCountMode;
+            node.channelInterpretation = options.channelInterpretation;
+        });
+    }
+
+    /**
+     * Get the current audio options for this node such as channelInterpretation
+     * channelCount, etc.
+     */
+    private _getChannelProperties(): ChannelProperties {
+        const nodeList = this._getInternalNodes();
+        assert(nodeList.length > 0, "ToneAudioNode does not have any internal nodes");
+        // use the first node to get properties
+        // they should all be the same
+        const node = nodeList[0];
+        return {
+            channelCount: node.channelCount,
+            channelCountMode: node.channelCountMode,
+            channelInterpretation: node.channelInterpretation,
+        };
+    }
 }
 
 //-------------------------------------

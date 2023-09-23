@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
-import { Noise } from "../../source/Noise";
+import { Noise } from "../../source";
 import { Analyser } from "./Analyser";
 
 describe("Analyser", () => {

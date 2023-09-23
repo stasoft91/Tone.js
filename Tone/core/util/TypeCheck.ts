@@ -1,4 +1,4 @@
-import { Note } from "../type/Units";
+import type { Note } from "../type/Units";
 
 /**
  * Test if the arg is undefined

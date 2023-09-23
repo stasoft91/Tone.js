@@ -1,10 +1,10 @@
-import { Gate } from "./Gate";
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
+import { CompareToFile } from "test/helper/CompareToFile";
 import { Offline } from "test/helper/Offline";
 import { Signal } from "Tone/signal/Signal";
 import { Oscillator } from "Tone/source/oscillator/Oscillator";
-import { CompareToFile } from "test/helper/CompareToFile";
-import { expect } from "chai";
+import { Gate } from "./Gate";
 
 describe("Gate", () => {
 

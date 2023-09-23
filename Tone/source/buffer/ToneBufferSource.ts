@@ -1,13 +1,9 @@
-import { connect } from "../../core/context/ToneAudioNode";
-import { Param } from "../../core/context/Param";
-import { ToneAudioBuffer } from "../../core/context/ToneAudioBuffer";
-import { GainFactor, Positive, Seconds, Time } from "../../core/type/Units";
-import { defaultArg, optionsFromArguments } from "../../core/util/Defaults";
-import { noOp } from "../../core/util/Interface";
-import { isDefined } from "../../core/util/TypeCheck";
+import { connect, defaultArg, isDefined, optionsFromArguments, Param, ToneAudioBuffer } from "../../core";
+import type { GainFactor, Positive, Seconds, Time } from "../../core/type/Units";
 import { assert } from "../../core/util/Debug";
-import { OneShotSource, OneShotSourceCurve, OneShotSourceOptions } from "../OneShotSource";
+import { noOp } from "../../core/util/Interface";
 import { EQ, GTE, LT } from "../../core/util/Math";
+import { OneShotSource, type OneShotSourceCurve, type OneShotSourceOptions } from "../OneShotSource";
 
 export type ToneBufferSourceCurve = OneShotSourceCurve;
 
@@ -31,23 +27,15 @@ export interface ToneBufferSourceOptions extends OneShotSourceOptions {
 export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 
 	readonly name: string = "ToneBufferSource";
-
+    /**
+     * The frequency of the oscillator
+     */
+    readonly playbackRate: Param<"positive">;
 	/**
 	 * The oscillator
 	 */
 	private _source = this.context.createBufferSource();
 	protected _internalChannels = [this._source];
-
-	/**
-	 * The frequency of the oscillator
-	 */
-	readonly playbackRate: Param<"positive">;
-
-	/**
-	 * The private instance of the buffer object
-	 */
-	private _buffer: ToneAudioBuffer;
-
 	/**
 	 * indicators if the source has started/stopped
 	 */
@@ -59,7 +47,9 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 	 * @param onload The callback to invoke when the buffer is done playing.
 	 */
 	constructor(url?: ToneAudioBuffer | AudioBuffer | string, onload?: () => void);
+
 	constructor(options?: Partial<ToneBufferSourceOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(ToneBufferSource.getDefaults(), arguments, ["url", "onload"]));
@@ -87,16 +77,20 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 		this._internalChannels.push(this._source);
 	}
 
-	static getDefaults(): ToneBufferSourceOptions {
-		return Object.assign(OneShotSource.getDefaults(), {
-			url: new ToneAudioBuffer(),
-			loop: false,
-			loopEnd: 0,
-			loopStart: 0,
-			onload: noOp,
-			onerror: noOp,
-			playbackRate: 1,
-		});
+    /**
+     * The private instance of the buffer object
+     */
+    private _buffer: ToneAudioBuffer;
+
+    /**
+     * The audio buffer belonging to the player.
+     */
+    get buffer(): ToneAudioBuffer {
+        return this._buffer;
+    }
+
+    set buffer(buffer: ToneAudioBuffer) {
+        this._buffer.set(buffer);
 	}
 
 	/**
@@ -105,7 +99,8 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 	get fadeIn(): Time {
 		return this._fadeIn;
 	}
-	set fadeIn(t: Time) {
+
+    set fadeIn(t: Time) {
 		this._fadeIn = t;
 	}
 
@@ -115,7 +110,8 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 	get fadeOut(): Time {
 		return this._fadeOut;
 	}
-	set fadeOut(t: Time) {
+
+    set fadeOut(t: Time) {
 		this._fadeOut = t;
 	}
 
@@ -125,9 +121,58 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 	get curve(): ToneBufferSourceCurve {
 		return this._curve;
 	}
-	set curve(t) {
+
+    set curve(t) {
 		this._curve = t;
 	}
+
+    /**
+     * If loop is true, the loop will start at this position.
+     */
+    get loopStart(): Time {
+        return this._source.loopStart;
+    }
+
+    set loopStart(loopStart: Time) {
+        this._source.loopStart = this.toSeconds(loopStart);
+    }
+
+    /**
+     * If loop is true, the loop will end at this position.
+     */
+    get loopEnd(): Time {
+        return this._source.loopEnd;
+    }
+
+    set loopEnd(loopEnd: Time) {
+        this._source.loopEnd = this.toSeconds(loopEnd);
+    }
+
+    /**
+     * If the buffer should loop once it's over.
+     */
+    get loop(): boolean {
+        return this._source.loop;
+    }
+
+    set loop(loop: boolean) {
+        this._source.loop = loop;
+        if (this._sourceStarted) {
+            this.cancelStop();
+        }
+    }
+
+    static getDefaults(): ToneBufferSourceOptions {
+        return Object.assign(OneShotSource.getDefaults(), {
+            url: new ToneAudioBuffer(),
+            loop: false,
+            loopEnd: 0,
+            loopStart: 0,
+            onload: noOp,
+            onerror: noOp,
+            playbackRate: 1,
+        });
+    }
 
 	/**
 	 * Start the buffer
@@ -168,8 +213,8 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 				computedOffset = 0;
 			}
 		}
-		
-		// this.buffer.loaded would have return false if the AudioBuffer was undefined
+
+        // this.buffer.loaded would have return false if the AudioBuffer was undefined
 		this._source.buffer = this.buffer.get() as AudioBuffer;
 		this._source.loopEnd = this.toSeconds(this.loopEnd) || this.buffer.duration;
 		if (LT(computedOffset, this.buffer.duration)) {
@@ -188,57 +233,6 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 		return this;
 	}
 
-	protected _stopSource(time?: Seconds): void {
-		if (!this._sourceStopped && this._sourceStarted) {
-			this._sourceStopped = true;
-			this._source.stop(this.toSeconds(time));
-			this._onended();
-		}
-	}
-
-	/**
-	 * If loop is true, the loop will start at this position.
-	 */
-	get loopStart(): Time {
-		return this._source.loopStart;
-	}
-	set loopStart(loopStart: Time) {
-		this._source.loopStart = this.toSeconds(loopStart);
-	}
-
-	/**
-	 * If loop is true, the loop will end at this position.
-	 */
-	get loopEnd(): Time {
-		return this._source.loopEnd;
-	}
-	set loopEnd(loopEnd: Time) {
-		this._source.loopEnd = this.toSeconds(loopEnd);
-	}
-
-	/**
-	 * The audio buffer belonging to the player.
-	 */
-	get buffer(): ToneAudioBuffer {
-		return this._buffer;
-	}
-	set buffer(buffer: ToneAudioBuffer) {
-		this._buffer.set(buffer);
-	}
-
-	/**
-	 * If the buffer should loop once it's over.
-	 */
-	get loop(): boolean {
-		return this._source.loop;
-	}
-	set loop(loop: boolean) {
-		this._source.loop = loop;
-		if (this._sourceStarted) {
-			this.cancelStop();
-		}
-	}
-
 	/**
 	 * Clean up.
 	 */
@@ -250,4 +244,12 @@ export class ToneBufferSource extends OneShotSource<ToneBufferSourceOptions> {
 		this.playbackRate.dispose();
 		return this;
 	}
+
+    protected _stopSource(time?: Seconds): void {
+        if (!this._sourceStopped && this._sourceStarted) {
+            this._sourceStopped = true;
+            this._source.stop(this.toSeconds(time));
+            this._onended();
+        }
+    }
 }

@@ -1,7 +1,7 @@
 import { getContext } from "../Global";
-import { TimeBaseUnit, TimeValue } from "./TimeBase";
+import type { TimeBaseUnit, TimeValue } from "./TimeBase";
 import { TransportTimeClass } from "./TransportTime";
-import { Seconds, Ticks } from "./Units";
+import type { Seconds, Ticks } from "./Units";
 
 /**
  * Ticks is a primitive type for encoding Time values.
@@ -16,6 +16,20 @@ export class TicksClass extends TransportTimeClass<Ticks> {
 	readonly name: string = "Ticks";
 
 	readonly defaultUnits: TimeBaseUnit = "i";
+
+    /**
+     * Return the time in ticks
+     */
+    toTicks(): Ticks {
+        return this.valueOf() as Ticks;
+    }
+
+    /**
+     * Return the time in seconds
+     */
+    toSeconds(): Seconds {
+        return (this.valueOf() / this._getPPQ()) * (60 / this._getBpm());
+    }
 
 	/**
 	 * Get the current time in the given units
@@ -43,20 +57,6 @@ export class TicksClass extends TransportTimeClass<Ticks> {
 	 */
 	protected _ticksToUnits(ticks: Ticks): Ticks {
 		return ticks;
-	}
-
-	/**
-	 * Return the time in ticks
-	 */
-	toTicks(): Ticks {
-		return this.valueOf() as Ticks;
-	}
-
-	/**
-	 * Return the time in seconds
-	 */
-	toSeconds(): Seconds {
-		return (this.valueOf() / this._getPPQ()) * (60 / this._getBpm());
 	}
 }
 

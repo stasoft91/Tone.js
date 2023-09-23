@@ -1,8 +1,6 @@
-import { Gain } from "../core/context/Gain";
-import { Param } from "../core/context/Param";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Signal, SignalOptions } from "./Signal";
-import { InputNode, OutputNode } from "../core/context/ToneAudioNode";
+import type { InputNode, OutputNode } from "../core";
+import { Gain, optionsFromArguments, Param } from "../core";
+import { Signal, type SignalOptions } from "./Signal";
 
 /**
  * Multiply two incoming signals. Or, if a number is given in the constructor,
@@ -31,26 +29,22 @@ export class Multiply<TypeName extends "number" | "positive" = "number"> extends
 	 * Indicates if the value should be overridden on connection
 	 */
 	readonly override = false;
-
-	/**
-	 * the input gain node
-	 */
-	private _mult: Gain;
-
 	/**
 	 * The multiplicand input.
 	 */
 	input: InputNode;
-
 	/**
 	 * The product of the input and [[factor]]
 	 */
 	output: OutputNode;
-
 	/**
 	 * The multiplication factor. Can be set directly or a signal can be connected to it.
 	 */
 	factor: Param<TypeName>;
+    /**
+     * the input gain node
+     */
+    private _mult: Gain;
 
 	/**
 	 * @param value Constant value to multiple

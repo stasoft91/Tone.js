@@ -1,14 +1,19 @@
-import { Volume } from "../../component/channel/Volume";
-import { Param } from "../../core/context/Param";
-import { ToneAudioBuffer } from "../../core/context/ToneAudioBuffer";
-import { ToneAudioBuffers, ToneAudioBuffersUrlMap } from "../../core/context/ToneAudioBuffers";
-import { OutputNode, ToneAudioNode } from "../../core/context/ToneAudioNode";
-import { Decibels, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Volume } from "../../component";
+import type { BasicPlaybackState } from "../../core";
+// @ts-ignore
+import {
+	optionsFromArguments,
+	type OutputNode,
+	Param,
+	ToneAudioBuffer,
+	ToneAudioBuffers,
+	type ToneAudioBuffersUrlMap,
+	ToneAudioNode
+} from "../../core";
+import type { Decibels, Time } from "../../core/type/Units";
 import { assert } from "../../core/util/Debug";
 import { noOp, readOnly } from "../../core/util/Interface";
-import { BasicPlaybackState } from "../../core/util/StateTimeline";
-import { Source, SourceOptions } from "../Source";
+import { Source, type SourceOptions } from "../Source";
 import { Player } from "./Player";
 
 export interface PlayersOptions extends SourceOptions {
@@ -29,27 +34,22 @@ export interface PlayersOptions extends SourceOptions {
 export class Players extends ToneAudioNode<PlayersOptions> {
 
 	readonly name: string = "Players";
-
-	/**
-	 * The output volume node
-	 */
-	private _volume: Volume;
-
 	/**
 	 * The volume of the output in decibels.
 	 */
 	readonly volume: Param<"decibels">;
-
 	/**
 	 * The combined output of all of the players
 	 */
 	readonly output: OutputNode;
-
 	/**
 	 * Players has no input.
 	 */
 	readonly input = undefined;
-
+	/**
+	 * The output volume node
+	 */
+	private _volume: Volume;
 	/**
 	 * The container of all of the players
 	 */
@@ -61,26 +61,41 @@ export class Players extends ToneAudioNode<PlayersOptions> {
 	private _buffers: ToneAudioBuffers;
 
 	/**
+	 * @param urls An object mapping a name to a url.
+	 * @param onload The function to invoke when all buffers are loaded.
+	 */
+	constructor(urls?: ToneAudioBuffersUrlMap, onload?: () => void);
+
+	/**
+	 * @param urls An object mapping a name to a url.
+	 * @param options The remaining options associated with the players
+	 */
+	constructor(urls?: ToneAudioBuffersUrlMap, options?: Partial<Omit<PlayersOptions, "urls">>);
+
+	constructor(options?: Partial<PlayersOptions>);
+	/**
 	 * private holder of the fadeIn time
 	 */
 	private _fadeIn: Time;
-
 	/**
 	 * private holder of the fadeOut time
 	 */
 	private _fadeOut: Time;
 
 	/**
-	 * @param urls An object mapping a name to a url.
-	 * @param onload The function to invoke when all buffers are loaded.
+	 * The fadeIn time of the envelope applied to the source.
 	 */
-	constructor(urls?: ToneAudioBuffersUrlMap, onload?: () => void);
-	/**
-	 * @param urls An object mapping a name to a url.
-	 * @param options The remaining options associated with the players
-	 */
-	constructor(urls?: ToneAudioBuffersUrlMap, options?: Partial<Omit<PlayersOptions, "urls">>);
-	constructor(options?: Partial<PlayersOptions>);
+	get fadeIn(): Time {
+		return this._fadeIn;
+	}
+
+	set fadeIn(fadeIn) {
+		this._fadeIn = fadeIn;
+		this._players.forEach(player => {
+			player.fadeIn = fadeIn;
+		});
+	}
+
 	constructor() {
 		super(optionsFromArguments(Players.getDefaults(), arguments, ["urls", "onload"], "urls"));
 		const options = optionsFromArguments(Players.getDefaults(), arguments, ["urls", "onload"], "urls");
@@ -96,8 +111,8 @@ export class Players extends ToneAudioNode<PlayersOptions> {
 		this.volume = this._volume.volume;
 		readOnly(this, "volume");
 		this._buffers = new ToneAudioBuffers({
-			urls: options.urls, 
-			onload: options.onload, 
+			urls: options.urls,
+			onload: options.onload,
 			baseUrl: options.baseUrl,
 			onerror: options.onerror
 		});
@@ -105,6 +120,46 @@ export class Players extends ToneAudioNode<PlayersOptions> {
 		this.mute = options.mute;
 		this._fadeIn = options.fadeIn;
 		this._fadeOut = options.fadeOut;
+	}
+
+	/**
+	 * The fadeOut time of the each of the sources.
+	 */
+	get fadeOut(): Time {
+		return this._fadeOut;
+	}
+
+	set fadeOut(fadeOut) {
+		this._fadeOut = fadeOut;
+		this._players.forEach(player => {
+			player.fadeOut = fadeOut;
+		});
+	}
+
+	/**
+	 * Mute the output.
+	 */
+	get mute(): boolean {
+		return this._volume.mute;
+	}
+
+	set mute(mute) {
+		this._volume.mute = mute;
+	}
+
+	/**
+	 * The state of the players object. Returns "started" if any of the players are playing.
+	 */
+	get state(): BasicPlaybackState {
+		const playing = Array.from(this._players).some(([_, player]) => player.state === "started");
+		return playing ? "started" : "stopped";
+	}
+
+	/**
+	 * If all the buffers are loaded or not
+	 */
+	get loaded(): boolean {
+		return this._buffers.loaded;
 	}
 
 	static getDefaults(): PlayersOptions {
@@ -118,50 +173,6 @@ export class Players extends ToneAudioNode<PlayersOptions> {
 			urls: {},
 			volume: 0,
 		});
-	}
-
-	/**
-	 * Mute the output.
-	 */
-	get mute(): boolean {
-		return this._volume.mute;
-	}
-	set mute(mute) {
-		this._volume.mute = mute;
-	}
-
-	/**
-	 * The fadeIn time of the envelope applied to the source.
-	 */
-	get fadeIn(): Time {
-		return this._fadeIn;
-	}
-	set fadeIn(fadeIn) {
-		this._fadeIn = fadeIn;
-		this._players.forEach(player => {
-			player.fadeIn = fadeIn;
-		});
-	}
-
-	/**
-	 * The fadeOut time of the each of the sources.
-	 */
-	get fadeOut(): Time {
-		return this._fadeOut;
-	}
-	set fadeOut(fadeOut) {
-		this._fadeOut = fadeOut;
-		this._players.forEach(player => {
-			player.fadeOut = fadeOut;
-		});
-	}
-
-	/**
-	 * The state of the players object. Returns "started" if any of the players are playing.
-	 */
-	get state(): BasicPlaybackState {
-		const playing = Array.from(this._players).some(([_, player]) => player.state === "started");
-		return playing ? "started" : "stopped";
 	}
 
 	/**
@@ -191,13 +202,6 @@ export class Players extends ToneAudioNode<PlayersOptions> {
 	}
 
 	/**
-	 * If all the buffers are loaded or not
-	 */
-	get loaded(): boolean {
-		return this._buffers.loaded;
-	}
-
-	/**
 	 * Add a player by name and url to the Players
 	 * @param  name A unique name to give the player
 	 * @param  url  Either the url of the bufer or a buffer which will be added with the given name.
@@ -205,8 +209,8 @@ export class Players extends ToneAudioNode<PlayersOptions> {
 	 * @example
 	 * const players = new Tone.Players();
 	 * players.add("gong", "https://tonejs.github.io/audio/berklee/gong_1.mp3", () => {
-	 * 	console.log("gong loaded");
-	 * 	players.get("gong").start();
+	 *    console.log("gong loaded");
+	 *    players.get("gong").start();
 	 * });
 	 */
 	add(name: string, url: string | ToneAudioBuffer | AudioBuffer, callback?: () => void): this {

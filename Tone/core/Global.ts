@@ -1,8 +1,8 @@
 import { version } from "../version";
-import { AnyAudioContext, hasAudioContext, theWindow } from "./context/AudioContext";
+import { type AnyAudioContext, hasAudioContext, theWindow } from "./context/AudioContext";
+import { BaseContext } from "./context/BaseContext";
 import { Context } from "./context/Context";
 import { DummyContext } from "./context/DummyContext";
-import { BaseContext } from "./context/BaseContext";
 import { OfflineContext } from "./context/OfflineContext";
 import { isAudioContext, isOfflineAudioContext } from "./util/AdvancedTypeCheck";
 
@@ -56,8 +56,8 @@ export function setContext(context: BaseContext | AnyAudioContext, disposeOld = 
  * [here](https://developers.google.com/web/updates/2017/09/autoplay-policy-changes#webaudio)
  * @example
  * document.querySelector("button").addEventListener("click", async () => {
- * 	await Tone.start();
- * 	console.log("context started");
+ *    await Tone.start();
+ *    console.log("context started");
  * });
  * @category Core
  */

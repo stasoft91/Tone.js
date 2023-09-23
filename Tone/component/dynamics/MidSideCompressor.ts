@@ -1,9 +1,14 @@
-import { InputNode, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Compressor, CompressorOptions } from "./Compressor";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { MidSideSplit } from "../channel/MidSideSplit";
+import {
+	type InputNode,
+	optionsFromArguments,
+	type OutputNode,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../../core";
+import { readOnly, type RecursivePartial } from "../../core/util/Interface";
 import { MidSideMerge } from "../channel/MidSideMerge";
-import { readOnly, RecursivePartial } from "../../core/util/Interface";
+import { MidSideSplit } from "../channel/MidSideSplit";
+import { Compressor, type CompressorOptions } from "./Compressor";
 
 export interface MidSideCompressorOptions extends ToneAudioNodeOptions {
 	mid: Omit<CompressorOptions, keyof ToneAudioNodeOptions>;
@@ -21,26 +26,22 @@ export class MidSideCompressor extends ToneAudioNode<MidSideCompressorOptions> {
 
 	readonly input: InputNode;
 	readonly output: OutputNode;
-
-	/**
-	 * Split the incoming signal into Mid/Side
-	 */
-	private _midSideSplit: MidSideSplit;
-
-	/**
-	 * Merge the compressed signal back into a single stream
-	 */
-	private _midSideMerge: MidSideMerge;
-
 	/**
 	 * The compression applied to the mid signal
 	 */
 	readonly mid: Compressor;
-
 	/**
 	 * The compression applied to the side signal
 	 */
 	readonly side: Compressor;
+    /**
+     * Split the incoming signal into Mid/Side
+     */
+    private _midSideSplit: MidSideSplit;
+    /**
+     * Merge the compressed signal back into a single stream
+     */
+    private _midSideMerge: MidSideMerge;
 
 	constructor(options?: RecursivePartial<MidSideCompressorOptions>);
 	constructor() {

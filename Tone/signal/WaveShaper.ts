@@ -1,6 +1,5 @@
-import { ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { isArray, isFunction } from "../core/util/TypeCheck";
+import type { ToneAudioNodeOptions } from "../core";
+import { isArray, isFunction, optionsFromArguments } from "../core";
 import { assert } from "../core/util/Debug";
 import { Signal } from "./Signal";
 import { SignalOperator } from "./SignalOperator";
@@ -70,6 +69,33 @@ export class WaveShaper extends SignalOperator<WaveShaperOptions> {
 		}
 	}
 
+    /**
+     * The array to set as the waveshaper curve. For linear curves
+     * array length does not make much difference, but for complex curves
+     * longer arrays will provide smoother interpolation.
+     */
+    get curve(): Float32Array | null {
+        return this._shaper.curve;
+    }
+
+    set curve(mapping: Float32Array | null) {
+        this._shaper.curve = mapping;
+    }
+
+    /**
+     * Specifies what type of oversampling (if any) should be used when
+     * applying the shaping curve. Can either be "none", "2x" or "4x".
+     */
+    get oversample(): OverSampleType {
+        return this._shaper.oversample;
+    }
+
+    set oversample(oversampling: OverSampleType) {
+        const isOverSampleType = ["none", "2x", "4x"].some(str => str.includes(oversampling));
+        assert(isOverSampleType, "oversampling must be either 'none', '2x', or '4x'");
+        this._shaper.oversample = oversampling;
+    }
+
 	static getDefaults(): WaveShaperOptions {
 		return Object.assign(Signal.getDefaults(), {
 			length: 1024,
@@ -96,33 +122,6 @@ export class WaveShaper extends SignalOperator<WaveShaperOptions> {
 		}
 		this.curve = array;
 		return this;
-	}
-
-	/**
-	 * The array to set as the waveshaper curve. For linear curves
-	 * array length does not make much difference, but for complex curves
-	 * longer arrays will provide smoother interpolation.
-	 */
-	get curve(): Float32Array | null {
-		return this._shaper.curve;
-	}
-
-	set curve(mapping: Float32Array | null) {
-		this._shaper.curve = mapping;
-	}
-
-	/**
-	 * Specifies what type of oversampling (if any) should be used when
-	 * applying the shaping curve. Can either be "none", "2x" or "4x".
-	 */
-	get oversample(): OverSampleType {
-		return this._shaper.oversample;
-	}
-
-	set oversample(oversampling: OverSampleType) {
-		const isOverSampleType = ["none", "2x", "4x"].some(str => str.includes(oversampling));
-		assert(isOverSampleType, "oversampling must be either 'none', '2x', or '4x'");
-		this._shaper.oversample = oversampling;
 	}
 
 	/**

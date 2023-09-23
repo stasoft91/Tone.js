@@ -3,10 +3,10 @@ import { Tone } from "../Tone";
 import { FrequencyClass } from "../type/Frequency";
 import { TimeClass } from "../type/Time";
 import { TransportTimeClass } from "../type/TransportTime";
-import { Frequency, Hertz, Seconds, Ticks, Time } from "../type/Units";
+import type { Frequency, Hertz, Seconds, Ticks, Time } from "../type/Units";
 import { assertUsedScheduleTime } from "../util/Debug";
 import { getDefaultsFromInstance, optionsFromArguments } from "../util/Defaults";
-import { RecursivePartial } from "../util/Interface";
+import type { RecursivePartial } from "../util/Interface";
 import { isArray, isBoolean, isDefined, isNumber, isString, isUndef } from "../util/TypeCheck";
 import { BaseContext } from "./BaseContext";
 
@@ -49,6 +49,24 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 		}
 	}
 
+    /**
+     * The duration in seconds of one sample.
+     * @example
+     * console.log(Tone.Transport.sampleTime);
+     */
+    get sampleTime(): Seconds {
+        return 1 / this.context.sampleRate;
+    }
+
+    /**
+     * The number of seconds of 1 processing block (128 samples)
+     * @example
+     * console.log(Tone.Destination.blockTime);
+     */
+    get blockTime(): Seconds {
+        return 128 / this.context.sampleRate;
+    }
+
 	static getDefaults(): ToneWithContextOptions {
 		return {
 			context: getContext(),
@@ -59,7 +77,7 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 	 * Return the current time of the Context clock plus the lookAhead.
 	 * @example
 	 * setInterval(() => {
-	 * 	console.log(Tone.now());
+     *    console.log(Tone.now());
 	 * }, 100);
 	 */
 	now(): Seconds {
@@ -70,7 +88,7 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 	 * Return the current time of the Context clock without any lookAhead.
 	 * @example
 	 * setInterval(() => {
-	 * 	console.log(Tone.immediate());
+     *    console.log(Tone.immediate());
 	 * }, 100);
 	 */
 	immediate(): Seconds {
@@ -78,25 +96,7 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 	}
 
 	/**
-	 * The duration in seconds of one sample.
-	 * @example
-	 * console.log(Tone.Transport.sampleTime);
-	 */
-	get sampleTime(): Seconds {
-		return 1 / this.context.sampleRate;
-	}
-
-	/**
-	 * The number of seconds of 1 processing block (128 samples)
-	 * @example
-	 * console.log(Tone.Destination.blockTime);
-	 */
-	get blockTime(): Seconds {
-		return 128 / this.context.sampleRate;
-	}
-
-	/**
-	 * Convert the incoming time to seconds. 
+     * Convert the incoming time to seconds.
 	 * This is calculated against the current [[Tone.Transport]] bpm
 	 * @example
 	 * const gain = new Tone.Gain();
@@ -134,20 +134,6 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 	//-------------------------------------
 
 	/**
-	 * Get a subset of the properties which are in the partial props
-	 */
-	protected _getPartialProperties(props: Options): Partial<Options> {
-		const options = this.get();
-		// remove attributes from the prop that are not in the partial
-		Object.keys(options).forEach(name => {
-			if (isUndef(props[name])) {
-				delete options[name];
-			}
-		});
-		return options;
-	}
-
-	/**
 	 * Get the object's attributes.
 	 * @example
 	 * const osc = new Tone.Oscillator();
@@ -181,8 +167,8 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 	 * const filter = new Tone.Filter().toDestination();
 	 * // set values using an object
 	 * filter.set({
-	 * 	frequency: "C6",
-	 * 	type: "highpass"
+     *    frequency: "C6",
+     *    type: "highpass"
 	 * });
 	 * const player = new Tone.Player("https://tonejs.github.io/audio/berklee/Analogsynth_octaves_highmid.mp3").connect(filter);
 	 * player.autostart = true;
@@ -204,4 +190,18 @@ export abstract class ToneWithContext<Options extends ToneWithContextOptions> ex
 		});
 		return this;
 	}
+
+    /**
+     * Get a subset of the properties which are in the partial props
+     */
+    protected _getPartialProperties(props: Options): Partial<Options> {
+        const options = this.get();
+        // remove attributes from the prop that are not in the partial
+        Object.keys(options).forEach(name => {
+            if (isUndef(props[name])) {
+                delete options[name];
+            }
+        });
+        return options;
+    }
 }

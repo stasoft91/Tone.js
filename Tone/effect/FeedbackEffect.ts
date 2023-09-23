@@ -1,8 +1,7 @@
-import { Gain } from "../core/context/Gain";
-import { Param } from "../core/context/Param";
-import { NormalRange } from "../core/type/Units";
+import { Gain, Param } from "../core";
+import type { NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { Effect, EffectOptions } from "./Effect";
+import { Effect, type EffectOptions } from "./Effect";
 
 export interface FeedbackEffectOptions extends EffectOptions {
 	/**
@@ -25,16 +24,14 @@ export interface FeedbackEffectOptions extends EffectOptions {
 export abstract class FeedbackEffect<Options extends FeedbackEffectOptions> extends Effect<Options> {
 
 	readonly name: string = "FeedbackEffect";
-
-	/**
-	 * the gain which controls the feedback
-	 */
-	private _feedbackGain: Gain<"normalRange">;
-
 	/**
 	 * The amount of signal which is fed back into the effect input.
 	 */
 	feedback: Param<"normalRange">;
+    /**
+     * the gain which controls the feedback
+     */
+    private _feedbackGain: Gain<"normalRange">;
 
 	constructor(options: FeedbackEffectOptions) {
 

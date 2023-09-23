@@ -1,9 +1,9 @@
-import { FrequencyEnvelope } from "Tone/component/envelope/FrequencyEnvelope";
-import { BasicTests } from "test/helper/Basic";
-import { Offline } from "test/helper/Offline";
-import { connectFrom, connectTo } from "test/helper/Connect";
-import { Envelope } from "Tone/component/envelope/Envelope";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { connectFrom, connectTo } from "test/helper/Connect";
+import { Offline } from "test/helper/Offline";
+import { Envelope } from "Tone/component/envelope/Envelope";
+import { FrequencyEnvelope } from "Tone/component/envelope/FrequencyEnvelope";
 
 describe("FrequencyEnvelope", () => {
 

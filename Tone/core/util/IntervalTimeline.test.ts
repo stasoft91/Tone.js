@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
-import { IntervalTimeline, IntervalTimelineEvent } from "./IntervalTimeline";
+import { IntervalTimeline, type IntervalTimelineEvent } from "./IntervalTimeline";
 
 describe("IntervalTimeline", () => {
 

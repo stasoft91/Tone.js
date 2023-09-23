@@ -6,7 +6,7 @@ import { OscillatorTests } from "test/helper/OscillatorTests";
 import { OutputAudio } from "test/helper/OutputAudio";
 import { SourceTests } from "test/helper/SourceTests";
 import { Oscillator } from "./Oscillator";
-import { ToneOscillatorType } from "./OscillatorInterface";
+import type { ToneOscillatorType } from "./OscillatorInterface";
 
 describe("Oscillator", () => {
 

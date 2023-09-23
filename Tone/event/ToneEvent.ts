@@ -1,12 +1,17 @@
+import {
+	type BasicPlaybackState,
+	defaultArg,
+	isBoolean,
+	isNumber,
+	optionsFromArguments,
+	StateTimeline,
+	TicksClass,
+	TransportTimeClass
+} from "../core";
 import "../core/clock/Transport";
-import { ToneWithContext, ToneWithContextOptions } from "../core/context/ToneWithContext";
-import { TicksClass } from "../core/type/Ticks";
-import { TransportTimeClass } from "../core/type/TransportTime";
-import { NormalRange, Positive, Seconds, Ticks, Time, TransportTime } from "../core/type/Units";
-import { defaultArg, optionsFromArguments } from "../core/util/Defaults";
+import { ToneWithContext, type ToneWithContextOptions } from "../core/context/ToneWithContext";
+import type { NormalRange, Positive, Seconds, Ticks, Time, TransportTime } from "../core/type/Units";
 import { noOp } from "../core/util/Interface";
-import { BasicPlaybackState, StateTimeline } from "../core/util/StateTimeline";
-import { isBoolean, isNumber } from "../core/util/TypeCheck";
 
 export type ToneEventCallback<T> = (time: Seconds, value: T) => void;
 
@@ -29,9 +34,9 @@ export interface ToneEventOptions<T> extends ToneWithContextOptions {
  * @example
  * const synth = new Tone.PolySynth().toDestination();
  * const chordEvent = new Tone.ToneEvent(((time, chord) => {
- * 	// the chord as well as the exact time of the event
- * 	// are passed in as arguments to the callback function
- * 	synth.triggerAttackRelease(chord, 0.5, time);
+ *    // the chord as well as the exact time of the event
+ *    // are passed in as arguments to the callback function
+ *    synth.triggerAttackRelease(chord, 0.5, time);
  * }), ["D4", "E4", "F4"]);
  * // start the chord at the beginning of the transport timeline
  * chordEvent.start();
@@ -43,61 +48,15 @@ export interface ToneEventOptions<T> extends ToneWithContextOptions {
 export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions<ValueType>> {
 
 	readonly name: string = "ToneEvent";
-
-	/**
-	 * Loop value
-	 */
-	protected _loop: boolean | number;
-
 	/**
 	 * The callback to invoke.
 	 */
 	callback: ToneEventCallback<ValueType>;
-
 	/**
 	 * The value which is passed to the
 	 * callback function.
 	 */
 	value: ValueType;
-
-	/**
-	 * When the note is scheduled to start.
-	 */
-	protected _loopStart: Ticks;
-
-	/**
-	 * When the note is scheduled to start.
-	 */
-	protected _loopEnd: Ticks;
-
-	/**
-	 * Tracks the scheduled events
-	 */
-	protected _state: StateTimeline<{
-		id: number;
-	}> = new StateTimeline("stopped");
-
-	/**
-	 * The playback speed of the note. A speed of 1
-	 * is no change.
-	 */
-	protected _playbackRate: Positive;
-
-	/**
-	 * A delay time from when the event is scheduled to start
-	 */
-	protected _startOffset: Ticks = 0;
-
-	/**
-	 * private holder of probability value
-	 */
-	protected _probability: NormalRange;
-
-	/**
-	 * the amount of variation from the given time.
-	 */
-	protected _humanize: boolean | Time;
-
 	/**
 	 * If mute is true, the callback won't be invoked.
 	 */
@@ -108,7 +67,9 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 	 * @param value The value or values which should be passed to the callback function on invocation.
 	 */
 	constructor(callback?: ToneEventCallback<ValueType>, value?: ValueType);
+
 	constructor(options?: Partial<ToneEventOptions<ValueType>>);
+
 	constructor() {
 
 		super(optionsFromArguments(ToneEvent.getDefaults(), arguments, ["callback", "value"]));
@@ -129,55 +90,67 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 		this._rescheduleEvents();
 	}
 
-	static getDefaults(): ToneEventOptions<any> {
-		return Object.assign(ToneWithContext.getDefaults(), {
-			callback: noOp,
-			humanize: false,
-			loop: false,
-			loopEnd: "1m",
-			loopStart: 0,
-			mute: false,
-			playbackRate: 1,
-			probability: 1,
-			value: null,
-		});
+    /**
+     * Tracks the scheduled events
+     */
+    protected _state: StateTimeline<{
+        id: number;
+    }> = new StateTimeline("stopped");
+    /**
+     * A delay time from when the event is scheduled to start
+     */
+    protected _startOffset: Ticks = 0;
+    /**
+     * private holder of probability value
+     */
+    protected _probability: NormalRange;
+    /**
+     * the amount of variation from the given time.
+     */
+    protected _humanize: boolean | Time;
+
+    /**
+     * Loop value
+     */
+    protected _loop: boolean | number;
+
+    /**
+     * If the note should loop or not
+     * between ToneEvent.loopStart and
+     * ToneEvent.loopEnd. If set to true,
+     * the event will loop indefinitely,
+     * if set to a number greater than 1
+     * it will play a specific number of
+     * times, if set to false, 0 or 1, the
+     * part will only play once.
+     */
+    get loop(): boolean | number {
+        return this._loop;
+    }
+
+    set loop(loop) {
+        this._loop = loop;
+        this._rescheduleEvents();
 	}
 
 	/**
-	 * Reschedule all of the events along the timeline
-	 * with the updated values.
-	 * @param after Only reschedules events after the given time.
+     * When the note is scheduled to start.
 	 */
-	private _rescheduleEvents(after: Ticks = -1): void {
-		// if no argument is given, schedules all of the events
-		this._state.forEachFrom(after, event => {
-			let duration;
-			if (event.state === "started") {
-				if (event.id !== -1) {
-					this.context.transport.clear(event.id);
-				}
-				const startTick = event.time + Math.round(this.startOffset / this._playbackRate);
-				if (this._loop === true || isNumber(this._loop) && this._loop > 1) {
-					duration = Infinity;
-					if (isNumber(this._loop)) {
-						duration = (this._loop) * this._getLoopDuration();
-					}
-					const nextEvent = this._state.getAfter(startTick);
-					if (nextEvent !== null) {
-						duration = Math.min(duration, nextEvent.time - startTick);
-					}
-					if (duration !== Infinity) {
-						duration = new TicksClass(this.context, duration);
-					}
-					const interval = new TicksClass(this.context, this._getLoopDuration());
-					event.id = this.context.transport.scheduleRepeat(
-						this._tick.bind(this), interval, new TicksClass(this.context, startTick), duration);
-				} else {
-					event.id = this.context.transport.schedule(this._tick.bind(this), new TicksClass(this.context, startTick));
-				}
-			}
-		});
-	}
+    protected _loopStart: Ticks;
+
+    /**
+     * The time when the loop should start.
+     */
+    get loopStart(): Time {
+        return new TicksClass(this.context, this._loopStart).toSeconds();
+    }
+
+    set loopStart(loopStart) {
+        this._loopStart = this.toTicks(loopStart);
+        if (this._loop) {
+            this._rescheduleEvents();
+        }
+    }
 
 	/**
 	 * Returns the playback state of the note, either "started" or "stopped".
@@ -186,15 +159,54 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 		return this._state.getValueAtTime(this.context.transport.ticks) as BasicPlaybackState;
 	}
 
+    /**
+     * When the note is scheduled to start.
+     */
+    protected _loopEnd: Ticks;
+
+    /**
+     * The loopEnd point is the time the event will loop
+     * if ToneEvent.loop is true.
+     */
+    get loopEnd(): Time {
+        return new TicksClass(this.context, this._loopEnd).toSeconds();
+    }
+
+    set loopEnd(loopEnd) {
+        this._loopEnd = this.toTicks(loopEnd);
+        if (this._loop) {
+            this._rescheduleEvents();
+        }
+	}
+
+    /**
+     * The playback speed of the note. A speed of 1
+     * is no change.
+     */
+    protected _playbackRate: Positive;
+
 	/**
 	 * The start from the scheduled start time.
 	 */
 	get startOffset(): Ticks {
 		return this._startOffset;
 	}
+
 	set startOffset(offset) {
 		this._startOffset = offset;
 	}
+
+    /**
+     * The playback rate of the event. Defaults to 1.
+     * @example
+     * const note = new Tone.ToneEvent();
+     * note.loop = true;
+     * // repeat the note twice as fast
+     * note.playbackRate = 2;
+     */
+    get playbackRate(): Positive {
+        return this._playbackRate;
+    }
 
 	/**
 	 * The probability of the notes being triggered.
@@ -202,9 +214,15 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 	get probability(): NormalRange {
 		return this._probability;
 	}
+
 	set probability(prob) {
 		this._probability = prob;
 	}
+
+    set playbackRate(rate) {
+        this._playbackRate = rate;
+        this._rescheduleEvents();
+    }
 
 	/**
 	 * If set to true, will apply small random variation
@@ -221,6 +239,41 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 	set humanize(variation) {
 		this._humanize = variation;
 	}
+
+    /**
+     * The current progress of the loop interval.
+     * Returns 0 if the event is not started yet or
+     * it is not set to loop.
+     */
+    get progress(): NormalRange {
+        if (this._loop) {
+            const ticks = this.context.transport.ticks;
+            const lastEvent = this._state.get(ticks);
+            if (lastEvent !== null && lastEvent.state === "started") {
+                const loopDuration = this._getLoopDuration();
+                const progress = (ticks - lastEvent.time) % loopDuration;
+                return progress / loopDuration;
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    static getDefaults(): ToneEventOptions<any> {
+        return Object.assign(ToneWithContext.getDefaults(), {
+            callback: noOp,
+            humanize: false,
+            loop: false,
+            loopEnd: "1m",
+            loopStart: 0,
+            mute: false,
+            playbackRate: 1,
+            probability: 1,
+            value: null,
+        });
+    }
 
 	/**
 	 * Start the note at the given time.
@@ -272,6 +325,13 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 		return this;
 	}
 
+    dispose(): this {
+        super.dispose();
+        this.cancel();
+        this._state.dispose();
+        return this;
+    }
+
 	/**
 	 * The callback function invoker. Also
 	 * checks if the Event is done playing
@@ -302,91 +362,38 @@ export class ToneEvent<ValueType = any> extends ToneWithContext<ToneEventOptions
 	}
 
 	/**
-	 * If the note should loop or not
-	 * between ToneEvent.loopStart and
-	 * ToneEvent.loopEnd. If set to true,
-	 * the event will loop indefinitely,
-	 * if set to a number greater than 1
-	 * it will play a specific number of
-	 * times, if set to false, 0 or 1, the
-	 * part will only play once.
+     * Reschedule all of the events along the timeline
+     * with the updated values.
+     * @param after Only reschedules events after the given time.
 	 */
-	get loop(): boolean | number {
-		return this._loop;
-	}
-	set loop(loop) {
-		this._loop = loop;
-		this._rescheduleEvents();
-	}
-
-	/**
-	 * The playback rate of the event. Defaults to 1.
-	 * @example
-	 * const note = new Tone.ToneEvent();
-	 * note.loop = true;
-	 * // repeat the note twice as fast
-	 * note.playbackRate = 2;
-	 */
-	get playbackRate(): Positive {
-		return this._playbackRate;
-	}
-	set playbackRate(rate) {
-		this._playbackRate = rate;
-		this._rescheduleEvents();
-	}
-
-	/**
-	 * The loopEnd point is the time the event will loop
-	 * if ToneEvent.loop is true.
-	 */
-	get loopEnd(): Time {
-		return new TicksClass(this.context, this._loopEnd).toSeconds();
-	}
-	set loopEnd(loopEnd) {
-		this._loopEnd = this.toTicks(loopEnd);
-		if (this._loop) {
-			this._rescheduleEvents();
-		}
-	}
-
-	/**
-	 * The time when the loop should start.
-	 */
-	get loopStart(): Time {
-		return new TicksClass(this.context, this._loopStart).toSeconds();
-	}
-	set loopStart(loopStart) {
-		this._loopStart = this.toTicks(loopStart);
-		if (this._loop) {
-			this._rescheduleEvents();
-		}
-	}
-
-	/**
-	 * The current progress of the loop interval.
-	 * Returns 0 if the event is not started yet or
-	 * it is not set to loop.
-	 */
-	get progress(): NormalRange {
-		if (this._loop) {
-			const ticks = this.context.transport.ticks;
-			const lastEvent = this._state.get(ticks);
-			if (lastEvent !== null && lastEvent.state === "started") {
-				const loopDuration = this._getLoopDuration();
-				const progress = (ticks - lastEvent.time) % loopDuration;
-				return progress / loopDuration;
-			} else {
-				return 0;
-			}
-		} else {
-			return 0;
-		}
-	}
-
-	dispose(): this {
-		super.dispose();
-		this.cancel();
-		this._state.dispose();
-		return this;
+    private _rescheduleEvents(after: Ticks = -1): void {
+        // if no argument is given, schedules all of the events
+        this._state.forEachFrom(after, event => {
+            let duration;
+            if (event.state === "started") {
+                if (event.id !== -1) {
+                    this.context.transport.clear(event.id);
+                }
+                const startTick = event.time + Math.round(this.startOffset / this._playbackRate);
+                if (this._loop === true || isNumber(this._loop) && this._loop > 1) {
+                    duration = Infinity;
+                    if (isNumber(this._loop)) {
+                        duration = (this._loop) * this._getLoopDuration();
+                    }
+                    const nextEvent = this._state.getAfter(startTick);
+                    if (nextEvent !== null) {
+                        duration = Math.min(duration, nextEvent.time - startTick);
+                    }
+                    if (duration !== Infinity) {
+                        duration = new TicksClass(this.context, duration);
+                    }
+                    const interval = new TicksClass(this.context, this._getLoopDuration());
+                    event.id = this.context.transport.scheduleRepeat(
+                        this._tick.bind(this), interval, new TicksClass(this.context, startTick), duration);
+                } else {
+                    event.id = this.context.transport.schedule(this._tick.bind(this), new TicksClass(this.context, startTick));
+                }
+            }
+        });
 	}
 }

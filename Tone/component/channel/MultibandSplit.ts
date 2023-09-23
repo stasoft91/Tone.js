@@ -1,9 +1,7 @@
-import { Gain } from "../../core/context/Gain";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Frequency, Positive } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Gain, optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Frequency, Positive } from "../../core/type/Units";
 import { readOnly, writable } from "../../core/util/Interface";
-import { Signal } from "../../signal/Signal";
+import { Signal } from "../../signal";
 import { Filter } from "../filter/Filter";
 
 interface MultibandSplitOptions extends ToneAudioNodeOptions {
@@ -52,16 +50,6 @@ export class MultibandSplit extends ToneAudioNode<MultibandSplitOptions> {
 		frequency: 0,
 		type: "lowpass",
 	});
-
-	/**
-	 * the lower filter of the mid band
-	 */
-	private _lowMidFilter = new Filter({
-		context: this.context,
-		frequency: 0,
-		type: "highpass",
-	});
-
 	/**
 	 * The mid band output.
 	 */
@@ -70,7 +58,6 @@ export class MultibandSplit extends ToneAudioNode<MultibandSplitOptions> {
 		frequency: 0,
 		type: "lowpass",
 	});
-
 	/**
 	 * The high band output.
 	 */
@@ -79,23 +66,27 @@ export class MultibandSplit extends ToneAudioNode<MultibandSplitOptions> {
 		frequency: 0,
 		type: "highpass",
 	});
-
 	/**
 	 * The low/mid crossover frequency.
 	 */
 	readonly lowFrequency: Signal<"frequency">;
-
 	/**
 	 * The mid/high crossover frequency.
 	 */
 	readonly highFrequency: Signal<"frequency">;
-
-	protected _internalChannels = [this.low, this.mid, this.high];
-
 	/**
 	 * The Q or Quality of the filter
 	 */
 	readonly Q: Signal<"positive">;
+    protected _internalChannels = [this.low, this.mid, this.high];
+    /**
+     * the lower filter of the mid band
+     */
+    private _lowMidFilter = new Filter({
+        context: this.context,
+        frequency: 0,
+        type: "highpass",
+    });
 
 	/**
 	 * @param lowFrequency the low/mid crossover frequency

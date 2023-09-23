@@ -1,11 +1,11 @@
-import { StereoWidener } from "./StereoWidener";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
+import "test/helper/ToneAudioBuffer";
 import { ToneAudioBuffer } from "Tone/core/context/ToneAudioBuffer";
 import { Player } from "Tone/source/buffer/Player";
-import "test/helper/ToneAudioBuffer";
+import { StereoWidener } from "./StereoWidener";
 
 describe("StereoWidener", () => {
 

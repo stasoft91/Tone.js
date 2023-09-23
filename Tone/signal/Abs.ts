@@ -1,4 +1,4 @@
-import { ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
+import type { ToneAudioNodeOptions } from "../core";
 import { SignalOperator } from "./SignalOperator";
 import { WaveShaper } from "./WaveShaper";
 
@@ -7,10 +7,10 @@ import { WaveShaper } from "./WaveShaper";
  *
  * @example
  * return Tone.Offline(() => {
- * 	const abs = new Tone.Abs().toDestination();
- * 	const signal = new Tone.Signal(1);
- * 	signal.rampTo(-1, 0.5);
- * 	signal.connect(abs);
+ *    const abs = new Tone.Abs().toDestination();
+ *    const signal = new Tone.Signal(1);
+ *    signal.rampTo(-1, 0.5);
+ *    signal.connect(abs);
  * }, 0.5, 1);
  * @category Signal
  */

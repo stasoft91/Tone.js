@@ -1,9 +1,9 @@
-import { BasicTests } from "test/helper/Basic";
-import { Loop } from "Tone/event/Loop";
-import { Offline, whenBetween } from "test/helper/Offline";
 import { expect } from "chai";
-import { noOp } from "Tone/core/util/Interface";
+import { BasicTests } from "test/helper/Basic";
+import { Offline, whenBetween } from "test/helper/Offline";
 import { Time } from "Tone/core/type/Time";
+import { noOp } from "Tone/core/util/Interface";
+import { Loop } from "Tone/event/Loop";
 
 describe("Loop", () => {
 

@@ -7,17 +7,17 @@ const name = parsed.name as string;
 const version = parseInt(parsed.major as string, 10);
 
 function is(browser, above?): boolean {
-	above = above || 0;
-	return name.includes(browser) && version >= above;
+    above = above || 0;
+    return name.includes(browser) && version >= above;
 }
 
 function isnt(browser, below?): boolean {
-	below = below || Infinity;
-	return !(name.includes(browser) && version <= below);
+    below = below || Infinity;
+    return !(name.includes(browser) && version <= below);
 }
 
 function isntVersion(browser, browserVersion?): boolean {
-	return name.includes(browser) && version !== browserVersion;
+    return name.includes(browser) && version !== browserVersion;
 }
 
 // can disconnect from a specific node

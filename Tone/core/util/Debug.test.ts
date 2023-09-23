@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { ToneOscillatorNode } from "../../source/oscillator/ToneOscillatorNode";
-import { assertRange, setLogger } from "./Debug";
-import { theWindow } from "../context/AudioContext";
 import { Oscillator } from "Tone/source";
+import { ToneOscillatorNode } from "../../source";
+import { theWindow } from "../context/AudioContext";
 import { Context } from "../context/Context";
+import { assertRange, setLogger } from "./Debug";
 
 describe("Debug", () => {
 
@@ -50,7 +50,7 @@ describe("Debug", () => {
 		expect(() => {
 			assertRange(2, 0, 1);
 		}).to.throw(RangeError);
-		
+
 		expect(() => {
 			assertRange(0, 0);
 		}).to.not.throw(RangeError);
@@ -62,7 +62,8 @@ describe("Debug", () => {
 		const osc = new Oscillator({ context });
 		let warnInvoked = false;
 		setLogger({
-			log: () => {},
+            log: () => {
+            },
 			warn: () => warnInvoked = true
 		});
 		osc.start();

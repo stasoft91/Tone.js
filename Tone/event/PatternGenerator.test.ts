@@ -70,8 +70,8 @@ describe("PatternGenerator", () => {
 			const pattern = PatternGenerator(5, "randomOnce");
 			expect(getArrayValues(pattern, 10).sort()).to.deep.equal([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
 		});
-                
-		it("randomly walks up or down 1 step without repeating", () => {
+
+        it("randomly walks up or down 1 step without repeating", () => {
 			const values = [0, 1, 2, 3, 4];
 			const pattern = PatternGenerator(5, "randomWalk");
 			let currentIndex = pattern.next().value;

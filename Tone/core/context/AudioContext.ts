@@ -44,7 +44,7 @@ export const theWindow: ToneWindow | null = typeof self === "object" ? self : nu
  * @hidden
  */
 export const hasAudioContext = theWindow &&
-	(theWindow.hasOwnProperty("AudioContext") || theWindow.hasOwnProperty("webkitAudioContext"));
+    (theWindow.hasOwnProperty("AudioContext") || theWindow.hasOwnProperty("webkitAudioContext"));
 
 export function createAudioWorkletNode(context: AnyAudioContext, name: string, options?: Partial<AudioWorkletNodeOptions>): AudioWorkletNode {
 	assert(isDefined(stdAudioWorkletNode), "This node only works in a secure context (https or localhost)");
@@ -53,8 +53,8 @@ export function createAudioWorkletNode(context: AnyAudioContext, name: string, o
 }
 
 /**
- * This promise resolves to a boolean which indicates if the 
- * functionality is supported within the currently used browse. 
+ * This promise resolves to a boolean which indicates if the
+ * functionality is supported within the currently used browse.
  * Taken from [standardized-audio-context](https://github.com/chrisguttandin/standardized-audio-context#issupported)
  */
 export { isSupported as supported } from "standardized-audio-context";

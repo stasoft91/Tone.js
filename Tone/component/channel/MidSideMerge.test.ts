@@ -1,7 +1,7 @@
-import { MidSideMerge } from "./MidSideMerge";
 import { BasicTests } from "test/helper/Basic";
-import { PassAudio } from "test/helper/PassAudio";
 import { connectFrom, connectTo } from "test/helper/Connect";
+import { PassAudio } from "test/helper/PassAudio";
+import { MidSideMerge } from "./MidSideMerge";
 
 describe("MidSideMerge", () => {
 

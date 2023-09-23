@@ -1,7 +1,7 @@
-import { AudioToGain } from "../signal/AudioToGain";
-import { RecursivePartial } from "../core/util/Interface";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { ModulationSynth, ModulationSynthOptions } from "./ModulationSynth";
+import { optionsFromArguments } from "../core";
+import type { RecursivePartial } from "../core/util/Interface";
+import { AudioToGain } from "../signal";
+import { ModulationSynth, type ModulationSynthOptions } from "./ModulationSynth";
 
 export type AMSynthOptions = ModulationSynthOptions;
 
@@ -15,7 +15,7 @@ export type AMSynthOptions = ModulationSynthOptions;
  * @example
  * const synth = new Tone.AMSynth().toDestination();
  * synth.triggerAttackRelease("C4", "4n");
- * 
+ *
  * @category Instrument
  */
 export class AMSynth extends ModulationSynth<AMSynthOptions> {

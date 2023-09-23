@@ -1,17 +1,16 @@
-import { MidiClass } from "../core/type/Midi";
-import { Frequency, MidiNote, NormalRange, Seconds, Time } from "../core/type/Units";
-import { deepMerge, omitFromObject, optionsFromArguments } from "../core/util/Defaults";
-import { RecursivePartial } from "../core/util/Interface";
-import { isArray, isNumber } from "../core/util/TypeCheck";
-import { Instrument, InstrumentOptions } from "./Instrument";
-import { MembraneSynth, MembraneSynthOptions } from "./MembraneSynth";
-import { FMSynth, FMSynthOptions } from "./FMSynth";
-import { AMSynth, AMSynthOptions } from "./AMSynth";
-import { MonoSynth, MonoSynthOptions } from "./MonoSynth";
-import { MetalSynth, MetalSynthOptions } from "./MetalSynth";
-import { Monophonic } from "./Monophonic";
-import { Synth, SynthOptions } from "./Synth";
+import { isArray, isNumber, MidiClass } from "../core";
+import type { Frequency, MidiNote, NormalRange, Seconds, Time } from "../core/type/Units";
 import { assert, warn } from "../core/util/Debug";
+import { deepMerge, omitFromObject, optionsFromArguments } from "../core/util/Defaults";
+import type { RecursivePartial } from "../core/util/Interface";
+import type { AMSynth, AMSynthOptions } from "./AMSynth";
+import type { FMSynth, FMSynthOptions } from "./FMSynth";
+import { Instrument, type InstrumentOptions } from "./Instrument";
+import type { MembraneSynth, MembraneSynthOptions } from "./MembraneSynth";
+import type { MetalSynth, MetalSynthOptions } from "./MetalSynth";
+import { Monophonic } from "./Monophonic";
+import type { MonoSynth, MonoSynthOptions } from "./MonoSynth";
+import { Synth, type SynthOptions } from "./Synth";
 
 type VoiceConstructor<V> = {
 	getDefaults: () => VoiceOptions<V>;
@@ -20,14 +19,14 @@ type VoiceConstructor<V> = {
 type OmitMonophonicOptions<T> = Omit<T, "context" | "onsilence">;
 
 type VoiceOptions<T> =
-	T extends MembraneSynth ? MembraneSynthOptions :
-		T extends MetalSynth ? MetalSynthOptions :
-			T extends FMSynth ? FMSynthOptions :
-				T extends MonoSynth ? MonoSynthOptions :
-					T extends AMSynth ? AMSynthOptions :
-						T extends Synth ? SynthOptions :
-							T extends Monophonic<infer U> ? U :
-								never;
+    T extends MembraneSynth ? MembraneSynthOptions :
+        T extends MetalSynth ? MetalSynthOptions :
+            T extends FMSynth ? FMSynthOptions :
+                T extends MonoSynth ? MonoSynthOptions :
+                    T extends AMSynth ? AMSynthOptions :
+                        T extends Synth ? SynthOptions :
+                            T extends Monophonic<infer U> ? U :
+                                never;
 
 /**
  * The settable synth options. excludes monophonic options.
@@ -58,17 +57,14 @@ export interface PolySynthOptions<Voice> extends InstrumentOptions {
 export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument<VoiceOptions<Voice>> {
 
 	readonly name: string = "PolySynth";
-
+    /**
+     * The polyphony limit.
+     */
+    maxPolyphony: number;
 	/**
 	 * The voices which are not currently in use
 	 */
 	private _availableVoices: Voice[] = [];
-
-	/**
-	 * The currently active voices
-	 */
-	private _activeVoices: Array<{ midi: MidiNote; voice: Voice; released: boolean }> = [];
-
 	/**
 	 * All of the allocated voices for this synth.
 	 */
@@ -78,27 +74,18 @@ export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument
 	 * The options that are set on the synth.
 	 */
 	private options: VoiceOptions<Voice>;
-
-	/**
-	 * The polyphony limit.
-	 */
-	maxPolyphony: number;
-
 	/**
 	 * The voice constructor
 	 */
 	private readonly voice: VoiceConstructor<Voice>;
-
 	/**
 	 * A voice used for holding the get/set values
 	 */
 	private _dummyVoice: Voice;
-
 	/**
 	 * The GC timeout. Held so that it could be cancelled when the node is disposed.
 	 */
 	private _gcTimeout = -1;
-
 	/**
 	 * A moving average of the number of active voices
 	 */
@@ -106,13 +93,15 @@ export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument
 
 	/**
 	 * @param voice The constructor of the voices
-	 * @param options	The options object to set the synth voice
+     * @param options    The options object to set the synth voice
 	 */
 	constructor(
 		voice?: VoiceConstructor<Voice>,
 		options?: PartialVoiceOptions<Voice>,
 	);
+
 	constructor(options?: Partial<PolySynthOptions<Voice>>);
+
 	constructor() {
 
 		super(optionsFromArguments(PolySynth.getDefaults(), arguments, ["voice", "options"]));
@@ -135,128 +124,24 @@ export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument
 		this._gcTimeout = this.context.setInterval(this._collectGarbage.bind(this), 1);
 	}
 
+    /**
+     * The currently active voices
+     */
+    private _activeVoices: Array<{ midi: MidiNote; voice: Voice; released: boolean }> = [];
+
+    /**
+     * The number of active voices.
+     */
+    get activeVoices(): number {
+        return this._activeVoices.length;
+    }
+
 	static getDefaults(): PolySynthOptions<Synth> {
 		return Object.assign(Instrument.getDefaults(), {
 			maxPolyphony: 32,
 			options: {},
 			voice: Synth,
 		});
-	}
-
-	/**
-	 * The number of active voices.
-	 */
-	get activeVoices(): number {
-		return this._activeVoices.length;
-	}
-
-	/**
-	 * Invoked when the source is done making sound, so that it can be
-	 * readded to the pool of available voices
-	 */
-	private _makeVoiceAvailable(voice: Voice): void {
-		this._availableVoices.push(voice);
-		// remove the midi note from 'active voices'
-		const activeVoiceIndex = this._activeVoices.findIndex((e) => e.voice === voice);
-		this._activeVoices.splice(activeVoiceIndex, 1);
-	}
-
-	/**
-	 * Get an available voice from the pool of available voices.
-	 * If one is not available and the maxPolyphony limit is reached,
-	 * steal a voice, otherwise return null.
-	 */
-	private _getNextAvailableVoice(): Voice | undefined {
-		// if there are available voices, return the first one
-		if (this._availableVoices.length) {
-			return this._availableVoices.shift();
-		} else if (this._voices.length < this.maxPolyphony) {
-			// otherwise if there is still more maxPolyphony, make a new voice
-			const voice = new this.voice(Object.assign(this.options, {
-				context: this.context,
-				onsilence: this._makeVoiceAvailable.bind(this),
-			}));
-			assert(voice instanceof Monophonic, "Voice must extend Monophonic class");
-			voice.connect(this.output);
-			this._voices.push(voice);
-			return voice;
-		} else {
-			warn("Max polyphony exceeded. Note dropped.");
-		}
-	}
-
-	/**
-	 * Occasionally check if there are any allocated voices which can be cleaned up.
-	 */
-	private _collectGarbage(): void {
-		this._averageActiveVoices = Math.max(this._averageActiveVoices * 0.95, this.activeVoices);
-		if (this._availableVoices.length && this._voices.length > Math.ceil(this._averageActiveVoices + 1)) {
-			// take off an available note
-			const firstAvail = this._availableVoices.shift() as Voice;
-			const index = this._voices.indexOf(firstAvail);
-			this._voices.splice(index, 1);
-			if (!this.context.isOffline) {
-				firstAvail.dispose();
-			}
-		}
-	}
-
-	/**
-	 * Internal method which triggers the attack
-	 */
-	private _triggerAttack(notes: Frequency[], time: Seconds, velocity?: NormalRange): void {
-		notes.forEach(note => {
-			const midiNote = new MidiClass(this.context, note).toMidi();
-			const voice = this._getNextAvailableVoice();
-			if (voice) {
-				voice.triggerAttack(note, time, velocity);
-				this._activeVoices.push({
-					midi: midiNote, voice, released: false,
-				});
-				this.log("triggerAttack", note, time);
-			}
-		});
-	}
-
-	/**
-	 * Internal method which triggers the release
-	 */
-	private _triggerRelease(notes: Frequency[], time: Seconds): void {
-		notes.forEach(note => {
-			const midiNote = new MidiClass(this.context, note).toMidi();
-			const event = this._activeVoices.find(({ midi, released }) => midi === midiNote && !released);
-			if (event) {
-				// trigger release on that note
-				event.voice.triggerRelease(time);
-				// mark it as released
-				event.released = true;
-				this.log("triggerRelease", note, time);
-			}
-		});
-	}
-
-	/**
-	 * Schedule the attack/release events. If the time is in the future, then it should set a timeout
-	 * to wait for just-in-time scheduling
-	 */
-	private _scheduleEvent(type: "attack" | "release", notes: Frequency[], time: Seconds, velocity?: NormalRange): void {
-		assert(!this.disposed, "Synth was already disposed");
-		// if the notes are greater than this amount of time in the future, they should be scheduled with setTimeout
-		if (time <= this.now()) {
-			// do it immediately
-			if (type === "attack") {
-				this._triggerAttack(notes, time, velocity);
-			} else {
-				this._triggerRelease(notes, time);
-			}
-		} else {
-			// schedule it to start in the future
-			this.context.setTimeout(() => {
-				if (!this.disposed) {
-					this._scheduleEvent(type, notes, time, velocity);
-				}
-			}, time - this.now());
-		}
 	}
 
 	/**
@@ -351,19 +236,14 @@ export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument
 	}
 
 	/**
-	 * The release which is scheduled to the timeline. 
-	 */
-	 protected _syncedRelease = (time: number) => this.releaseAll(time);
-
-	/**
 	 * Set a member/attribute of the voices
 	 * @example
 	 * const poly = new Tone.PolySynth().toDestination();
 	 * // set all of the voices using an options object for the synth type
 	 * poly.set({
-	 * 	envelope: {
-	 * 		attack: 0.25
-	 * 	}
+     *    envelope: {
+     *        attack: 0.25
+     *    }
 	 * });
 	 * poly.triggerAttackRelease("Bb3", 0.2);
 	 */
@@ -392,8 +272,8 @@ export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument
 		});
 		return this;
 	}
-	
-	dispose(): this {
+
+    dispose(): this {
 		super.dispose();
 		this._dummyVoice.dispose();
 		this._voices.forEach(v => v.dispose());
@@ -402,4 +282,118 @@ export class PolySynth<Voice extends Monophonic<any> = Synth> extends Instrument
 		this.context.clearInterval(this._gcTimeout);
 		return this;
 	}
+
+    /**
+     * The release which is scheduled to the timeline.
+     */
+    protected _syncedRelease = (time: number) => this.releaseAll(time);
+
+    /**
+     * Invoked when the source is done making sound, so that it can be
+     * readded to the pool of available voices
+     */
+    private _makeVoiceAvailable(voice: Voice): void {
+        this._availableVoices.push(voice);
+        // remove the midi note from 'active voices'
+        const activeVoiceIndex = this._activeVoices.findIndex((e) => e.voice === voice);
+        this._activeVoices.splice(activeVoiceIndex, 1);
+    }
+
+    /**
+     * Get an available voice from the pool of available voices.
+     * If one is not available and the maxPolyphony limit is reached,
+     * steal a voice, otherwise return null.
+     */
+    private _getNextAvailableVoice(): Voice | undefined {
+        // if there are available voices, return the first one
+        if (this._availableVoices.length) {
+            return this._availableVoices.shift();
+        } else if (this._voices.length < this.maxPolyphony) {
+            // otherwise if there is still more maxPolyphony, make a new voice
+            const voice = new this.voice(Object.assign(this.options, {
+                context: this.context,
+                onsilence: this._makeVoiceAvailable.bind(this),
+            }));
+            assert(voice instanceof Monophonic, "Voice must extend Monophonic class");
+            voice.connect(this.output);
+            this._voices.push(voice);
+            return voice;
+        } else {
+            warn("Max polyphony exceeded. Note dropped.");
+        }
+    }
+
+    /**
+     * Occasionally check if there are any allocated voices which can be cleaned up.
+     */
+    private _collectGarbage(): void {
+        this._averageActiveVoices = Math.max(this._averageActiveVoices * 0.95, this.activeVoices);
+        if (this._availableVoices.length && this._voices.length > Math.ceil(this._averageActiveVoices + 1)) {
+            // take off an available note
+            const firstAvail = this._availableVoices.shift() as Voice;
+            const index = this._voices.indexOf(firstAvail);
+            this._voices.splice(index, 1);
+            if (!this.context.isOffline) {
+                firstAvail.dispose();
+            }
+        }
+    }
+
+    /**
+     * Internal method which triggers the attack
+     */
+    private _triggerAttack(notes: Frequency[], time: Seconds, velocity?: NormalRange): void {
+        notes.forEach(note => {
+            const midiNote = new MidiClass(this.context, note).toMidi();
+            const voice = this._getNextAvailableVoice();
+            if (voice) {
+                voice.triggerAttack(note, time, velocity);
+                this._activeVoices.push({
+                    midi: midiNote, voice, released: false,
+                });
+                this.log("triggerAttack", note, time);
+            }
+        });
+    }
+
+    /**
+     * Internal method which triggers the release
+     */
+    private _triggerRelease(notes: Frequency[], time: Seconds): void {
+        notes.forEach(note => {
+            const midiNote = new MidiClass(this.context, note).toMidi();
+            const event = this._activeVoices.find(({ midi, released }) => midi === midiNote && !released);
+            if (event) {
+                // trigger release on that note
+                event.voice.triggerRelease(time);
+                // mark it as released
+                event.released = true;
+                this.log("triggerRelease", note, time);
+            }
+        });
+    }
+
+    /**
+     * Schedule the attack/release events. If the time is in the future, then it should set a timeout
+     * to wait for just-in-time scheduling
+     */
+    private _scheduleEvent(type: "attack" | "release", notes: Frequency[], time: Seconds, velocity?: NormalRange): void {
+        assert(!this.disposed, "Synth was already disposed");
+        // if the notes are greater than this amount of time in the future, they should be scheduled with setTimeout
+        if (time <= this.now()) {
+            // do it immediately
+            if (type === "attack") {
+                this._triggerAttack(notes, time, velocity);
+            } else {
+                this._triggerRelease(notes, time);
+            }
+        } else {
+            // schedule it to start in the future
+            this.context.setTimeout(() => {
+                if (!this.disposed) {
+                    this._scheduleEvent(type, notes, time, velocity);
+                }
+            }, time - this.now());
+        }
+    }
 }

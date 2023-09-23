@@ -1,8 +1,6 @@
-import { Param } from "../../core/context/Param";
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Degrees, GainFactor } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
 import "../../core/context/Listener";
+import type { Degrees, GainFactor } from "../../core/type/Units";
 
 export interface Panner3DOptions extends ToneAudioNodeOptions {
 	coneInnerAngle: Degrees;
@@ -28,21 +26,18 @@ export interface Panner3DOptions extends ToneAudioNodeOptions {
 export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 
 	readonly name: string = "Panner3D";
-
-	/**
-	 * The panning object
-	 */
-	private _panner: PannerNode;
 	readonly input: PannerNode;
 	readonly output: PannerNode;
-
 	readonly positionX: Param<"number">;
 	readonly positionY: Param<"number">;
 	readonly positionZ: Param<"number">;
-
 	readonly orientationX: Param<"number">;
 	readonly orientationY: Param<"number">;
 	readonly orientationZ: Param<"number">;
+    /**
+     * The panning object
+     */
+    private _panner: PannerNode;
 
 	/**
 	 * @param positionX The initial x position.
@@ -99,51 +94,13 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 		});
 	}
 
-	static getDefaults(): Panner3DOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			coneInnerAngle: 360,
-			coneOuterAngle: 360,
-			coneOuterGain: 0,
-			distanceModel: "inverse" as DistanceModelType,
-			maxDistance: 10000,
-			orientationX: 0,
-			orientationY: 0,
-			orientationZ: 0,
-			panningModel: "equalpower" as PanningModelType,
-			positionX: 0,
-			positionY: 0,
-			positionZ: 0,
-			refDistance: 1,
-			rolloffFactor: 1,
-		});
-	}
-
-	/**
-	 * Sets the position of the source in 3d space.
-	 */
-	setPosition(x: number, y: number, z: number): this {
-		this.positionX.value = x;
-		this.positionY.value = y;
-		this.positionZ.value = z;
-		return this;
-	}
-
-	/**
-	 * Sets the orientation of the source in 3d space.
-	 */
-	setOrientation(x: number, y: number, z: number): this {
-		this.orientationX.value = x;
-		this.orientationY.value = y;
-		this.orientationZ.value = z;
-		return this;
-	}
-
 	/**
 	 * The panning model. Either "equalpower" or "HRTF".
 	 */
 	get panningModel(): PanningModelType {
 		return this._panner.panningModel;
 	}
+
 	set panningModel(val) {
 		this._panner.panningModel = val;
 	}
@@ -154,7 +111,8 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get refDistance(): number {
 		return this._panner.refDistance;
 	}
-	set refDistance(val) {
+
+    set refDistance(val) {
 		this._panner.refDistance = val;
 	}
 
@@ -164,7 +122,8 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get rolloffFactor(): number {
 		return this._panner.rolloffFactor;
 	}
-	set rolloffFactor(val) {
+
+    set rolloffFactor(val) {
 		this._panner.rolloffFactor = val;
 	}
 
@@ -174,7 +133,8 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get distanceModel(): DistanceModelType {
 		return this._panner.distanceModel;
 	}
-	set distanceModel(val) {
+
+    set distanceModel(val) {
 		this._panner.distanceModel = val;
 	}
 
@@ -184,7 +144,8 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get coneInnerAngle(): Degrees {
 		return this._panner.coneInnerAngle;
 	}
-	set coneInnerAngle(val) {
+
+    set coneInnerAngle(val) {
 		this._panner.coneInnerAngle = val;
 	}
 
@@ -195,7 +156,8 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get coneOuterAngle(): Degrees {
 		return this._panner.coneOuterAngle;
 	}
-	set coneOuterAngle(val) {
+
+    set coneOuterAngle(val) {
 		this._panner.coneOuterAngle = val;
 	}
 
@@ -205,7 +167,8 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get coneOuterGain(): GainFactor {
 		return this._panner.coneOuterGain;
 	}
-	set coneOuterGain(val) {
+
+    set coneOuterGain(val) {
 		this._panner.coneOuterGain = val;
 	}
 
@@ -216,9 +179,49 @@ export class Panner3D extends ToneAudioNode<Panner3DOptions> {
 	get maxDistance(): number {
 		return this._panner.maxDistance;
 	}
-	set maxDistance(val) {
+
+    set maxDistance(val) {
 		this._panner.maxDistance = val;
 	}
+
+    static getDefaults(): Panner3DOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            coneInnerAngle: 360,
+            coneOuterAngle: 360,
+            coneOuterGain: 0,
+            distanceModel: "inverse" as DistanceModelType,
+            maxDistance: 10000,
+            orientationX: 0,
+            orientationY: 0,
+            orientationZ: 0,
+            panningModel: "equalpower" as PanningModelType,
+            positionX: 0,
+            positionY: 0,
+            positionZ: 0,
+            refDistance: 1,
+            rolloffFactor: 1,
+        });
+    }
+
+    /**
+     * Sets the position of the source in 3d space.
+     */
+    setPosition(x: number, y: number, z: number): this {
+        this.positionX.value = x;
+        this.positionY.value = y;
+        this.positionZ.value = z;
+        return this;
+    }
+
+    /**
+     * Sets the orientation of the source in 3d space.
+     */
+    setOrientation(x: number, y: number, z: number): this {
+        this.orientationX.value = x;
+        this.orientationY.value = y;
+        this.orientationZ.value = z;
+        return this;
+    }
 
 	dispose(): this {
 		super.dispose();

@@ -1,10 +1,7 @@
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Decibels, Time } from "../../core/type/Units";
-import { GreaterThan } from "../../signal/GreaterThan";
-import { Gain } from "../../core/context/Gain";
+import { dbToGain, Gain, gainToDb, optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Decibels, Time } from "../../core/type/Units";
+import { GreaterThan } from "../../signal";
 import { Follower } from "../analysis/Follower";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { dbToGain, gainToDb } from "../../core/type/Conversions";
 
 export interface GateOptions extends ToneAudioNodeOptions {
 	threshold: Decibels;
@@ -72,19 +69,13 @@ export class Gate extends ToneAudioNode<GateOptions> {
 		this.input.chain(this._follower, this._gt, this._gate.gain);
 	}
 
-	static getDefaults(): GateOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			smoothing: 0.1,
-			threshold: -40
-		});
-	}
-
 	/**
 	 * The threshold of the gate in decibels
 	 */
 	get threshold(): Decibels {
 		return gainToDb(this._gt.value);
 	}
+
 	set threshold(thresh) {
 		this._gt.value = dbToGain(thresh);
 	}
@@ -95,9 +86,17 @@ export class Gate extends ToneAudioNode<GateOptions> {
 	get smoothing(): Time {
 		return this._follower.smoothing;
 	}
-	set smoothing(smoothingTime) {
+
+    set smoothing(smoothingTime) {
 		this._follower.smoothing = smoothingTime;
 	}
+
+    static getDefaults(): GateOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            smoothing: 0.1,
+            threshold: -40
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

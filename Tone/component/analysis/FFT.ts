@@ -1,9 +1,7 @@
-import { ToneAudioNode } from "../../core/context/ToneAudioNode";
-import { dbToGain } from "../../core/type/Conversions";
-import { Hertz, NormalRange, PowerOfTwo } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { MeterBase, MeterBaseOptions } from "./MeterBase";
+import { dbToGain, optionsFromArguments, ToneAudioNode } from "../../core";
+import type { Hertz, NormalRange, PowerOfTwo } from "../../core/type/Units";
 import { assert } from "../../core/util/Debug";
+import { MeterBase, type MeterBaseOptions } from "./MeterBase";
 
 export interface FFTOptions extends MeterBaseOptions {
 	size: PowerOfTwo;
@@ -41,23 +39,6 @@ export class FFT extends MeterBase<FFTOptions> {
 		this.size = options.size;
 	}
 
-	static getDefaults(): FFTOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			normalRange: false,
-			size: 1024,
-			smoothing: 0.8,
-		});
-	}
-
-	/**
-	 * Gets the current frequency data from the connected audio source.
-	 * Returns the frequency data of length [[size]] as a Float32Array of decibel values.
-	 */
-	getValue(): Float32Array {
-		const values = this._analyser.getValue() as Float32Array;
-		return values.map(v => this.normalRange ? dbToGain(v) : v);
-	}
-
 	/**
 	 * The size of analysis. This must be a power of two in the range 16 to 16384.
 	 * Determines the size of the array returned by [[getValue]] (i.e. the number of
@@ -66,6 +47,7 @@ export class FFT extends MeterBase<FFTOptions> {
 	get size(): PowerOfTwo {
 		return this._analyser.size;
 	}
+
 	set size(size) {
 		this._analyser.size = size;
 	}
@@ -76,9 +58,27 @@ export class FFT extends MeterBase<FFTOptions> {
 	get smoothing(): NormalRange {
 		return this._analyser.smoothing;
 	}
-	set smoothing(val) {
+
+    set smoothing(val) {
 		this._analyser.smoothing = val;
 	}
+
+    static getDefaults(): FFTOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            normalRange: false,
+            size: 1024,
+            smoothing: 0.8,
+        });
+    }
+
+    /**
+     * Gets the current frequency data from the connected audio source.
+     * Returns the frequency data of length [[size]] as a Float32Array of decibel values.
+     */
+    getValue(): Float32Array {
+        const values = this._analyser.getValue() as Float32Array;
+        return values.map(v => this.normalRange ? dbToGain(v) : v);
+    }
 
 	/**
 	 * Returns the frequency value in hertz of each of the indices of the FFT's [[getValue]] response.

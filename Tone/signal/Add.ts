@@ -1,8 +1,5 @@
-import { connectSeries } from "../core/context/ToneAudioNode";
-import { Gain } from "../core/context/Gain";
-import { Param } from "../core/context/Param";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Signal, SignalOptions } from "./Signal";
+import { connectSeries, Gain, optionsFromArguments, Param } from "../core";
+import { Signal, type SignalOptions } from "./Signal";
 
 /**
  * Add a signal and a number or two signals. When no value is
@@ -11,12 +8,12 @@ import { Signal, SignalOptions } from "./Signal";
  *
  * @example
  * return Tone.Offline(() => {
- * 	const add = new Tone.Add(2).toDestination();
- * 	add.addend.setValueAtTime(1, 0.2);
- * 	const signal = new Tone.Signal(2);
- * 	// add a signal and a scalar
- * 	signal.connect(add);
- * 	signal.setValueAtTime(1, 0.1);
+ *    const add = new Tone.Add(2).toDestination();
+ *    add.addend.setValueAtTime(1, 0.2);
+ *    const signal = new Tone.Signal(2);
+ *    // add a signal and a scalar
+ *    signal.connect(add);
+ *    signal.setValueAtTime(1, 0.1);
  * }, 0.5, 1);
  * @category Signal
  */
@@ -25,18 +22,16 @@ export class Add extends Signal {
 	override = false;
 
 	readonly name: string = "Add";
-
+    /**
+     * The value which is added to the input signal
+     */
+    readonly addend: Param<"number"> = this._param;
 	/**
 	 * the summing node
 	 */
 	private _sum: Gain = new Gain({ context: this.context });
 	readonly input = this._sum;
 	readonly output = this._sum;
-
-	/**
-	 * The value which is added to the input signal
-	 */
-	readonly addend: Param<"number"> = this._param;
 
 	/**
 	 * @param value If no value is provided, will sum the input and [[addend]].

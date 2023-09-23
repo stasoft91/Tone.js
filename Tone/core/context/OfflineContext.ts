@@ -1,7 +1,7 @@
-import { createOfflineAudioContext } from "../context/AudioContext";
-import { Context } from "../context/Context";
-import { Seconds } from "../type/Units";
+import type { Seconds } from "../type/Units";
 import { isOfflineAudioContext } from "../util/AdvancedTypeCheck";
+import { createOfflineAudioContext } from "./AudioContext";
+import { Context } from "./Context";
 import { ToneAudioBuffer } from "./ToneAudioBuffer";
 
 /**
@@ -12,29 +12,21 @@ import { ToneAudioBuffer } from "./ToneAudioBuffer";
  * const context = new Tone.OfflineContext(1, 0.5, 44100);
  * const osc = new Tone.Oscillator({ context });
  * context.render().then(buffer => {
- * 	console.log(buffer.numberOfChannels, buffer.duration);
+ *    console.log(buffer.numberOfChannels, buffer.duration);
  * });
  */
 export class OfflineContext extends Context {
 
 	readonly name: string = "OfflineContext";
-
+    readonly isOffline: boolean = true;
+    /**
+     * Private reference to the OfflineAudioContext.
+     */
+    declare protected _context: OfflineAudioContext;
 	/**
 	 * A private reference to the duration
 	 */
 	private readonly _duration: Seconds;
-
-	/**
-	 * An artificial clock source
-	 */
-	private _currentTime: Seconds = 0;
-
-	/**
-	 * Private reference to the OfflineAudioContext.
-	 */
-	protected _context!: OfflineAudioContext;
-
-	readonly isOffline: boolean = true;
 
 	/**
 	 * @param  channels  The number of channels to render
@@ -43,10 +35,12 @@ export class OfflineContext extends Context {
 	 */
 	constructor(
 		channels: number,
-		duration: Seconds, 
+        duration: Seconds,
 		sampleRate: number,
 	);
+
 	constructor(context: OfflineAudioContext);
+
 	constructor() {
 
 		super({
@@ -62,6 +56,18 @@ export class OfflineContext extends Context {
 			arguments[0].length / arguments[0].sampleRate : arguments[1];
 	}
 
+    /**
+     * An artificial clock source
+     */
+    private _currentTime: Seconds = 0;
+
+    /**
+     * Same as this.now()
+     */
+    get currentTime(): Seconds {
+        return this._currentTime;
+    }
+
 	/**
 	 * Override the now method to point to the internal clock time
 	 */
@@ -70,10 +76,21 @@ export class OfflineContext extends Context {
 	}
 
 	/**
-	 * Same as this.now()
-	 */
-	get currentTime(): Seconds {
-		return this._currentTime;
+     * Render the output of the OfflineContext
+     * @param asynchronous If the clock should be rendered asynchronously, which will not block the main thread, but be slightly slower.
+     */
+    async render(asynchronous = true): Promise<ToneAudioBuffer> {
+        await this.workletsAreReady();
+        await this._renderClock(asynchronous);
+        const buffer = await this._context.startRendering();
+        return new ToneAudioBuffer(buffer);
+    }
+
+    /**
+     * Close the context
+     */
+    close(): Promise<void> {
+        return Promise.resolve();
 	}
 
 	/**
@@ -96,23 +113,5 @@ export class OfflineContext extends Context {
 				await new Promise(done => setTimeout(done, 1));
 			}
 		}
-	}
-
-	/**
-	 * Render the output of the OfflineContext
-	 * @param asynchronous If the clock should be rendered asynchronously, which will not block the main thread, but be slightly slower.
-	 */
-	async render(asynchronous = true): Promise<ToneAudioBuffer> {
-		await this.workletsAreReady();
-		await this._renderClock(asynchronous);
-		const buffer = await this._context.startRendering();
-		return new ToneAudioBuffer(buffer);
-	}
-
-	/**
-	 * Close the context
-	 */
-	close(): Promise<void> {
-		return Promise.resolve();
 	}
 }

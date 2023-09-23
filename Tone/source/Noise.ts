@@ -1,9 +1,8 @@
-import { ToneAudioBuffer } from "../core/context/ToneAudioBuffer";
-import { Positive, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { optionsFromArguments, ToneAudioBuffer } from "../core";
+import type { Positive, Time } from "../core/type/Units";
 import { assert } from "../core/util/Debug";
-import { Source, SourceOptions } from "../source/Source";
 import { ToneBufferSource } from "./buffer/ToneBufferSource";
+import { Source, type SourceOptions } from "./Source";
 
 export type NoiseType = "white" | "brown" | "pink";
 
@@ -24,9 +23,9 @@ export interface NoiseOptions extends SourceOptions {
  * const noise = new Tone.Noise("pink").start();
  * // make an autofilter to shape the noise
  * const autoFilter = new Tone.AutoFilter({
- * 	frequency: "8n",
- * 	baseFrequency: 200,
- * 	octaves: 8
+ *    frequency: "8n",
+ *    baseFrequency: 200,
+ *    octaves: 8
  * }).toDestination().start();
  * // connect the noise
  * noise.connect(autoFilter);
@@ -44,31 +43,12 @@ export class Noise extends Source<NoiseOptions> {
 	private _source: ToneBufferSource | null = null;
 
 	/**
-	 * private reference to the type
-	 */
-	private _type!: NoiseType;
-
-	/**
-	 * The playback rate of the noise. Affects
-	 * the "frequency" of the noise.
-	 */
-	private _playbackRate: Positive;
-
-	/**
-	 * The fadeIn time of the amplitude envelope.
-	 */
-	protected _fadeIn: Time;
-
-	/**
-	 * The fadeOut time of the amplitude envelope.
-	 */
-	protected _fadeOut: Time;
-
-	/**
 	 * @param type the noise type (white|pink|brown)
 	 */
 	constructor(type?: NoiseType);
+
 	constructor(options?: Partial<NoiseOptions>);
+
 	constructor() {
 		super(optionsFromArguments(Noise.getDefaults(), arguments, ["type"]));
 		const options = optionsFromArguments(Noise.getDefaults(), arguments, ["type"]);
@@ -79,14 +59,10 @@ export class Noise extends Source<NoiseOptions> {
 		this._fadeOut = options.fadeOut;
 	}
 
-	static getDefaults(): NoiseOptions {
-		return Object.assign(Source.getDefaults(), {
-			fadeIn: 0,
-			fadeOut: 0,
-			playbackRate: 1,
-			type: "white" as NoiseType,
-		});
-	}
+    /**
+     * private reference to the type
+     */
+    private _type!: NoiseType;
 
 	/**
 	 * The type of the noise. Can be "white", "brown", or "pink".
@@ -97,7 +73,13 @@ export class Noise extends Source<NoiseOptions> {
 	get type(): NoiseType {
 		return this._type;
 	}
-	set type(type: NoiseType) {
+    /**
+     * The playback rate of the noise. Affects
+     * the "frequency" of the noise.
+     */
+    private _playbackRate: Positive;
+
+    set type(type: NoiseType) {
 		assert(type in _noiseBuffers, "Noise: invalid type: " + type);
 		if (this._type !== type) {
 			this._type = type;
@@ -117,12 +99,71 @@ export class Noise extends Source<NoiseOptions> {
 	get playbackRate(): Positive {
 		return this._playbackRate;
 	}
-	set playbackRate(rate: Positive) {
+
+    set playbackRate(rate: Positive) {
 		this._playbackRate = rate;
 		if (this._source) {
 			this._source.playbackRate.value = rate;
 		}
 	}
+
+    /**
+     * The fadeIn time of the amplitude envelope.
+     */
+    protected _fadeIn: Time;
+
+    /**
+     * The fadeIn time of the amplitude envelope.
+     */
+    get fadeIn(): Time {
+        return this._fadeIn;
+    }
+
+    set fadeIn(time) {
+        this._fadeIn = time;
+        if (this._source) {
+            this._source.fadeIn = this._fadeIn;
+        }
+    }
+
+    /**
+     * The fadeOut time of the amplitude envelope.
+     */
+    protected _fadeOut: Time;
+
+    /**
+     * The fadeOut time of the amplitude envelope.
+     */
+    get fadeOut(): Time {
+        return this._fadeOut;
+    }
+
+    set fadeOut(time) {
+        this._fadeOut = time;
+        if (this._source) {
+            this._source.fadeOut = this._fadeOut;
+        }
+    }
+
+    static getDefaults(): NoiseOptions {
+        return Object.assign(Source.getDefaults(), {
+            fadeIn: 0,
+            fadeOut: 0,
+            playbackRate: 1,
+            type: "white" as NoiseType,
+        });
+    }
+
+    /**
+     * Clean up.
+     */
+    dispose(): this {
+        super.dispose();
+        if (this._source) {
+            this._source.disconnect();
+        }
+        return this;
+    }
 
 	/**
 	 * internal start method
@@ -151,47 +192,10 @@ export class Noise extends Source<NoiseOptions> {
 		}
 	}
 
-	/**
-	 * The fadeIn time of the amplitude envelope.
-	 */
-	get fadeIn(): Time {
-		return this._fadeIn;
-	}
-	set fadeIn(time) {
-		this._fadeIn = time;
-		if (this._source) {
-			this._source.fadeIn = this._fadeIn;
-		}
-	}
-
-	/**
-	 * The fadeOut time of the amplitude envelope.
-	 */
-	get fadeOut(): Time {
-		return this._fadeOut;
-	}
-	set fadeOut(time) {
-		this._fadeOut = time;
-		if (this._source) {
-			this._source.fadeOut = this._fadeOut;
-		}
-	}
-
 	protected _restart(time?: Time): void {
 		// TODO could be optimized by cancelling the buffer source 'stop'
 		this._stop(time);
 		this._start(time);
-	}
-
-	/**
-	 * Clean up.
-	 */
-	dispose(): this {
-		super.dispose();
-		if (this._source) {
-			this._source.disconnect();
-		}
-		return this;
 	}
 }
 

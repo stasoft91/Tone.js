@@ -1,8 +1,8 @@
 import { Compare, TestAudioBuffer } from "@tonejs/plot";
-import "./ToneAudioBuffer";
-import { ToneAudioBuffer } from "Tone/core/context/ToneAudioBuffer";
-import { Offline } from "Tone/core/context/Offline";
 import { Context } from "Tone/core/context/Context";
+import { Offline } from "Tone/core/context/Offline";
+import { ToneAudioBuffer } from "Tone/core/context/ToneAudioBuffer";
+import "./ToneAudioBuffer";
 
 /**
  * Load a file for comparison

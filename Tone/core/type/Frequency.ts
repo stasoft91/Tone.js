@@ -1,10 +1,9 @@
 /* eslint-disable key-spacing */
 import { getContext } from "../Global";
-import { intervalToFrequencyRatio, mtof } from "./Conversions";
-import { ftom, getA4, setA4 } from "./Conversions";
+import { ftom, getA4, intervalToFrequencyRatio, mtof, setA4 } from "./Conversions";
 import { TimeClass } from "./Time";
-import { TimeBaseUnit, TimeExpression, TimeValue } from "./TimeBase";
-import { Frequency, Hertz, Interval, MidiNote, Note, Seconds, Ticks } from "./Units";
+import type { TimeBaseUnit, TimeExpression, TimeValue } from "./TimeBase";
+import type { Frequency, Hertz, Interval, MidiNote, Note, Seconds, Ticks } from "./Units";
 
 export type FrequencyUnit = TimeBaseUnit | "midi";
 
@@ -30,6 +29,7 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 	static get A4(): Hertz {
 		return getA4();
 	}
+
 	static set A4(freq: Hertz) {
 		setA4(freq);
 	}
@@ -38,52 +38,26 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 	// 	AUGMENT BASE EXPRESSIONS
 	//-------------------------------------
 
-	protected _getExpressions(): TimeExpression<Type> {
-		return Object.assign({}, super._getExpressions(), {
-			midi: {
-				regexp: /^(\d+(?:\.\d+)?midi)/,
-				method(value): number {
-					if (this.defaultUnits === "midi") {
-						return value;
-					} else {
-						return FrequencyClass.mtof(value);
-					}
-				},
-			},
-			note: {
-				regexp: /^([a-g]{1}(?:b|#|##|x|bb|###|#x|x#|bbb)?)(-?[0-9]+)/i,
-				method(pitch, octave): number {
-					const index = noteToScaleIndex[pitch.toLowerCase()];
-					const noteNumber = index + (parseInt(octave, 10) + 1) * 12;
-					if (this.defaultUnits === "midi") {
-						return noteNumber;
-					} else {
-						return FrequencyClass.mtof(noteNumber);
-					}
-				},
-			},
-			tr: {
-				regexp: /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):?(\d+(?:\.\d+)?)?/,
-				method(m, q, s): number {
-					let total = 1;
-					if (m && m !== "0") {
-						total *= this._beatsToUnits(this._getTimeSignature() * parseFloat(m));
-					}
-					if (q && q !== "0") {
-						total *= this._beatsToUnits(parseFloat(q));
-					}
-					if (s && s !== "0") {
-						total *= this._beatsToUnits(parseFloat(s) / 4);
-					}
-					return total;
-				},
-			},
-		});
+    /**
+     * Convert a MIDI note to frequency value.
+     * @param  midi The midi number to convert.
+     * @return The corresponding frequency value
+     */
+    static mtof(midi: MidiNote): Hertz {
+        return mtof(midi);
 	}
 
 	//-------------------------------------
 	// 	EXPRESSIONS
 	//-------------------------------------
+
+    /**
+     * Convert a frequency value to a MIDI note.
+     * @param frequency The value to frequency value to convert.
+     */
+    static ftom(frequency: Hertz): MidiNote {
+        return ftom(frequency);
+    }
 
 	/**
 	 * Transposes the frequency by the given number of semitones.
@@ -94,6 +68,10 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 	transpose(interval: Interval): FrequencyClass {
 		return new FrequencyClass(this.context, this.valueOf() * intervalToFrequencyRatio(interval));
 	}
+
+    //-------------------------------------
+    // 	UNIT CONVERSIONS
+    //-------------------------------------
 
 	/**
 	 * Takes an array of semitone intervals and returns
@@ -107,10 +85,6 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 			return this.transpose(interval);
 		});
 	}
-
-	//-------------------------------------
-	// 	UNIT CONVERSIONS
-	//-------------------------------------
 
 	/**
 	 * Return the value of the frequency as a MIDI note
@@ -145,6 +119,10 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 		return 1 / super.toSeconds();
 	}
 
+    //-------------------------------------
+    // 	UNIT CONVERSIONS HELPERS
+    //-------------------------------------
+
 	/**
 	 * Return the duration of one cycle in ticks
 	 */
@@ -154,9 +132,48 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 		return Math.floor(quarters * this._getPPQ());
 	}
 
-	//-------------------------------------
-	// 	UNIT CONVERSIONS HELPERS
-	//-------------------------------------
+    protected _getExpressions(): TimeExpression<Type> {
+        return Object.assign({}, super._getExpressions(), {
+            midi: {
+                regexp: /^(\d+(?:\.\d+)?midi)/,
+                method(value): number {
+                    if (this.defaultUnits === "midi") {
+                        return value;
+                    } else {
+                        return FrequencyClass.mtof(value);
+                    }
+                },
+            },
+            note: {
+                regexp: /^([a-g]{1}(?:b|#|##|x|bb|###|#x|x#|bbb)?)(-?[0-9]+)/i,
+                method(pitch, octave): number {
+                    const index = noteToScaleIndex[pitch.toLowerCase()];
+                    const noteNumber = index + (parseInt(octave, 10) + 1) * 12;
+                    if (this.defaultUnits === "midi") {
+                        return noteNumber;
+                    } else {
+                        return FrequencyClass.mtof(noteNumber);
+                    }
+                },
+            },
+            tr: {
+                regexp: /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):?(\d+(?:\.\d+)?)?/,
+                method(m, q, s): number {
+                    let total = 1;
+                    if (m && m !== "0") {
+                        total *= this._beatsToUnits(this._getTimeSignature() * parseFloat(m));
+                    }
+                    if (q && q !== "0") {
+                        total *= this._beatsToUnits(parseFloat(q));
+                    }
+                    if (s && s !== "0") {
+                        total *= this._beatsToUnits(parseFloat(s) / 4);
+                    }
+                    return total;
+                },
+            },
+        });
+    }
 
 	/**
 	 * With no arguments, return 0
@@ -192,23 +209,6 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
 	protected _secondsToUnits(seconds: Seconds): Type {
 		return 1 / seconds as Type;
 	}
-
-	/**
-	 * Convert a MIDI note to frequency value.
-	 * @param  midi The midi number to convert.
-	 * @return The corresponding frequency value
-	 */
-	static mtof(midi: MidiNote): Hertz {
-		return mtof(midi);
-	}
-
-	/**
-	 * Convert a frequency value to a MIDI note.
-	 * @param frequency The value to frequency value to convert.
-	 */
-	static ftom(frequency: Hertz): MidiNote {
-		return ftom(frequency);
-	}
 }
 
 //-------------------------------------
@@ -220,13 +220,13 @@ export class FrequencyClass<Type extends number = Hertz> extends TimeClass<Type,
  * @hidden
  */
 const noteToScaleIndex = {
-	cbbb: -3, cbb: -2, cb: -1, c:  0, "c#":  1, cx:  2, "c##":  2, "c###":  3, "cx#":  3, "c#x":  3,
-	dbbb: -1, dbb:  0, db:  1, d:  2, "d#":  3, dx:  4, "d##":  4, "d###":  5, "dx#":  5, "d#x":  5,
-	ebbb:  1, ebb:  2, eb:  3, e:  4, "e#":  5, ex:  6, "e##":  6, "e###":  7, "ex#":  7, "e#x":  7,
-	fbbb:  2, fbb:  3, fb:  4, f:  5, "f#":  6, fx:  7, "f##":  7, "f###":  8, "fx#":  8, "f#x":  8,
-	gbbb:  4, gbb:  5, gb:  6, g:  7, "g#":  8, gx:  9, "g##":  9, "g###": 10, "gx#": 10, "g#x": 10,
-	abbb:  6, abb:  7, ab:  8, a:  9, "a#": 10, ax: 11, "a##": 11, "a###": 12, "ax#": 12, "a#x": 12,
-	bbbb:  8, bbb:  9, bb: 10, b: 11, "b#": 12, bx: 13, "b##": 13, "b###": 14, "bx#": 14, "b#x": 14,
+    cbbb: -3, cbb: -2, cb: -1, c: 0, "c#": 1, cx: 2, "c##": 2, "c###": 3, "cx#": 3, "c#x": 3,
+    dbbb: -1, dbb: 0, db: 1, d: 2, "d#": 3, dx: 4, "d##": 4, "d###": 5, "dx#": 5, "d#x": 5,
+    ebbb: 1, ebb: 2, eb: 3, e: 4, "e#": 5, ex: 6, "e##": 6, "e###": 7, "ex#": 7, "e#x": 7,
+    fbbb: 2, fbb: 3, fb: 4, f: 5, "f#": 6, fx: 7, "f##": 7, "f###": 8, "fx#": 8, "f#x": 8,
+    gbbb: 4, gbb: 5, gb: 6, g: 7, "g#": 8, gx: 9, "g##": 9, "g###": 10, "gx#": 10, "g#x": 10,
+    abbb: 6, abb: 7, ab: 8, a: 9, "a#": 10, ax: 11, "a##": 11, "a###": 12, "ax#": 12, "a#x": 12,
+    bbbb: 8, bbb: 9, bb: 10, b: 11, "b#": 12, bx: 13, "b##": 13, "b###": 14, "bx#": 14, "b#x": 14,
 };
 
 /**

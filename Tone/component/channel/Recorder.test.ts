@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { connectFrom } from "test/helper/Connect";
-import { Recorder } from "./Recorder";
 import { Context } from "Tone/core/context/Context";
 import { ToneWithContext } from "Tone/core/context/ToneWithContext";
 import { Synth } from "Tone/instrument/Synth";
+import { Recorder } from "./Recorder";
 
 describe("Recorder", () => {
 
@@ -46,7 +46,7 @@ describe("Recorder", () => {
 		});
 	});
 
-	function wait(time) {
+    function wait(time: number | undefined) {
 		return new Promise(done => setTimeout(done, time));
 	}
 

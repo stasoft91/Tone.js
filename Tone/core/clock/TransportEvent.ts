@@ -1,4 +1,4 @@
-import { Seconds, Ticks } from "../type/Units";
+import type { Seconds, Ticks } from "../type/Units";
 import { noOp } from "../util/Interface";
 
 type Transport = import("../clock/Transport").Transport;
@@ -17,10 +17,9 @@ export interface TransportEventOptions {
 export class TransportEvent {
 
 	/**
-	 * Reference to the Transport that created it
+     * Current ID counter
 	 */
-	protected transport: Transport;
-
+    private static _eventId = 0;
 	/**
 	 * The unique id of the event
 	 */
@@ -30,26 +29,28 @@ export class TransportEvent {
 	 * The time the event starts
 	 */
 	time: Ticks;
-
+    /**
+     * Reference to the Transport that created it
+     */
+    protected transport: Transport;
+    /**
+     * The remaining value between the passed in time, and Math.floor(time).
+     * This value is later added back when scheduling to get sub-tick precision.
+     */
+    protected _remainderTime = 0;
 	/**
 	 * The callback to invoke
 	 */
 	private callback?: (time: Seconds) => void;
-
 	/**
 	 * If the event should be removed after being invoked.
 	 */
 	private _once: boolean;
 
 	/**
-	 * The remaining value between the passed in time, and Math.floor(time).
-	 * This value is later added back when scheduling to get sub-tick precision. 
-	 */
-	protected _remainderTime = 0;
-
-	/**
-	 * @param transport The transport object which the event belongs to
-	 */
+     * @param transport The transport object which the event belongs to
+     * @param opts
+     */
 	constructor(transport: Transport, opts: Partial<TransportEventOptions>) {
 
 		const options: TransportEventOptions = Object.assign(TransportEvent.getDefaults(), opts);
@@ -61,24 +62,19 @@ export class TransportEvent {
 		this._remainderTime = options.time - this.time;
 	}
 
+    /**
+     * Get the time and remainder time.
+     */
+    protected get floatTime(): number {
+        return this.time + this._remainderTime;
+    }
+
 	static getDefaults(): TransportEventOptions {
 		return {
 			callback: noOp,
 			once: false,
 			time: 0,
 		};
-	}
-
-	/**
-	 * Current ID counter
-	 */
-	private static _eventId = 0;
-
-	/**
-	 * Get the time and remainder time.
-	 */
-	protected get floatTime(): number {
-		return this.time + this._remainderTime;
 	}
 
 	/**

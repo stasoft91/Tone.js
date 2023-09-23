@@ -1,7 +1,7 @@
 import { Tone } from "../Tone";
-import { Seconds } from "../type/Units";
-import { optionsFromArguments } from "./Defaults";
+import type { Seconds } from "../type/Units";
 import { assert } from "./Debug";
+import { optionsFromArguments } from "./Defaults";
 import { EQ, GT, GTE, LT } from "./Math";
 
 type TimelineSearchParam = "ticks" | "time";
@@ -36,17 +36,15 @@ export class Timeline<GenericEvent extends TimelineEvent> extends Tone {
 	 * how many events in the past it will retain
 	 */
 	memory: number;
-
 	/**
-	 * The array of scheduled timeline events
-	 */
-	protected _timeline: GenericEvent[] = [];
-
-	/**
-	 * If the time value must always be greater than or equal to the last 
-	 * element on the list. 
+     * If the time value must always be greater than or equal to the last
+     * element on the list.
 	 */
 	increasing: boolean;
+    /**
+     * The array of scheduled timeline events
+     */
+    protected _timeline: GenericEvent[] = [];
 
 	/**
 	 * @param memory The number of previous events that are retained.
@@ -61,18 +59,18 @@ export class Timeline<GenericEvent extends TimelineEvent> extends Tone {
 		this.increasing = options.increasing;
 	}
 
+    /**
+     * The number of items in the timeline.
+     */
+    get length(): number {
+        return this._timeline.length;
+    }
+
 	static getDefaults(): TimelineOptions {
 		return {
 			memory: Infinity,
 			increasing: false,
 		};
-	}
-
-	/**
-	 * The number of items in the timeline.
-	 */
-	get length(): number {
-		return this._timeline.length;
 	}
 
 	/**
@@ -115,6 +113,7 @@ export class Timeline<GenericEvent extends TimelineEvent> extends Tone {
 	/**
 	 * Get the nearest event whose time is less than or equal to the given time.
 	 * @param  time  The time to query.
+     * @param param
 	 */
 	get(time: number, param: TimelineSearchParam = "time"): GenericEvent | null {
 		const index = this._search(time, param);
@@ -143,6 +142,7 @@ export class Timeline<GenericEvent extends TimelineEvent> extends Tone {
 	/**
 	 * Get the event which is scheduled after the given time.
 	 * @param  time  The time to query.
+     * @param param
 	 */
 	getAfter(time: number, param: TimelineSearchParam = "time"): GenericEvent | null {
 		const index = this._search(time, param);
@@ -228,62 +228,6 @@ export class Timeline<GenericEvent extends TimelineEvent> extends Tone {
 		} else {
 			return null;
 		}
-	}
-
-	/**
-	 * Does a binary search on the timeline array and returns the
-	 * nearest event index whose time is after or equal to the given time.
-	 * If a time is searched before the first index in the timeline, -1 is returned.
-	 * If the time is after the end, the index of the last item is returned.
-	 */
-	protected _search(time: number, param: TimelineSearchParam = "time"): number {
-		if (this._timeline.length === 0) {
-			return -1;
-		}
-		let beginning = 0;
-		const len = this._timeline.length;
-		let end = len;
-		if (len > 0 && this._timeline[len - 1][param] <= time) {
-			return len - 1;
-		}
-		while (beginning < end) {
-			// calculate the midpoint for roughly equal partition
-			let midPoint = Math.floor(beginning + (end - beginning) / 2);
-			const event = this._timeline[midPoint];
-			const nextEvent = this._timeline[midPoint + 1];
-			if (EQ(event[param], time)) {
-				// choose the last one that has the same time
-				for (let i = midPoint; i < this._timeline.length; i++) {
-					const testEvent = this._timeline[i];
-					if (EQ(testEvent[param], time)) {
-						midPoint = i;
-					} else {
-						break;
-					}
-				}
-				return midPoint;
-			} else if (LT(event[param], time) && GT(nextEvent[param], time)) {
-				return midPoint;
-			} else if (GT(event[param], time)) {
-				// search lower
-				end = midPoint;
-			} else {
-				// search upper
-				beginning = midPoint + 1;
-			}
-		}
-		return -1;
-	}
-
-	/**
-	 * Internal iterator. Applies extra safety checks for
-	 * removing items from the array.
-	 */
-	private _iterate(
-		callback: (event: GenericEvent) => void,
-		lowerBound = 0, upperBound = this._timeline.length - 1,
-	): void {
-		this._timeline.slice(lowerBound, upperBound + 1).forEach(callback);
 	}
 
 	/**
@@ -396,4 +340,60 @@ export class Timeline<GenericEvent extends TimelineEvent> extends Tone {
 		this._timeline = [];
 		return this;
 	}
+
+    /**
+     * Does a binary search on the timeline array and returns the
+     * nearest event index whose time is after or equal to the given time.
+     * If a time is searched before the first index in the timeline, -1 is returned.
+     * If the time is after the end, the index of the last item is returned.
+     */
+    protected _search(time: number, param: TimelineSearchParam = "time"): number {
+        if (this._timeline.length === 0) {
+            return -1;
+        }
+        let beginning = 0;
+        const len = this._timeline.length;
+        let end = len;
+        if (len > 0 && this._timeline[len - 1][param] <= time) {
+            return len - 1;
+        }
+        while (beginning < end) {
+            // calculate the midpoint for roughly equal partition
+            let midPoint = Math.floor(beginning + (end - beginning) / 2);
+            const event = this._timeline[midPoint];
+            const nextEvent = this._timeline[midPoint + 1];
+            if (EQ(event[param], time)) {
+                // choose the last one that has the same time
+                for (let i = midPoint; i < this._timeline.length; i++) {
+                    const testEvent = this._timeline[i];
+                    if (EQ(testEvent[param], time)) {
+                        midPoint = i;
+                    } else {
+                        break;
+                    }
+                }
+                return midPoint;
+            } else if (LT(event[param], time) && GT(nextEvent[param], time)) {
+                return midPoint;
+            } else if (GT(event[param], time)) {
+                // search lower
+                end = midPoint;
+            } else {
+                // search upper
+                beginning = midPoint + 1;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Internal iterator. Applies extra safety checks for
+     * removing items from the array.
+     */
+    private _iterate(
+        callback: (event: GenericEvent) => void,
+        lowerBound = 0, upperBound = this._timeline.length - 1,
+    ): void {
+        this._timeline.slice(lowerBound, upperBound + 1).forEach(callback);
+    }
 }

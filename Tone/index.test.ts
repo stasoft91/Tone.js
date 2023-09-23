@@ -1,12 +1,12 @@
-import * as Tone from "./index";
 import { expect } from "chai";
-import { Destination } from "./core/context/Destination";
-import { Context } from "./core/context/Context";
+import { Context } from "./core";
 import { Transport } from "./core/clock/Transport";
+import { Destination } from "./core/context/Destination";
 import { Draw } from "./core/util/Draw";
+import * as Tone from "./index";
 
 describe("Tone", () => {
-	
+
 	it("has 'now' and 'immediate' methods", () => {
 		expect(Tone.now).to.be.a("function");
 		expect(Tone.now()).to.be.a("number");
@@ -43,7 +43,7 @@ describe("Tone", () => {
 		await ctx.close();
 		Tone.setContext(origContext);
 	});
-	
+
 	it("can set the global context from a raw offline context", async () => {
 		const ctx = new OfflineAudioContext(2, 44100, 44100);
 		const origContext = Tone.getContext();

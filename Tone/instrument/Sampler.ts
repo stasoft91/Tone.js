@@ -1,18 +1,23 @@
-import { ToneAudioBuffer } from "../core/context/ToneAudioBuffer";
-import { ToneAudioBuffers } from "../core/context/ToneAudioBuffers";
+import {
+	FrequencyClass,
+	isArray,
+	isNote,
+	isNumber,
+	optionsFromArguments,
+	ToneAudioBuffer,
+	ToneAudioBuffers
+} from "../core";
 import { ftomf, intervalToFrequencyRatio } from "../core/type/Conversions";
-import { FrequencyClass } from "../core/type/Frequency";
-import { Frequency, Interval, MidiNote, NormalRange, Note, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { noOp } from "../core/util/Interface";
-import { isArray, isNote, isNumber } from "../core/util/TypeCheck";
-import { Instrument, InstrumentOptions } from "../instrument/Instrument";
-import { ToneBufferSource, ToneBufferSourceCurve } from "../source/buffer/ToneBufferSource";
-import { timeRange } from "../core/util/Decorator";
+import type { Frequency, Interval, MidiNote, NormalRange, Note, Time } from "../core/type/Units";
 import { assert } from "../core/util/Debug";
+import { timeRange } from "../core/util/Decorator";
+import { noOp } from "../core/util/Interface";
+import { ToneBufferSource, type ToneBufferSourceCurve } from "../source";
+import { Instrument, type InstrumentOptions } from "./Instrument";
 
 interface SamplesMap {
 	[note: string]: ToneAudioBuffer | AudioBuffer | string;
+
 	[midi: number]: ToneAudioBuffer | AudioBuffer | string;
 }
 
@@ -36,63 +41,58 @@ export interface SamplerOptions extends InstrumentOptions {
  * use [[Player]].
  * @example
  * const sampler = new Tone.Sampler({
- * 	urls: {
- * 		A1: "A1.mp3",
- * 		A2: "A2.mp3",
- * 	},
- * 	baseUrl: "https://tonejs.github.io/audio/casio/",
- * 	onload: () => {
- * 		sampler.triggerAttackRelease(["C1", "E1", "G1", "B1"], 0.5);
- * 	}
+ *    urls: {
+ *        A1: "A1.mp3",
+ *        A2: "A2.mp3",
+ *    },
+ *    baseUrl: "https://tonejs.github.io/audio/casio/",
+ *    onload: () => {
+ *        sampler.triggerAttackRelease(["C1", "E1", "G1", "B1"], 0.5);
+ *    }
  * }).toDestination();
  * @category Instrument
  */
 export class Sampler extends Instrument<SamplerOptions> {
 
 	readonly name: string = "Sampler";
-
-	/**
-	 * The stored and loaded buffers
-	 */
-	private _buffers: ToneAudioBuffers;
-
-	/**
-	 * The object of all currently playing BufferSources
-	 */
-	private _activeSources: Map<MidiNote, ToneBufferSource[]> = new Map();
-
 	/**
 	 * The envelope applied to the beginning of the sample.
 	 * @min 0
 	 * @max 1
 	 */
 	@timeRange(0)
-	attack: Time;
-
+    attack: Time;
 	/**
 	 * The envelope applied to the end of the envelope.
 	 * @min 0
 	 * @max 1
 	 */
 	@timeRange(0)
-	release: Time;
-
+    release: Time;
 	/**
 	 * The shape of the attack/release curve.
 	 * Either "linear" or "exponential"
 	 */
 	curve: ToneBufferSourceCurve;
+    /**
+     * The stored and loaded buffers
+     */
+    private _buffers: ToneAudioBuffers;
+    /**
+     * The object of all currently playing BufferSources
+     */
+    private _activeSources: Map<MidiNote, ToneBufferSource[]> = new Map();
 
 	/**
 	 * @param samples An object of samples mapping either Midi Note Numbers or
-	 * 			Scientific Pitch Notation to the url of that sample.
+     *            Scientific Pitch Notation to the url of that sample.
 	 * @param onload The callback to invoke when all of the samples are loaded.
 	 * @param baseUrl The root URL of all of the samples, which is prepended to all the URLs.
 	 */
 	constructor(samples?: SamplesMap, onload?: () => void, baseUrl?: string);
 	/**
 	 * @param samples An object of samples mapping either Midi Note Numbers or
-	 * 			Scientific Pitch Notation to the url of that sample.
+     *            Scientific Pitch Notation to the url of that sample.
 	 * @param options The remaining options associated with the sampler
 	 */
 	constructor(samples?: SamplesMap, options?: Partial<Omit<SamplerOptions, "urls">>);
@@ -106,7 +106,7 @@ export class Sampler extends Instrument<SamplerOptions> {
 		Object.keys(options.urls).forEach((note) => {
 			const noteNumber = parseInt(note, 10);
 			assert(isNote(note)
-				|| (isNumber(noteNumber) && isFinite(noteNumber)), `url key is neither a note or midi pitch: ${note}`);
+                || (isNumber(noteNumber) && isFinite(noteNumber)), `url key is neither a note or midi pitch: ${note}`);
 			if (isNote(note)) {
 				// convert the note name to MIDI
 				const mid = new FrequencyClass(this.context, note).toMidi();
@@ -134,6 +134,13 @@ export class Sampler extends Instrument<SamplerOptions> {
 		}
 	}
 
+    /**
+     * If the buffers are loaded or not
+     */
+    get loaded(): boolean {
+        return this._buffers.loaded;
+    }
+
 	static getDefaults(): SamplerOptions {
 		return Object.assign(Instrument.getDefaults(), {
 			attack: 0,
@@ -147,26 +154,7 @@ export class Sampler extends Instrument<SamplerOptions> {
 	}
 
 	/**
-	 * Returns the difference in steps between the given midi note at the closets sample.
-	 */
-	private _findClosest(midi: MidiNote): Interval {
-		// searches within 8 octaves of the given midi note
-		const MAX_INTERVAL = 96;
-		let interval = 0;
-		while (interval < MAX_INTERVAL) {
-			// check above and below
-			if (this._buffers.has(midi + interval)) {
-				return -interval;
-			} else if (this._buffers.has(midi - interval)) {
-				return interval;
-			}
-			interval++;
-		}
-		throw new Error(`No available buffers for note: ${midi}`);
-	}
-
-	/**
-	 * @param  notes	The note to play, or an array of notes.
+     * @param  notes    The note to play, or an array of notes.
 	 * @param  time     When to play the note
 	 * @param  velocity The velocity to play the sample back.
 	 */
@@ -215,8 +203,8 @@ export class Sampler extends Instrument<SamplerOptions> {
 	}
 
 	/**
-	 * @param  notes	The note to release, or an array of notes.
-	 * @param  time     	When to release the note.
+     * @param  notes    The note to release, or an array of notes.
+     * @param  time        When to release the note.
 	 */
 	triggerRelease(notes: Frequency | Frequency[], time?: Time): this {
 		this.log("triggerRelease", notes, time);
@@ -240,7 +228,7 @@ export class Sampler extends Instrument<SamplerOptions> {
 
 	/**
 	 * Release all currently active notes.
-	 * @param  time     	When to release the notes.
+     * @param  time        When to release the notes.
 	 */
 	releaseAll(time?: Time): this {
 		const computedTime = this.toSeconds(time);
@@ -263,7 +251,7 @@ export class Sampler extends Instrument<SamplerOptions> {
 
 	/**
 	 * Invoke the attack phase, then after the duration, invoke the release.
-	 * @param  notes	The note to play and release, or an array of notes.
+     * @param  notes    The note to play and release, or an array of notes.
 	 * @param  duration The time the note should be held
 	 * @param  time     When to start the attack
 	 * @param  velocity The velocity of the attack
@@ -308,13 +296,6 @@ export class Sampler extends Instrument<SamplerOptions> {
 	}
 
 	/**
-	 * If the buffers are loaded or not
-	 */
-	get loaded(): boolean {
-		return this._buffers.loaded;
-	}
-
-	/**
 	 * Clean up
 	 */
 	dispose(): this {
@@ -326,4 +307,23 @@ export class Sampler extends Instrument<SamplerOptions> {
 		this._activeSources.clear();
 		return this;
 	}
+
+    /**
+     * Returns the difference in steps between the given midi note at the closets sample.
+     */
+    private _findClosest(midi: MidiNote): Interval {
+        // searches within 8 octaves of the given midi note
+        const MAX_INTERVAL = 96;
+        let interval = 0;
+        while (interval < MAX_INTERVAL) {
+            // check above and below
+            if (this._buffers.has(midi + interval)) {
+                return -interval;
+            } else if (this._buffers.has(midi - interval)) {
+                return interval;
+            }
+            interval++;
+        }
+        throw new Error(`No available buffers for note: ${midi}`);
+    }
 }

@@ -1,9 +1,8 @@
-import { connect } from "../../core/context/ToneAudioNode";
-import { Param } from "../../core/context/Param";
-import { Cents, Frequency, Seconds, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { OneShotSource, OneShotSourceOptions } from "../OneShotSource";
+import { connect, optionsFromArguments, Param } from "../../core";
+import type { Cents, Frequency, Seconds, Time } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
+import type { OneShotSourceOptions } from "../OneShotSource";
+import { OneShotSource } from "../OneShotSource";
 
 export interface ToneOscillatorNodeOptions extends OneShotSourceOptions {
 	frequency: Frequency;
@@ -20,22 +19,19 @@ export interface ToneOscillatorNodeOptions extends OneShotSourceOptions {
 export class ToneOscillatorNode extends OneShotSource<ToneOscillatorNodeOptions> {
 
 	readonly name: string = "ToneOscillatorNode";
-
-	/**
-	 * The oscillator
-	 */
-	private _oscillator = this.context.createOscillator();
-	protected _internalChannels = [this._oscillator];
-
 	/**
 	 * The frequency of the oscillator
 	 */
 	readonly frequency: Param<"frequency">;
-
 	/**
 	 * The detune of the oscillator
 	 */
 	readonly detune: Param<"cents">;
+    /**
+     * The oscillator
+     */
+    private _oscillator = this.context.createOscillator();
+    protected _internalChannels = [this._oscillator];
 
 	/**
 	 * @param  frequency   The frequency value
@@ -72,6 +68,17 @@ export class ToneOscillatorNode extends OneShotSource<ToneOscillatorNodeOptions>
 		readOnly(this, ["frequency", "detune"]);
 	}
 
+    /**
+     * The oscillator type. Either 'sine', 'sawtooth', 'square', or 'triangle'
+     */
+    get type(): OscillatorType {
+        return this._oscillator.type;
+    }
+
+    set type(type: OscillatorType) {
+        this._oscillator.type = type;
+    }
+
 	static getDefaults(): ToneOscillatorNodeOptions {
 		return Object.assign(OneShotSource.getDefaults(), {
 			detune: 0,
@@ -92,10 +99,6 @@ export class ToneOscillatorNode extends OneShotSource<ToneOscillatorNodeOptions>
 		return this;
 	}
 
-	protected _stopSource(time?: Seconds): void {
-		this._oscillator.stop(time);
-	}
-
 	/**
 	 * Sets an arbitrary custom periodic waveform given a PeriodicWave.
 	 * @param  periodicWave PeriodicWave should be created with context.createPeriodicWave
@@ -103,16 +106,6 @@ export class ToneOscillatorNode extends OneShotSource<ToneOscillatorNodeOptions>
 	setPeriodicWave(periodicWave: PeriodicWave): this {
 		this._oscillator.setPeriodicWave(periodicWave);
 		return this;
-	}
-
-	/**
-	 * The oscillator type. Either 'sine', 'sawtooth', 'square', or 'triangle'
-	 */
-	get type(): OscillatorType {
-		return this._oscillator.type;
-	}
-	set type(type: OscillatorType) {
-		this._oscillator.type = type;
 	}
 
 	/**
@@ -128,4 +121,8 @@ export class ToneOscillatorNode extends OneShotSource<ToneOscillatorNodeOptions>
 		this.detune.dispose();
 		return this;
 	}
+
+    protected _stopSource(time?: Seconds): void {
+        this._oscillator.stop(time);
+    }
 }

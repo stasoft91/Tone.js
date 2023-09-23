@@ -1,6 +1,6 @@
-import { optionsFromArguments } from "../core/util/Defaults";
-import { WaveShaper } from "../signal/WaveShaper";
-import { Effect, EffectOptions } from "./Effect";
+import { optionsFromArguments } from "../core";
+import { WaveShaper } from "../signal";
+import { Effect, type EffectOptions } from "./Effect";
 
 export interface DistortionOptions extends EffectOptions {
 	distortion: number;
@@ -27,15 +27,12 @@ export class Distortion extends Effect<DistortionOptions> {
 	private _shaper: WaveShaper;
 
 	/**
-	 * Stores the distortion value
-	 */
-	private _distortion: number;
-
-	/**
 	 * @param distortion The amount of distortion (nominal range of 0-1)
 	 */
 	constructor(distortion?: number);
+
 	constructor(options?: Partial<DistortionOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Distortion.getDefaults(), arguments, ["distortion"]));
@@ -53,12 +50,10 @@ export class Distortion extends Effect<DistortionOptions> {
 		this.oversample = options.oversample;
 	}
 
-	static getDefaults(): DistortionOptions {
-		return Object.assign(Effect.getDefaults(), {
-			distortion: 0.4,
-			oversample: "none" as OverSampleType,
-		});
-	}
+    /**
+     * Stores the distortion value
+     */
+    private _distortion: number;
 
 	/**
 	 * The amount of distortion. Nominal range is between 0 and 1.
@@ -66,7 +61,8 @@ export class Distortion extends Effect<DistortionOptions> {
 	get distortion(): number {
 		return this._distortion;
 	}
-	set distortion(amount) {
+
+    set distortion(amount) {
 		this._distortion = amount;
 		const k = amount * 100;
 		const deg = Math.PI / 180;
@@ -86,9 +82,17 @@ export class Distortion extends Effect<DistortionOptions> {
 	get oversample(): OverSampleType {
 		return this._shaper.oversample;
 	}
-	set oversample(oversampling) {
+
+    set oversample(oversampling) {
 		this._shaper.oversample = oversampling;
 	}
+
+    static getDefaults(): DistortionOptions {
+        return Object.assign(Effect.getDefaults(), {
+            distortion: 0.4,
+            oversample: "none" as OverSampleType,
+        });
+    }
 
 	dispose(): this {
 		super.dispose();

@@ -1,8 +1,8 @@
-import { BasicTests } from "test/helper/Basic";
-import { UserMedia } from "./UserMedia";
-import { GET_USER_MEDIA } from "test/helper/Supports";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { GET_USER_MEDIA } from "test/helper/Supports";
 import { OfflineContext } from "Tone/core";
+import { UserMedia } from "./UserMedia";
 
 describe("UserMedia", () => {
 

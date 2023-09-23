@@ -1,12 +1,12 @@
-import { ToneWithContext, ToneWithContextOptions } from "../context/ToneWithContext";
-import { Frequency, Hertz, Seconds, Ticks, Time } from "../type/Units";
+import { ToneWithContext, type ToneWithContextOptions } from "../context/ToneWithContext";
+import type { Frequency, Hertz, Seconds, Ticks, Time } from "../type/Units";
+import { assertContextRunning } from "../util/Debug";
 import { optionsFromArguments } from "../util/Defaults";
 import { Emitter } from "../util/Emitter";
 import { noOp, readOnly } from "../util/Interface";
-import { PlaybackState, StateTimeline } from "../util/StateTimeline";
+import { type PlaybackState, StateTimeline } from "../util/StateTimeline";
 import { TickSignal } from "./TickSignal";
 import { TickSource } from "./TickSource";
-import { assertContextRunning } from "../util/Debug";
 
 type ClockCallback = (time: Seconds, ticks?: Ticks) => void;
 
@@ -28,7 +28,7 @@ type ClockEvent = "start" | "stop" | "pause";
  * // the callback will be invoked approximately once a second
  * // and will print the time exactly once a second apart.
  * const clock = new Tone.Clock(time => {
- * 	console.log(time);
+ *    console.log(time);
  * }, 1);
  * clock.start();
  * @category Core
@@ -42,22 +42,22 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 	 * The callback function to invoke at the scheduled tick.
 	 */
 	callback: ClockCallback = noOp;
-
+    /**
+     * The rate the callback function should be invoked.
+     */
+    frequency: TickSignal<TypeName>;
+    on!: (event: ClockEvent, callback: (...args: any[]) => void) => this;
+    once!: (event: ClockEvent, callback: (...args: any[]) => void) => this;
+    off!: (event: ClockEvent, callback?: ((...args: any[]) => void) | undefined) => this;
+    emit!: (event: any, ...args: any[]) => this;
 	/**
 	 * The tick counter
 	 */
 	private _tickSource: TickSource<TypeName>;
-
 	/**
 	 * The last time the loop callback was invoked
 	 */
 	private _lastUpdate = 0;
-
-	/**
-	 * Keep track of the playback state
-	 */
-	private _state: StateTimeline = new StateTimeline("stopped");
-
 	/**
 	 * Context bound reference to the _loop method
 	 * This is necessary to remove the event in the end.
@@ -65,16 +65,13 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 	private _boundLoop: () => void = this._loop.bind(this);
 
 	/**
-	 * The rate the callback function should be invoked.
-	 */
-	frequency: TickSignal<TypeName>;
-
-	/**
 	 * @param callback The callback to be invoked with the time of the audio event
 	 * @param frequency The rate of the callback
 	 */
 	constructor(callback?: ClockCallback, frequency?: Frequency);
+
 	constructor(options: Partial<ClockOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Clock.getDefaults(), arguments, ["callback", "frequency"]));
@@ -97,19 +94,47 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 		this.context.on("tick", this._boundLoop);
 	}
 
+    /**
+     * Keep track of the playback state
+     */
+    private _state: StateTimeline = new StateTimeline("stopped");
+
+    /**
+     * Returns the playback state of the source, either "started", "stopped" or "paused".
+     */
+    get state(): PlaybackState {
+        return this._state.getValueAtTime(this.now());
+    }
+
+    /**
+     * The number of times the callback was invoked. Starts counting at 0
+     * and increments after the callback was invoked.
+     */
+    get ticks(): Ticks {
+        return Math.ceil(this.getTicksAtTime(this.now()));
+    }
+
+    set ticks(t: Ticks) {
+        this._tickSource.ticks = t;
+    }
+
+    /**
+     * The time since ticks=0 that the Clock has been running. Accounts for tempo curves
+     */
+    get seconds(): Seconds {
+        return this._tickSource.seconds;
+    }
+
+    set seconds(s: Seconds) {
+        this._tickSource.seconds = s;
+    }
+
 	static getDefaults(): ClockOptions {
 		return Object.assign(ToneWithContext.getDefaults(), {
 			callback: noOp as ClockCallback,
 			frequency: 1,
 			units: "hertz",
 		}) as ClockOptions;
-	}
-
-	/**
-	 * Returns the playback state of the source, either "started", "stopped" or "paused".
-	 */
-	get state(): PlaybackState {
-		return this._state.getValueAtTime(this.now());
 	}
 
 	/**
@@ -139,7 +164,7 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 	 * @param time The time when the clock should stop.
 	 * @example
 	 * const clock = new Tone.Clock(time => {
-	 * 	console.log(time);
+     *    console.log(time);
 	 * }, 1);
 	 * clock.start();
 	 * // stop the clock after 10 seconds
@@ -171,27 +196,6 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 			}
 		}
 		return this;
-	}
-
-	/**
-	 * The number of times the callback was invoked. Starts counting at 0
-	 * and increments after the callback was invoked.
-	 */
-	get ticks(): Ticks {
-		return Math.ceil(this.getTicksAtTime(this.now()));
-	}
-	set ticks(t: Ticks) {
-		this._tickSource.ticks = t;
-	}
-
-	/**
-	 * The time since ticks=0 that the Clock has been running. Accounts for tempo curves
-	 */
-	get seconds(): Seconds {
-		return this._tickSource.seconds;
-	}
-	set seconds(s: Seconds) {
-		this._tickSource.seconds = s;
 	}
 
 	/**
@@ -234,15 +238,45 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 		return this._tickSource.getTicksAtTime(time);
 	}
 
+    //-------------------------------------
+    // EMITTER MIXIN TO SATISFY COMPILER
+    //-------------------------------------
+
 	/**
-	 * Get the time of the next tick
-	 * @param  offset The tick number.
-	 */
+     * Get the time of the next tick
+     * @param  offset The tick number.
+     * @param when
+     */
 	nextTickTime(offset: Ticks, when: Time): Seconds {
 		const computedTime = this.toSeconds(when);
 		const currentTick = this.getTicksAtTime(computedTime);
 		return this._tickSource.getTimeOfTick(currentTick + offset, computedTime);
 	}
+
+    /**
+     * Returns the scheduled state at the given time.
+     * @param  time  The time to query.
+     * @return  The name of the state input in setStateAtTime.
+     * @example
+     * const clock = new Tone.Clock();
+     * clock.start("+0.1");
+     * clock.getStateAtTime("+0.1"); // returns "started"
+     */
+    getStateAtTime(time: Time): PlaybackState {
+        const computedTime = this.toSeconds(time);
+        return this._state.getValueAtTime(computedTime);
+    }
+
+    /**
+     * Clean up
+     */
+    dispose(): this {
+        super.dispose();
+        this.context.off("tick", this._boundLoop);
+        this._tickSource.dispose();
+        this._state.dispose();
+        return this;
+    }
 
 	/**
 	 * The scheduling loop.
@@ -278,40 +312,6 @@ export class Clock<TypeName extends "bpm" | "hertz" = "hertz">
 			});
 		}
 	}
-
-	/**
-	 * Returns the scheduled state at the given time.
-	 * @param  time  The time to query.
-	 * @return  The name of the state input in setStateAtTime.
-	 * @example
-	 * const clock = new Tone.Clock();
-	 * clock.start("+0.1");
-	 * clock.getStateAtTime("+0.1"); // returns "started"
-	 */
-	getStateAtTime(time: Time): PlaybackState {
-		const computedTime = this.toSeconds(time);
-		return this._state.getValueAtTime(computedTime);
-	}
-
-	/**
-	 * Clean up
-	 */
-	dispose(): this {
-		super.dispose();
-		this.context.off("tick", this._boundLoop);
-		this._tickSource.dispose();
-		this._state.dispose();
-		return this;
-	}
-
-	//-------------------------------------
-	// EMITTER MIXIN TO SATISFY COMPILER
-	//-------------------------------------
-
-	on!: (event: ClockEvent, callback: (...args: any[]) => void) => this;
-	once!: (event: ClockEvent, callback: (...args: any[]) => void) => this;
-	off!: (event: ClockEvent, callback?: ((...args: any[]) => void) | undefined) => this;
-	emit!: (event: any, ...args: any[]) => this;
 }
 
 Emitter.mixin(Clock);

@@ -1,8 +1,8 @@
-import { Param } from "../context/Param";
-import { UnitMap, UnitName } from "../type/Units";
+import type { UnitMap, UnitName } from "../type/Units";
 import { optionsFromArguments } from "../util/Defaults";
 import { readOnly } from "../util/Interface";
-import { ToneAudioNode, ToneAudioNodeOptions } from "./ToneAudioNode";
+import { Param } from "./Param";
+import { ToneAudioNode, type ToneAudioNodeOptions } from "./ToneAudioNode";
 
 interface GainOptions<TypeName extends UnitName> extends ToneAudioNodeOptions {
 	gain: UnitMap[TypeName];
@@ -19,10 +19,10 @@ interface GainOptions<TypeName extends UnitName> extends ToneAudioNodeOptions {
  * @category Core
  * @example
  * return Tone.Offline(() => {
- * 	const gainNode = new Tone.Gain(0).toDestination();
- * 	const osc = new Tone.Oscillator(30).connect(gainNode).start();
- * 	gainNode.gain.rampTo(1, 0.1);
- * 	gainNode.gain.rampTo(0, 0.4, 0.2);
+ *    const gainNode = new Tone.Gain(0).toDestination();
+ *    const osc = new Tone.Oscillator(30).connect(gainNode).start();
+ *    gainNode.gain.rampTo(1, 0.1);
+ *    gainNode.gain.rampTo(0, 0.4, 0.2);
  * }, 0.7, 1);
  */
 export class Gain<TypeName extends "gain" | "decibels" | "normalRange" = "gain"> extends ToneAudioNode<GainOptions<TypeName>> {

@@ -1,9 +1,6 @@
-import { Gain } from "../../core/context/Gain";
-import { Param } from "../../core/context/Param";
-import { connectSeries, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { NormalRange, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { readOnly, RecursivePartial } from "../../core/util/Interface";
+import { connectSeries, Gain, optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { NormalRange, Time } from "../../core/type/Units";
+import { readOnly, type RecursivePartial } from "../../core/util/Interface";
 import { ToneAudioWorklet } from "../../core/worklet/ToneAudioWorklet";
 import { workletName } from "./FeedbackCombFilter.worklet";
 
@@ -15,10 +12,10 @@ export interface FeedbackCombFilterOptions extends ToneAudioNodeOptions {
 /**
  * Comb filters are basic building blocks for physical modeling. Read more
  * about comb filters on [CCRMA's website](https://ccrma.stanford.edu/~jos/pasp/Feedback_Comb_Filters.html).
- * 
- * This comb filter is implemented with the AudioWorkletNode which allows it to have feedback delays less than the 
- * Web Audio processing block of 128 samples. There is a polyfill for browsers that don't yet support the 
- * AudioWorkletNode, but it will add some latency and have slower performance than the AudioWorkletNode. 
+ *
+ * This comb filter is implemented with the AudioWorkletNode which allows it to have feedback delays less than the
+ * Web Audio processing block of 128 samples. There is a polyfill for browsers that don't yet support the
+ * AudioWorkletNode, but it will add some latency and have slower performance than the AudioWorkletNode.
  * @category Component
  */
 export class FeedbackCombFilter extends ToneAudioWorklet<FeedbackCombFilterOptions> {
@@ -72,10 +69,6 @@ export class FeedbackCombFilter extends ToneAudioWorklet<FeedbackCombFilterOptio
 		readOnly(this, ["resonance", "delayTime"]);
 	}
 
-	protected _audioWorkletName(): string {
-		return workletName;
-	}
-
 	/**
 	 * The default parameters
 	 */
@@ -102,4 +95,8 @@ export class FeedbackCombFilter extends ToneAudioWorklet<FeedbackCombFilterOptio
 		this.resonance.dispose();
 		return this;
 	}
+
+    protected _audioWorkletName(): string {
+        return workletName;
+    }
 }

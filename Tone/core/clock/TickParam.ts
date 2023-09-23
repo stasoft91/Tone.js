@@ -1,5 +1,5 @@
-import { AutomationEvent, Param, ParamOptions } from "../context/Param";
-import { Seconds, Ticks, Time, UnitMap, UnitName } from "../type/Units";
+import { type AutomationEvent, Param, type ParamOptions } from "../context/Param";
+import type { Seconds, Ticks, Time, UnitMap, UnitName } from "../type/Units";
 import { optionsFromArguments } from "../util/Defaults";
 import { Timeline } from "../util/Timeline";
 import { isUndef } from "../util/TypeCheck";
@@ -27,11 +27,6 @@ export class TickParam<TypeName extends "hertz" | "bpm"> extends Param<TypeName>
 	protected _events: Timeline<TickAutomationEvent> = new Timeline(Infinity);
 
 	/**
-	 * The internal holder for the multiplier value
-	 */
-	private _multiplier = 1;
-
-	/**
 	 * @param param The AudioParam to wrap
 	 * @param units The unit name
 	 * @param convert Whether or not to convert the value to the target units
@@ -40,7 +35,9 @@ export class TickParam<TypeName extends "hertz" | "bpm"> extends Param<TypeName>
 	 * @param value The initial value of the signal
 	 */
 	constructor(value?: number);
+
 	constructor(options: Partial<TickParamOptions<TypeName>>);
+
 	constructor() {
 
 		super(optionsFromArguments(TickParam.getDefaults(), arguments, ["value"]));
@@ -60,6 +57,27 @@ export class TickParam<TypeName extends "hertz" | "bpm"> extends Param<TypeName>
 		});
 		this.setValueAtTime(options.value, 0);
 	}
+
+    /**
+     * The internal holder for the multiplier value
+     */
+    private _multiplier = 1;
+
+    /**
+     * A multiplier on the bpm value. Useful for setting a PPQ relative to the base frequency value.
+     */
+    get multiplier(): number {
+        return this._multiplier;
+    }
+
+    set multiplier(m: number) {
+        // get and reset the current value with the new multiplier
+        // might be necessary to clear all the previous values
+        const currentVal = this.value;
+        this._multiplier = m;
+        this.cancelScheduledValues(0);
+        this.setValueAtTime(currentVal, 0);
+    }
 
 	static getDefaults(): TickParamOptions<any> {
 		return Object.assign(Param.getDefaults(), {
@@ -127,34 +145,6 @@ export class TickParam<TypeName extends "hertz" | "bpm"> extends Param<TypeName>
 	/**
 	 * Returns the tick value at the time. Takes into account
 	 * any automation curves scheduled on the signal.
-	 * @param  event The time to get the tick count at
-	 * @return The number of ticks which have elapsed at the time given any automations.
-	 */
-	private _getTicksUntilEvent(event: TickAutomationEvent | null, time: number): Ticks {
-		if (event === null) {
-			event = {
-				ticks: 0,
-				time: 0,
-				type: "setValueAtTime",
-				value: 0,
-			};
-		} else if (isUndef(event.ticks)) {
-			const previousEvent = this._events.previousEvent(event);
-			event.ticks = this._getTicksUntilEvent(previousEvent, event.time);
-		}
-		const val0 = this._fromType(this.getValueAtTime(event.time));
-		let val1 = this._fromType(this.getValueAtTime(time));
-		// if it's right on the line, take the previous value
-		const onTheLineEvent = this._events.get(time);
-		if (onTheLineEvent && onTheLineEvent.time === time && onTheLineEvent.type === "setValueAtTime") {
-			val1 = this._fromType(this.getValueAtTime(time - this.sampleTime));
-		}
-		return 0.5 * (time - event.time) * (val0 + val1) + event.ticks;
-	}
-
-	/**
-	 * Returns the tick value at the time. Takes into account
-	 * any automation curves scheduled on the signal.
 	 * @param  time The time to get the tick count at
 	 * @return The number of ticks which have elapsed at the time given any automations.
 	 */
@@ -186,8 +176,8 @@ export class TickParam<TypeName extends "hertz" | "bpm"> extends Param<TypeName>
 		if (before && before.ticks === tick) {
 			return before.time;
 		} else if (before && after &&
-			after.type === "linearRampToValueAtTime" &&
-			before.value !== after.value) {
+            after.type === "linearRampToValueAtTime" &&
+            before.value !== after.value) {
 			const val0 = this._fromType(this.getValueAtTime(before.time));
 			const val1 = this._fromType(this.getValueAtTime(after.time));
 			const delta = (val1 - val0) / (after.time - before.time);
@@ -254,18 +244,33 @@ export class TickParam<TypeName extends "hertz" | "bpm"> extends Param<TypeName>
 			return super._toType(val);
 		}
 	}
-	/**
-	 * A multiplier on the bpm value. Useful for setting a PPQ relative to the base frequency value.
-	 */
-	get multiplier(): number {
-		return this._multiplier;
-	}
-	set multiplier(m: number) {
-		// get and reset the current value with the new multiplier
-		// might be necessary to clear all the previous values
-		const currentVal = this.value;
-		this._multiplier = m;
-		this.cancelScheduledValues(0);
-		this.setValueAtTime(currentVal, 0);
+
+    /**
+     * Returns the tick value at the time. Takes into account
+     * any automation curves scheduled on the signal.
+     * @param  event The time to get the tick count at
+     * @param time
+     * @return The number of ticks which have elapsed at the time given any automations.
+     */
+    private _getTicksUntilEvent(event: TickAutomationEvent | null, time: number): Ticks {
+        if (event === null) {
+            event = {
+                ticks: 0,
+                time: 0,
+                type: "setValueAtTime",
+                value: 0,
+            };
+        } else if (isUndef(event.ticks)) {
+            const previousEvent = this._events.previousEvent(event);
+            event.ticks = this._getTicksUntilEvent(previousEvent, event.time);
+        }
+        const val0 = this._fromType(this.getValueAtTime(event.time));
+        let val1 = this._fromType(this.getValueAtTime(time));
+        // if it's right on the line, take the previous value
+        const onTheLineEvent = this._events.get(time);
+        if (onTheLineEvent && onTheLineEvent.time === time && onTheLineEvent.type === "setValueAtTime") {
+            val1 = this._fromType(this.getValueAtTime(time - this.sampleTime));
+        }
+        return 0.5 * (time - event.time) * (val0 + val1) + event.ticks;
 	}
 }

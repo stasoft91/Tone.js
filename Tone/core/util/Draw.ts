@@ -1,7 +1,7 @@
-import { ToneWithContext, ToneWithContextOptions } from "../context/ToneWithContext";
-import { Seconds, Time } from "../type/Units";
-import { Timeline, TimelineEvent } from "./Timeline";
 import { onContextClose, onContextInit } from "../context/ContextInitialization";
+import { ToneWithContext, type ToneWithContextOptions } from "../context/ToneWithContext";
+import type { Seconds, Time } from "../type/Units";
+import { Timeline, type TimelineEvent } from "./Timeline";
 
 interface DrawEvent extends TimelineEvent {
 	callback: () => void;
@@ -16,11 +16,11 @@ interface DrawEvent extends TimelineEvent {
  * callbacks using the AudioContext time and uses requestAnimationFrame.
  * @example
  * Tone.Transport.schedule((time) => {
- * 	// use the time argument to schedule a callback with Draw
- * 	Tone.Draw.schedule(() => {
- * 		// do drawing or DOM manipulation here
- * 		console.log(time);
- * 	}, time);
+ *    // use the time argument to schedule a callback with Draw
+ *    Tone.Draw.schedule(() => {
+ *        // do drawing or DOM manipulation here
+ *        console.log(time);
+ *    }, time);
  * }, "+0.5");
  * Tone.Transport.start();
  * @category Core
@@ -63,7 +63,7 @@ export class Draw extends ToneWithContext<ToneWithContextOptions> {
 	 * @param  time      The time relative to the AudioContext time to invoke the callback.
 	 * @example
 	 * Tone.Transport.scheduleRepeat(time => {
-	 * 	Tone.Draw.schedule(() => console.log(time), time);
+     *    Tone.Draw.schedule(() => console.log(time), time);
 	 * }, 1);
 	 * Tone.Transport.start();
 	 */
@@ -88,6 +88,13 @@ export class Draw extends ToneWithContext<ToneWithContextOptions> {
 		return this;
 	}
 
+    dispose(): this {
+        super.dispose();
+        this._events.dispose();
+        cancelAnimationFrame(this._animationFrame);
+        return this;
+    }
+
 	/**
 	 * The draw loop
 	 */
@@ -102,13 +109,6 @@ export class Draw extends ToneWithContext<ToneWithContextOptions> {
 		if (this._events.length > 0) {
 			this._animationFrame = requestAnimationFrame(this._boundDrawLoop);
 		}
-	}
-
-	dispose(): this {
-		super.dispose();
-		this._events.dispose();
-		cancelAnimationFrame(this._animationFrame);
-		return this;
 	}
 }
 

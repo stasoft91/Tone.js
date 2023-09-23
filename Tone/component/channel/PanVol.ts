@@ -1,8 +1,13 @@
+import {
+	type InputNode,
+	optionsFromArguments,
+	type OutputNode,
+	Param,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../../core";
+import type { AudioRange, Decibels } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { Param } from "../../core/context/Param";
-import { InputNode, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { AudioRange, Decibels } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
 import { Panner } from "./Panner";
 import { Volume } from "./Volume";
 
@@ -27,28 +32,24 @@ export class PanVol extends ToneAudioNode<PanVolOptions> {
 
 	readonly input: InputNode;
 	readonly output: OutputNode;
-
-	/**
-	 * The panning node
-	 */
-	private _panner: Panner;
-
 	/**
 	 * The L/R panning control. -1 = hard left, 1 = hard right.
 	 * @min -1
 	 * @max 1
 	 */
 	readonly pan: Param<"audioRange">;
-
+    /**
+     * The volume control in decibels.
+     */
+    readonly volume: Param<"decibels">;
+    /**
+     * The panning node
+     */
+    private _panner: Panner;
 	/**
 	 * The volume node
 	 */
 	private _volume: Volume;
-
-	/**
-	 * The volume control in decibels.
-	 */
-	readonly volume: Param<"decibels">;
 
 	/**
 	 * @param pan the initial pan
@@ -80,6 +81,17 @@ export class PanVol extends ToneAudioNode<PanVolOptions> {
 		readOnly(this, ["pan", "volume"]);
 	}
 
+    /**
+     * Mute/unmute the volume
+     */
+    get mute(): boolean {
+        return this._volume.mute;
+    }
+
+    set mute(mute) {
+        this._volume.mute = mute;
+    }
+
 	static getDefaults(): PanVolOptions {
 		return Object.assign(ToneAudioNode.getDefaults(), {
 			mute: false,
@@ -87,16 +99,6 @@ export class PanVol extends ToneAudioNode<PanVolOptions> {
 			volume: 0,
 			channelCount: 1,
 		});
-	}
-
-	/**
-	 * Mute/unmute the volume
-	 */
-	get mute(): boolean {
-		return this._volume.mute;
-	}
-	set mute(mute) {
-		this._volume.mute = mute;
 	}
 
 	dispose(): this {

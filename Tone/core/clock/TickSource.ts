@@ -1,12 +1,12 @@
-import { ToneWithContext, ToneWithContextOptions } from "../context/ToneWithContext";
-import { Seconds, Ticks, Time } from "../type/Units";
+import { ToneWithContext, type ToneWithContextOptions } from "../context/ToneWithContext";
+import type { Seconds, Ticks, Time } from "../type/Units";
 import { optionsFromArguments } from "../util/Defaults";
 import { readOnly } from "../util/Interface";
-import { PlaybackState, StateTimeline, StateTimelineEvent } from "../util/StateTimeline";
-import { Timeline, TimelineEvent } from "../util/Timeline";
+import { EQ } from "../util/Math";
+import { type PlaybackState, StateTimeline, type StateTimelineEvent } from "../util/StateTimeline";
+import { Timeline, type TimelineEvent } from "../util/Timeline";
 import { isDefined } from "../util/TypeCheck";
 import { TickSignal } from "./TickSignal";
-import { EQ } from "../util/Math";
 
 interface TickSourceOptions extends ToneWithContextOptions {
 	frequency: number;
@@ -42,22 +42,14 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 	 * The frequency the callback function should be invoked.
 	 */
 	readonly frequency: TickSignal<TypeName>;
-
-	/**
-	 * The state timeline
-	 */
-	private _state: StateTimeline = new StateTimeline();
-
 	/**
 	 * The offset values of the ticks
 	 */
 	private _tickOffset: Timeline<TickSourceOffsetEvent> = new Timeline();
-
 	/**
 	 * Memoized values of getTicksAtTime at events with state other than "started"
 	 */
 	private _ticksAtTime: Timeline<TickSourceTicksAtTimeEvent> = new Timeline<TickSourceTicksAtTimeEvent>();
-
 	/**
 	 * Memoized values of getSecondsAtTime at events with state other than "started"
 	 */
@@ -67,7 +59,9 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 	 * @param frequency The initial frequency that the signal ticks at
 	 */
 	constructor(frequency?: number);
+
 	constructor(options?: Partial<TickSourceOptions>);
+
 	constructor() {
 		super(optionsFromArguments(TickSource.getDefaults(), arguments, ["frequency"]));
 		const options = optionsFromArguments(TickSource.getDefaults(), arguments, ["frequency"]);
@@ -85,18 +79,49 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 		this.setTicksAtTime(0, 0);
 	}
 
+    /**
+     * The state timeline
+     */
+    private _state: StateTimeline = new StateTimeline();
+
+    /**
+     * Returns the playback state of the source, either "started", "stopped" or "paused".
+     */
+    get state(): PlaybackState {
+        return this.getStateAtTime(this.now());
+    }
+
+    /**
+     * The number of times the callback was invoked. Starts counting at 0
+     * and increments after the callback was invoked. Returns -1 when stopped.
+     */
+    get ticks(): Ticks {
+        return this.getTicksAtTime(this.now());
+    }
+
+    set ticks(t: Ticks) {
+        this.setTicksAtTime(t, this.now());
+    }
+
+    /**
+     * The time since ticks=0 that the TickSource has been running. Accounts
+     * for tempo curves
+     */
+    get seconds(): Seconds {
+        return this.getSecondsAtTime(this.now());
+    }
+
+    set seconds(s: Seconds) {
+        const now = this.now();
+        const ticks = this.frequency.timeToTicks(s, now);
+        this.setTicksAtTime(ticks, now);
+    }
+
 	static getDefaults(): TickSourceOptions {
 		return Object.assign({
 			frequency: 1,
 			units: "hertz" as const,
 		}, ToneWithContext.getDefaults());
-	}
-
-	/**
-	 * Returns the playback state of the source, either "started", "stopped" or "paused".
-	 */
-	get state(): PlaybackState {
-		return this.getStateAtTime(this.now());
 	}
 
 	/**
@@ -186,7 +211,7 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 		// keep track of the previous offset event
 		let lastState = memoizedEvent ? memoizedEvent : stopEvent;
 		let elapsedTicks = memoizedEvent ? memoizedEvent.ticks : 0;
-		let eventToMemoize : TickSourceTicksAtTimeEvent | null = null;
+        let eventToMemoize: TickSourceTicksAtTimeEvent | null = null;
 
 		// iterate through all the events since the last stop
 		this._state.forEachBetween(lastState.time, computedTime + this.sampleTime, e => {
@@ -220,30 +245,6 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 	}
 
 	/**
-	 * The number of times the callback was invoked. Starts counting at 0
-	 * and increments after the callback was invoked. Returns -1 when stopped.
-	 */
-	get ticks(): Ticks {
-		return this.getTicksAtTime(this.now());
-	}
-	set ticks(t: Ticks) {
-		this.setTicksAtTime(t, this.now());
-	}
-
-	/**
-	 * The time since ticks=0 that the TickSource has been running. Accounts
-	 * for tempo curves
-	 */
-	get seconds(): Seconds {
-		return this.getSecondsAtTime(this.now());
-	}
-	set seconds(s: Seconds) {
-		const now = this.now();
-		const ticks = this.frequency.timeToTicks(s, now);
-		this.setTicksAtTime(ticks, now);
-	}
-
-	/**
 	 * Return the elapsed seconds at the given time.
 	 * @param  time  When to get the elapsed seconds
 	 * @return  The number of elapsed seconds
@@ -261,7 +262,7 @@ export class TickSource<TypeName extends "bpm" | "hertz"> extends ToneWithContex
 		// keep track of the previous offset event
 		let lastState = memoizedEvent ? memoizedEvent : stopEvent;
 		let elapsedSeconds = memoizedEvent ? memoizedEvent.seconds : 0;
-		let eventToMemoize : TickSourceSecondsAtTimeEvent | null = null;
+        let eventToMemoize: TickSourceSecondsAtTimeEvent | null = null;
 
 		// iterate through all the events since the last stop
 		this._state.forEachBetween(lastState.time, time + this.sampleTime, e => {

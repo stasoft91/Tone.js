@@ -1,9 +1,8 @@
-import { TicksClass } from "../core/type/Ticks";
-import { NormalRange, Positive, Seconds, Ticks, Time, TransportTime } from "../core/type/Units";
+import { isArray, isString, TicksClass } from "../core";
+import type { NormalRange, Positive, Seconds, Ticks, Time, TransportTime } from "../core/type/Units";
 import { omitFromObject, optionsFromArguments } from "../core/util/Defaults";
-import { isArray, isString } from "../core/util/TypeCheck";
 import { Part } from "./Part";
-import { ToneEvent, ToneEventCallback, ToneEventOptions } from "./ToneEvent";
+import { ToneEvent, type ToneEventCallback, type ToneEventOptions } from "./ToneEvent";
 
 type SequenceEventDescription<T> = Array<T | Array<T | Array<T | Array<T | Array<T | T[]>>>>>;
 
@@ -24,8 +23,8 @@ interface SequenceOptions<T> extends Omit<ToneEventOptions<T>, "value"> {
  * @example
  * const synth = new Tone.Synth().toDestination();
  * const seq = new Tone.Sequence((time, note) => {
- * 	synth.triggerAttackRelease(note, 0.1, time);
- * 	// subdivisions are given as subarrays
+ *    synth.triggerAttackRelease(note, 0.1, time);
+ *    // subdivisions are given as subarrays
  * }, ["C4", ["E4", "D4", "E4"], "G4", ["A4", "G4"]]).start(0);
  * Tone.Transport.start();
  * @category Event
@@ -33,12 +32,6 @@ interface SequenceOptions<T> extends Omit<ToneEventOptions<T>, "value"> {
 export class Sequence<ValueType = any> extends ToneEvent<ValueType> {
 
 	readonly name: string = "Sequence";
-
-	/**
-	 * The subdivison of each note
-	 */
-	private _subdivision: Ticks;
-
 	/**
 	 * The object responsible for scheduling all of the events
 	 */
@@ -46,28 +39,18 @@ export class Sequence<ValueType = any> extends ToneEvent<ValueType> {
 		callback: this._seqCallback.bind(this),
 		context: this.context,
 	});
-
-	/**
-	 * private reference to all of the sequence proxies
-	 */
-	private _events: SequenceEventDescription<ValueType> = [];
-
 	/**
 	 * The proxied array
 	 */
 	private _eventsArray: SequenceEventDescription<ValueType> = [];
 
 	/**
-	 * @param  callback  The callback to invoke with every note
-	 * @param  sequence  The sequence
-	 * @param  subdivision  The subdivision between which events are placed.
+     * private reference to all of the sequence proxies
 	 */
-	constructor(
-		callback?: ToneEventCallback<ValueType>,
-		events?: SequenceEventDescription<ValueType>,
-		subdivision?: Time,
-	);
+    private _events: SequenceEventDescription<ValueType> = [];
+
 	constructor(options?: Partial<SequenceOptions<ValueType>>);
+
 	constructor() {
 
 		super(optionsFromArguments(Sequence.getDefaults(), arguments, ["callback", "events", "subdivision"]));
@@ -88,23 +71,29 @@ export class Sequence<ValueType = any> extends ToneEvent<ValueType> {
 		this.playbackRate = options.playbackRate;
 	}
 
-	static getDefaults(): SequenceOptions<any> {
-		return Object.assign(omitFromObject(ToneEvent.getDefaults(), ["value"]), {
-			events: [],
-			loop: true,
-			loopEnd: 0,
-			loopStart: 0,
-			subdivision: "8n",
-		});
-	}
-
 	/**
-	 * The internal callback for when an event is invoked
+	 * @param  callback  The callback to invoke with every note
+     * @param events
+	 * @param  subdivision  The subdivision between which events are placed.
 	 */
-	private _seqCallback(time: Seconds, value: any): void {
-		if (value !== null && !this.mute) {
-			this.callback(time, value);
-		}
+	constructor(
+		callback?: ToneEventCallback<ValueType>,
+		events?: SequenceEventDescription<ValueType>,
+		subdivision?: Time,
+	);
+
+    /**
+     * The subdivison of each note
+     */
+    private _subdivision: Ticks;
+
+    /**
+     * The subdivision of the sequence. This can only be
+     * set in the constructor. The subdivision is the
+     * interval between successive steps.
+     */
+    get subdivision(): Seconds {
+        return new TicksClass(this.context, this._subdivision).toSeconds();
 	}
 
 	/**
@@ -113,12 +102,106 @@ export class Sequence<ValueType = any> extends ToneEvent<ValueType> {
 	get events(): any[] {
 		return this._events;
 	}
+
 	set events(s) {
 		this.clear();
 		this._eventsArray = s;
 		this._events = this._createSequence(this._eventsArray);
 		this._eventsUpdated();
 	}
+
+    get loop(): boolean | number {
+        return this._part.loop;
+    }
+
+    set loop(l) {
+        this._part.loop = l;
+    }
+
+    /**
+     * The index at which the sequence should start looping
+     */
+    get loopStart(): number {
+        return this._loopStart;
+    }
+
+    set loopStart(index) {
+        this._loopStart = index;
+        this._part.loopStart = this._indexTime(index);
+    }
+
+    /**
+     * The index at which the sequence should end looping
+     */
+    get loopEnd(): number {
+        return this._loopEnd;
+    }
+
+    set loopEnd(index) {
+        this._loopEnd = index;
+        if (index === 0) {
+            this._part.loopEnd = this._indexTime(this._eventsArray.length);
+        } else {
+            this._part.loopEnd = this._indexTime(index);
+        }
+    }
+
+    get startOffset(): Ticks {
+        return this._part.startOffset;
+    }
+
+    set startOffset(start) {
+        this._part.startOffset = start;
+    }
+
+    get playbackRate(): Positive {
+        return this._part.playbackRate;
+    }
+
+    set playbackRate(rate) {
+        this._part.playbackRate = rate;
+    }
+
+    //-------------------------------------
+    // PROXY CALLS
+    //-------------------------------------
+
+    get probability(): NormalRange {
+        return this._part.probability;
+    }
+
+    set probability(prob) {
+        this._part.probability = prob;
+    }
+
+    get progress(): NormalRange {
+        return this._part.progress;
+    }
+
+    get humanize(): boolean | Time {
+        return this._part.humanize;
+    }
+
+    set humanize(variation) {
+        this._part.humanize = variation;
+    }
+
+    /**
+     * The number of scheduled events
+     */
+    get length(): number {
+        return this._part.length;
+    }
+
+    static getDefaults(): SequenceOptions<any> {
+        return Object.assign(omitFromObject(ToneEvent.getDefaults(), ["value"]), {
+            events: [],
+            loop: true,
+            loopEnd: 0,
+            loopStart: 0,
+            subdivision: "8n",
+        });
+    }
 
 	/**
 	 * Start the part at the given time.
@@ -140,12 +223,26 @@ export class Sequence<ValueType = any> extends ToneEvent<ValueType> {
 	}
 
 	/**
-	 * The subdivision of the sequence. This can only be
-	 * set in the constructor. The subdivision is the
-	 * interval between successive steps.
+     * Clear all of the events
 	 */
-	get subdivision(): Seconds {
-		return new TicksClass(this.context, this._subdivision).toSeconds();
+    clear(): this {
+        this._part.clear();
+        return this;
+    }
+
+    dispose(): this {
+        super.dispose();
+        this._part.dispose();
+        return this;
+    }
+
+    /**
+     * The internal callback for when an event is invoked
+     */
+    private _seqCallback(time: Seconds, value: any): void {
+        if (value !== null && !this.mute) {
+            this.callback(time, value);
+        }
 	}
 
 	/**
@@ -206,95 +303,5 @@ export class Sequence<ValueType = any> extends ToneEvent<ValueType> {
 	 */
 	private _indexTime(index: number): Seconds {
 		return new TicksClass(this.context, index * (this._subdivision) + this.startOffset).toSeconds();
-	}
-
-	/**
-	 * Clear all of the events
-	 */
-	clear(): this {
-		this._part.clear();
-		return this;
-	}
-
-	dispose(): this {
-		super.dispose();
-		this._part.dispose();
-		return this;
-	}
-
-	//-------------------------------------
-	// PROXY CALLS
-	//-------------------------------------
-
-	get loop(): boolean | number {
-		return this._part.loop;
-	}
-	set loop(l) {
-		this._part.loop = l;
-	}
-
-	/**
-	 * The index at which the sequence should start looping
-	 */
-	get loopStart(): number {
-		return this._loopStart;
-	}
-	set loopStart(index) {
-		this._loopStart = index;
-		this._part.loopStart = this._indexTime(index);
-	}
-
-	/**
-	 * The index at which the sequence should end looping
-	 */
-	get loopEnd(): number {
-		return this._loopEnd;
-	}
-	set loopEnd(index) {
-		this._loopEnd = index;
-		if (index === 0) {
-			this._part.loopEnd = this._indexTime(this._eventsArray.length);
-		} else {
-			this._part.loopEnd = this._indexTime(index);
-		}
-	}
-
-	get startOffset(): Ticks {
-		return this._part.startOffset;
-	}
-	set startOffset(start) {
-		this._part.startOffset = start;
-	}
-
-	get playbackRate(): Positive {
-		return this._part.playbackRate;
-	}
-	set playbackRate(rate) {
-		this._part.playbackRate = rate;
-	}
-
-	get probability(): NormalRange {
-		return this._part.probability;
-	}
-	set probability(prob) {
-		this._part.probability = prob;
-	}
-
-	get progress(): NormalRange {
-		return this._part.progress;
-	}
-
-	get humanize(): boolean | Time {
-		return this._part.humanize;
-	}
-	set humanize(variation) {
-		this._part.humanize = variation;
-	}
-
-	/**
-	 * The number of scheduled events
-	 */
-	get length(): number {
-		return this._part.length;
 	}
 }

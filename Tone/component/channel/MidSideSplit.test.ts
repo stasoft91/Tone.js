@@ -1,11 +1,11 @@
-import { MidSideSplit } from "./MidSideSplit";
-import { MidSideMerge } from "./MidSideMerge";
-import { BasicTests } from "test/helper/Basic";
-import { Signal } from "Tone/signal/Signal";
-import { Offline } from "test/helper/Offline";
-import { Merge } from "./Merge";
-import { connectFrom, connectTo } from "test/helper/Connect";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { connectFrom, connectTo } from "test/helper/Connect";
+import { Offline } from "test/helper/Offline";
+import { Signal } from "Tone/signal/Signal";
+import { Merge } from "./Merge";
+import { MidSideMerge } from "./MidSideMerge";
+import { MidSideSplit } from "./MidSideSplit";
 
 describe("MidSideSplit", () => {
 

@@ -1,10 +1,10 @@
-import { OnePoleFilter } from "./OnePoleFilter";
-import { BasicTests } from "test/helper/Basic";
-import { PassAudio } from "test/helper/PassAudio";
-import { Oscillator } from "Tone/source/oscillator/Oscillator";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
 import { atTime, Offline } from "test/helper/Offline";
+import { PassAudio } from "test/helper/PassAudio";
+import { Oscillator } from "Tone/source/oscillator/Oscillator";
+import { OnePoleFilter } from "./OnePoleFilter";
 
 describe("OnePoleFilter", () => {
 
@@ -32,7 +32,7 @@ describe("OnePoleFilter", () => {
 
 		it("can set the frequency more than once", () => {
 			return Offline(() => {
-				const filter = new OnePoleFilter(200);	
+                const filter = new OnePoleFilter(200);
 				filter.frequency = 300;
 				return atTime(0.1, () => {
 					filter.frequency = 400;

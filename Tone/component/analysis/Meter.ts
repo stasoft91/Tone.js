@@ -1,9 +1,8 @@
-import { gainToDb } from "../../core/type/Conversions";
-import { NormalRange } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { MeterBase, MeterBaseOptions } from "./MeterBase";
+import { gainToDb, optionsFromArguments } from "../../core";
+import type { NormalRange } from "../../core/type/Units";
 import { warn } from "../../core/util/Debug";
 import { Analyser } from "./Analyser";
+import { MeterBase, type MeterBaseOptions } from "./MeterBase";
 
 export interface MeterOptions extends MeterBaseOptions {
 	smoothing: NormalRange;
@@ -15,7 +14,7 @@ export interface MeterOptions extends MeterBaseOptions {
  * Meter gets the [RMS](https://en.wikipedia.org/wiki/Root_mean_square)
  * of an input signal. It can also get the raw value of the input signal.
  * Setting `normalRange` to `true` will covert the output to a range of
- * 0-1. See an example using a graphical display 
+ * 0-1. See an example using a graphical display
  * [here](https://tonejs.github.io/examples/meter). See also {@link DCMeter}.
  *
  * @example
@@ -65,11 +64,18 @@ export class Meter extends MeterBase<MeterOptions> {
 			channels: options.channelCount,
 		});
 
-		this.smoothing = options.smoothing,
+        this.smoothing = options.smoothing;
 		this.normalRange = options.normalRange;
 		this._rms = new Array(options.channelCount);
 		this._rms.fill(0);
 	}
+
+    /**
+     * The number of channels of analysis.
+     */
+    get channels(): number {
+        return this._analyser.channels;
+    }
 
 	static getDefaults(): MeterOptions {
 		return Object.assign(MeterBase.getDefaults(), {
@@ -89,11 +95,11 @@ export class Meter extends MeterBase<MeterOptions> {
 	}
 
 	/**
-	 * Get the current value of the incoming signal. 
+     * Get the current value of the incoming signal.
 	 * Output is in decibels when [[normalRange]] is `false`.
 	 * If [[channels]] = 1, then the output is a single number
 	 * representing the value of the input signal. When [[channels]] > 1,
-	 * then each channel is returned as a value in a number array. 
+     * then each channel is returned as a value in a number array.
 	 */
 	getValue(): number | number[] {
 		const aValues = this._analyser.getValue();
@@ -111,13 +117,6 @@ export class Meter extends MeterBase<MeterOptions> {
 		} else {
 			return vals;
 		}
-	}
-
-	/**
-	 * The number of channels of analysis.
-	 */
-	get channels(): number {
-		return this._analyser.channels;
 	}
 
 	dispose(): this {

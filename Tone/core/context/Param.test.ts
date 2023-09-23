@@ -1,9 +1,9 @@
-import { Compare, Plot } from "@tonejs/plot";
+import { Plot } from "@tonejs/plot";
 import { expect } from "chai";
 import { BasicTests, testAudioContext } from "test/helper/Basic";
 import { atTime, Offline } from "test/helper/Offline";
 import { SCHEDULE_RAMP_AFTER_SET_TARGET } from "test/helper/Supports";
-import { BPM, Decibels, Frequency, Positive, Seconds, Time, Unit, UnitName } from "Tone/core/type/Units";
+import type { UnitName } from "Tone/core/type/Units";
 import { Signal } from "Tone/signal/Signal";
 import { getContext } from "../Global";
 import { Param } from "./Param";
@@ -55,6 +55,7 @@ describe("Param", () => {
 	context("Scheduling Curves", () => {
 
 		const sampleRate = 11025;
+
 		function matchesOutputCurve(param, outBuffer): void {
 			outBuffer.toArray()[0].forEach((sample, index) => {
 				try {
@@ -168,27 +169,27 @@ describe("Param", () => {
 				// document.body.appendChild(await Plot.signal(testBuffer));
 			});
 
-		// 	it ("matches known values", async () => {
-		// 		await Compare.toFile(context => {
-		// 			const source = context.createConstantSource();
-		// 			source.connect(context.rawContext.destination);
-		// 			source.start(0);
-		// 			const param = new Param({
-		// 				context,
-		// 				param: source.offset,
-		// 				value: 0.1,
-		// 			});
-		// 			param.setValueAtTime(0, 0);
-		// 			param.setValueAtTime(1, 0.2);
-		// 			param.cancelAndHoldAtTime(0.1);
-		// 			param.linearRampToValueAtTime(1, 0.3);
-		// 			param.cancelAndHoldAtTime(0.2);
-		// 			param.exponentialRampToValueAtTime(0, 0.4);
-		// 			param.cancelAndHoldAtTime(0.25);
-		// 			param.setTargetAtTime(1, 0.3, 0.1);
-		// 			param.cancelAndHoldAtTime(0.4);
-		// 		}, "/base/test/audio/param/curve_0.wav", 0.01, 0.5, 1, 11025);
-		// 	});
+            // 	it ("matches known values", async () => {
+            // 		await Compare.toFile(context => {
+            // 			const source = context.createConstantSource();
+            // 			source.connect(context.rawContext.destination);
+            // 			source.start(0);
+            // 			const param = new Param({
+            // 				context,
+            // 				param: source.offset,
+            // 				value: 0.1,
+            // 			});
+            // 			param.setValueAtTime(0, 0);
+            // 			param.setValueAtTime(1, 0.2);
+            // 			param.cancelAndHoldAtTime(0.1);
+            // 			param.linearRampToValueAtTime(1, 0.3);
+            // 			param.cancelAndHoldAtTime(0.2);
+            // 			param.exponentialRampToValueAtTime(0, 0.4);
+            // 			param.cancelAndHoldAtTime(0.25);
+            // 			param.setTargetAtTime(1, 0.3, 0.1);
+            // 			param.cancelAndHoldAtTime(0.4);
+            // 		}, "/base/test/audio/param/curve_0.wav", 0.01, 0.5, 1, 11025);
+            // 	});
 		}
 
 	});
@@ -422,7 +423,8 @@ describe("Param", () => {
 				expect(param.maxValue).to.be.equal(max);
 			});
 		}
-		// number, decibels, normalRange, audioRange, gain
+
+        // number, decibels, normalRange, audioRange, gain
 		// positive, time, frequency, transportTime, ticks, bpm, degrees, samples, hertz
 		const rangeMax = 3.4028234663852886e+38;
 		testMinMaxValue("number", -rangeMax, rangeMax);

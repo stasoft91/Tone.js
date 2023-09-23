@@ -1,10 +1,10 @@
 import { getContext } from "../Global";
 import { Tone } from "../Tone";
-import { Samples, Seconds } from "../type/Units";
+import type { Samples, Seconds } from "../type/Units";
+import { assert } from "../util/Debug";
 import { optionsFromArguments } from "../util/Defaults";
 import { noOp } from "../util/Interface";
 import { isArray, isNumber, isString } from "../util/TypeCheck";
-import { assert } from "../util/Debug";
 
 interface ToneAudioBufferOptions {
 	url?: string | AudioBuffer | ToneAudioBuffer;
@@ -19,27 +19,32 @@ interface ToneAudioBufferOptions {
  * Tone.Sampler and Tone.Convolver.
  * @example
  * const buffer = new Tone.ToneAudioBuffer("https://tonejs.github.io/audio/casio/A1.mp3", () => {
- * 	console.log("loaded");
+ *    console.log("loaded");
  * });
  * @category Core
  */
 export class ToneAudioBuffer extends Tone {
+    /**
+     * A path which is prefixed before every url.
+     */
+    static baseUrl = "";
+    /**
+     * All of the downloads
+     */
+    static downloads: Array<Promise<void>> = [];
 	readonly name: string = "ToneAudioBuffer";
-
+    /**
+     * Callback when the buffer is loaded.
+     */
+    onload: (buffer: ToneAudioBuffer) => void = noOp;
 	/**
 	 * stores the loaded AudioBuffer
 	 */
 	private _buffer?: AudioBuffer;
-
 	/**
 	 * indicates if the buffer should be reversed or not
 	 */
 	private _reversed!: boolean;
-
-	/**
-	 * Callback when the buffer is loaded.
-	 */
-	onload: (buffer: ToneAudioBuffer) => void = noOp;
 
 	/**
 	 *
@@ -54,7 +59,9 @@ export class ToneAudioBuffer extends Tone {
 		onload?: (buffer: ToneAudioBuffer) => void,
 		onerror?: (error: Error) => void
 	);
+
 	constructor(options?: Partial<ToneAudioBufferOptions>);
+
 	constructor() {
 		super();
 
@@ -75,14 +82,6 @@ export class ToneAudioBuffer extends Tone {
 		}
 	}
 
-	static getDefaults(): ToneAudioBufferOptions {
-		return {
-			onerror: noOp,
-			onload: noOp,
-			reverse: false,
-		};
-	}
-
 	/**
 	 * The sample rate of the AudioBuffer
 	 */
@@ -93,6 +92,161 @@ export class ToneAudioBuffer extends Tone {
 			return getContext().sampleRate;
 		}
 	}
+
+    /**
+     * If the buffer is loaded or not
+     */
+    get loaded(): boolean {
+        return this.length > 0;
+    }
+
+    /**
+     * The duration of the buffer in seconds.
+     */
+    get duration(): Seconds {
+        if (this._buffer) {
+            return this._buffer.duration;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * The length of the buffer in samples
+     */
+    get length(): Samples {
+        if (this._buffer) {
+            return this._buffer.length;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * The number of discrete audio channels. Returns 0 if no buffer is loaded.
+     */
+    get numberOfChannels(): number {
+        if (this._buffer) {
+            return this._buffer.numberOfChannels;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * Reverse the buffer.
+     */
+    get reverse(): boolean {
+        return this._reversed;
+    }
+
+    set reverse(rev: boolean) {
+        if (this._reversed !== rev) {
+            this._reversed = rev;
+            this._reverse();
+        }
+    }
+
+    static getDefaults(): ToneAudioBufferOptions {
+        return {
+            onerror: noOp,
+            onload: noOp,
+            reverse: false,
+        };
+    }
+
+    /**
+     * Create a ToneAudioBuffer from the array. To create a multichannel AudioBuffer,
+     * pass in a multidimensional array.
+     * @param array The array to fill the audio buffer
+     * @return A ToneAudioBuffer created from the array
+     */
+    static fromArray(array: Float32Array | Float32Array[]): ToneAudioBuffer {
+        return new ToneAudioBuffer().fromArray(array);
+    }
+
+    /**
+     * Creates a ToneAudioBuffer from a URL, returns a promise which resolves to a ToneAudioBuffer
+     * @param  url The url to load.
+     * @return A promise which resolves to a ToneAudioBuffer
+     */
+    static async fromUrl(url: string): Promise<ToneAudioBuffer> {
+        const buffer = new ToneAudioBuffer();
+        return await buffer.load(url);
+    }
+
+    /**
+     * Loads a url using fetch and returns the AudioBuffer.
+     */
+    static async load(url: string): Promise<AudioBuffer> {
+        // test if the url contains multiple extensions
+        const matches = url.match(/\[([^\]\[]+\|.+)\]$/);
+        if (matches) {
+            const extensions = matches[1].split("|");
+            let extension = extensions[0];
+            for (const ext of extensions) {
+                if (ToneAudioBuffer.supportsType(ext)) {
+                    extension = ext;
+                    break;
+                }
+            }
+            url = url.replace(matches[0], extension);
+        }
+
+        // make sure there is a slash between the baseUrl and the url
+        const baseUrl =
+            ToneAudioBuffer.baseUrl === "" ||
+            ToneAudioBuffer.baseUrl.endsWith("/")
+                ? ToneAudioBuffer.baseUrl
+                : ToneAudioBuffer.baseUrl + "/";
+
+        // encode special characters in file path
+        const location = document.createElement("a");
+        location.href = baseUrl + url;
+        location.pathname = (location.pathname + location.hash)
+            .split("/")
+            .map(encodeURIComponent)
+            .join("/");
+
+        const response = await fetch(location.href);
+        if (!response.ok) {
+            throw new Error(`could not load url: ${url}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+
+        const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
+
+        return audioBuffer;
+    }
+
+    /**
+     * Checks a url's extension to see if the current browser can play that file type.
+     * @param url The url/extension to test
+     * @return If the file extension can be played
+     * @static
+     * @example
+     * Tone.ToneAudioBuffer.supportsType("wav"); // returns true
+     * Tone.ToneAudioBuffer.supportsType("path/to/file.wav"); // returns true
+     */
+    static supportsType(url: string): boolean {
+        const extensions = url.split(".");
+        const extension = extensions[extensions.length - 1];
+        const response = document
+            .createElement("audio")
+            .canPlayType("audio/" + extension);
+        return response !== "";
+    }
+
+    /**
+     * Returns a Promise which resolves when all of the buffers have loaded
+     */
+    static async loaded(): Promise<void> {
+        // this makes sure that the function is always async
+        await Promise.resolve();
+        while (ToneAudioBuffer.downloads.length) {
+            await ToneAudioBuffer.downloads[0];
+        }
+    }
 
 	/**
 	 * Pass in an AudioBuffer or ToneAudioBuffer to set the value of this buffer.
@@ -151,6 +305,10 @@ export class ToneAudioBuffer extends Tone {
 		return this;
 	}
 
+    //-------------------------------------
+    // STATIC METHODS
+    //-------------------------------------
+
 	/**
 	 * clean up
 	 */
@@ -174,9 +332,9 @@ export class ToneAudioBuffer extends Tone {
 		const context = getContext();
 		const buffer = context.createBuffer(channels, len, context.sampleRate);
 		const multiChannelArray: Float32Array[] =
-			!isMultidimensional && channels === 1
-				? [array as Float32Array]
-				: (array as Float32Array[]);
+            !isMultidimensional && channels === 1
+                ? [array as Float32Array]
+                : (array as Float32Array[]);
 
 		for (let c = 0; c < channels; c++) {
 			buffer.copyToChannel(multiChannelArray[c], c);
@@ -279,165 +437,5 @@ export class ToneAudioBuffer extends Tone {
 			}
 		}
 		return this;
-	}
-
-	/**
-	 * If the buffer is loaded or not
-	 */
-	get loaded(): boolean {
-		return this.length > 0;
-	}
-
-	/**
-	 * The duration of the buffer in seconds.
-	 */
-	get duration(): Seconds {
-		if (this._buffer) {
-			return this._buffer.duration;
-		} else {
-			return 0;
-		}
-	}
-
-	/**
-	 * The length of the buffer in samples
-	 */
-	get length(): Samples {
-		if (this._buffer) {
-			return this._buffer.length;
-		} else {
-			return 0;
-		}
-	}
-
-	/**
-	 * The number of discrete audio channels. Returns 0 if no buffer is loaded.
-	 */
-	get numberOfChannels(): number {
-		if (this._buffer) {
-			return this._buffer.numberOfChannels;
-		} else {
-			return 0;
-		}
-	}
-
-	/**
-	 * Reverse the buffer.
-	 */
-	get reverse(): boolean {
-		return this._reversed;
-	}
-	set reverse(rev: boolean) {
-		if (this._reversed !== rev) {
-			this._reversed = rev;
-			this._reverse();
-		}
-	}
-
-	//-------------------------------------
-	// STATIC METHODS
-	//-------------------------------------
-
-	/**
-	 * A path which is prefixed before every url.
-	 */
-	static baseUrl = "";
-
-	/**
-	 * Create a ToneAudioBuffer from the array. To create a multichannel AudioBuffer,
-	 * pass in a multidimensional array.
-	 * @param array The array to fill the audio buffer
-	 * @return A ToneAudioBuffer created from the array
-	 */
-	static fromArray(array: Float32Array | Float32Array[]): ToneAudioBuffer {
-		return new ToneAudioBuffer().fromArray(array);
-	}
-
-	/**
-	 * Creates a ToneAudioBuffer from a URL, returns a promise which resolves to a ToneAudioBuffer
-	 * @param  url The url to load.
-	 * @return A promise which resolves to a ToneAudioBuffer
-	 */
-	static async fromUrl(url: string): Promise<ToneAudioBuffer> {
-		const buffer = new ToneAudioBuffer();
-		return await buffer.load(url);
-	}
-
-	/**
-	 * All of the downloads
-	 */
-	static downloads: Array<Promise<void>> = [];
-
-	/**
-	 * Loads a url using fetch and returns the AudioBuffer.
-	 */
-	static async load(url: string): Promise<AudioBuffer> {
-		// test if the url contains multiple extensions
-		const matches = url.match(/\[([^\]\[]+\|.+)\]$/);
-		if (matches) {
-			const extensions = matches[1].split("|");
-			let extension = extensions[0];
-			for (const ext of extensions) {
-				if (ToneAudioBuffer.supportsType(ext)) {
-					extension = ext;
-					break;
-				}
-			}
-			url = url.replace(matches[0], extension);
-		}
-
-		// make sure there is a slash between the baseUrl and the url
-		const baseUrl =
-			ToneAudioBuffer.baseUrl === "" ||
-			ToneAudioBuffer.baseUrl.endsWith("/")
-				? ToneAudioBuffer.baseUrl
-				: ToneAudioBuffer.baseUrl + "/";
-
-		// encode special characters in file path
-		const location = document.createElement("a");
-		location.href = baseUrl + url;
-		location.pathname = (location.pathname + location.hash)
-				.split("/")
-				.map(encodeURIComponent)
-				.join("/");
-
-		const response = await fetch(location.href);
-		if (!response.ok) {
-			throw new Error(`could not load url: ${url}`);
-		}
-		const arrayBuffer = await response.arrayBuffer();
-
-		const audioBuffer = await getContext().decodeAudioData(arrayBuffer);
-
-		return audioBuffer;
-	}
-
-	/**
-	 * Checks a url's extension to see if the current browser can play that file type.
-	 * @param url The url/extension to test
-	 * @return If the file extension can be played
-	 * @static
-	 * @example
-	 * Tone.ToneAudioBuffer.supportsType("wav"); // returns true
-	 * Tone.ToneAudioBuffer.supportsType("path/to/file.wav"); // returns true
-	 */
-	static supportsType(url: string): boolean {
-		const extensions = url.split(".");
-		const extension = extensions[extensions.length - 1];
-		const response = document
-				.createElement("audio")
-				.canPlayType("audio/" + extension);
-		return response !== "";
-	}
-
-	/**
-	 * Returns a Promise which resolves when all of the buffers have loaded
-	 */
-	static async loaded(): Promise<void> {
-		// this makes sure that the function is always async
-		await Promise.resolve();
-		while (ToneAudioBuffer.downloads.length) {
-			await ToneAudioBuffer.downloads[0];
-		}
 	}
 }

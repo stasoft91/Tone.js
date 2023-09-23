@@ -1,7 +1,7 @@
-import { ConstantOutput } from "test/helper/ConstantOutput";
 import { BasicTests } from "test/helper/Basic";
-import { GreaterThanZero } from "./GreaterThanZero";
+import { ConstantOutput } from "test/helper/ConstantOutput";
 import { Signal } from "Tone/signal/Signal";
+import { GreaterThanZero } from "./GreaterThanZero";
 
 describe("GreaterThanZero", () => {
 

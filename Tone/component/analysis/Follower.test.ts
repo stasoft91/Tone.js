@@ -1,9 +1,9 @@
-import { Follower } from "./Follower";
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { Offline } from "test/helper/Offline";
-import { Signal } from "Tone/signal/Signal";
 import { PassAudio } from "test/helper/PassAudio";
-import { expect } from "chai";
+import { Signal } from "Tone/signal/Signal";
+import { Follower } from "./Follower";
 
 describe("Follower", () => {
 

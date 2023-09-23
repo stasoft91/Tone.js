@@ -1,7 +1,6 @@
-import { Effect, EffectOptions } from "./Effect";
-import { MidSideSplit } from "../component/channel/MidSideSplit";
-import { MidSideMerge } from "../component/channel/MidSideMerge";
-import { OutputNode, ToneAudioNode } from "../core/context/ToneAudioNode";
+import { MidSideMerge, MidSideSplit } from "../component";
+import type { OutputNode, ToneAudioNode } from "../core";
+import { Effect, type EffectOptions } from "./Effect";
 
 export type MidSideEffectOptions = EffectOptions;
 
@@ -18,36 +17,30 @@ export type MidSideEffectOptions = EffectOptions;
 export abstract class MidSideEffect<Options extends MidSideEffectOptions> extends Effect<Options> {
 
 	readonly name: string = "MidSideEffect";
-
-	/**
-	 * The mid/side split
-	 */
-	private _midSideSplit: MidSideSplit;
-	
-	/**
-	 * The mid/side merge
-	 */
-	private _midSideMerge: MidSideMerge;
-	
 	/**
 	 * The mid send. Connect to mid processing
 	 */
 	protected _midSend: ToneAudioNode;
-	
 	/**
 	 * The side send. Connect to side processing
 	 */
 	protected _sideSend: ToneAudioNode;
-	
 	/**
 	 * The mid return connection
 	 */
 	protected _midReturn: ToneAudioNode;
-	
 	/**
 	 * The side return connection
 	 */
 	protected _sideReturn: ToneAudioNode;
+    /**
+     * The mid/side split
+     */
+    private _midSideSplit: MidSideSplit;
+    /**
+     * The mid/side merge
+     */
+    private _midSideMerge: MidSideMerge;
 
 	constructor(options: MidSideEffectOptions) {
 
@@ -65,20 +58,6 @@ export abstract class MidSideEffect<Options extends MidSideEffectOptions> extend
 		this._midSideMerge.connect(this.effectReturn);
 	}
 
-	/**
-	 * Connect the mid chain of the effect
-	 */
-	protected connectEffectMid(...nodes: OutputNode[]): void {
-		this._midSend.chain(...nodes, this._midReturn);
-	}
-	
-	/**
-	 * Connect the side chain of the effect
-	 */
-	protected connectEffectSide(...nodes: OutputNode[]): void {
-		this._sideSend.chain(...nodes, this._sideReturn);
-	}
-
 	dispose(): this {
 		super.dispose();
 		this._midSideSplit.dispose();
@@ -89,5 +68,19 @@ export abstract class MidSideEffect<Options extends MidSideEffectOptions> extend
 		this._sideReturn.dispose();
 		return this;
 	}
+
+    /**
+     * Connect the mid chain of the effect
+     */
+    protected connectEffectMid(...nodes: OutputNode[]): void {
+        this._midSend.chain(...nodes, this._midReturn);
+    }
+
+    /**
+     * Connect the side chain of the effect
+     */
+    protected connectEffectSide(...nodes: OutputNode[]): void {
+        this._sideSend.chain(...nodes, this._sideReturn);
+    }
 }
 

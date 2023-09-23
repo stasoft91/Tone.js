@@ -1,9 +1,9 @@
-import { Vibrato } from "./Vibrato";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
 import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
 import { Oscillator } from "Tone/source/oscillator/Oscillator";
+import { Vibrato } from "./Vibrato";
 
 describe("Vibrato", () => {
 	BasicTests(Vibrato);
@@ -28,8 +28,8 @@ describe("Vibrato", () => {
 			expect(vibrato.type).to.equal("sawtooth");
 			vibrato.dispose();
 		});
-		
-		it("can get/set the options", () => {
+
+        it("can get/set the options", () => {
 			const vibrato = new Vibrato();
 			vibrato.set({
 				frequency: 2.4,

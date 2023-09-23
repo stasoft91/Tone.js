@@ -1,9 +1,8 @@
-import { Signal, SignalOptions } from "./Signal";
-import { NormalRange, Seconds, Time, TransportTime, UnitMap, UnitName } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { TransportTimeClass } from "../core/type/TransportTime";
+import type { OutputNode } from "../core";
+import { optionsFromArguments, TransportTimeClass } from "../core";
+import type { NormalRange, Seconds, Time, TransportTime, UnitMap, UnitName } from "../core/type/Units";
+import { Signal, type SignalOptions } from "./Signal";
 import { ToneConstantSource } from "./ToneConstantSource";
-import { OutputNode } from "../core/context/ToneAudioNode";
 
 /**
  * Adds the ability to synchronize the signal to the [[Transport]]
@@ -11,7 +10,7 @@ import { OutputNode } from "../core/context/ToneAudioNode";
 export class SyncedSignal<TypeName extends UnitName = "number"> extends Signal<TypeName> {
 
 	readonly name: string = "SyncedSignal";
-	
+
 	/**
 	 * Don't override when something is connected to the input
 	 */
@@ -58,7 +57,7 @@ export class SyncedSignal<TypeName extends UnitName = "number"> extends Signal<T
 		this._constantSource.stop(0);
 
 		// create a new one
-		this._constantSource = this.output = new ToneConstantSource<TypeName>({ 
+        this._constantSource = this.output = new ToneConstantSource<TypeName>({
 			context: this.context,
 			offset: options.value,
 			units: options.units,
@@ -66,34 +65,12 @@ export class SyncedSignal<TypeName extends UnitName = "number"> extends Signal<T
 		this.setValueAtTime(options.value, 0);
 	}
 
-	/**
-	 * Callback which is invoked every tick.
-	 */
-	private _onTick(time: Seconds): void {
-		const val = super.getValueAtTime(this.context.transport.seconds);
-		// approximate ramp curves with linear ramps
-		if (this._lastVal !== val) {
-			this._lastVal = val;
-			this._constantSource.offset.setValueAtTime(val, time);
-		}
-	}
-
-	/**
-	 * Anchor the value at the start and stop of the Transport
-	 */
-	private _anchorValue(time: Seconds): void {
-		const val = super.getValueAtTime(this.context.transport.seconds);
-		this._lastVal = val;
-		this._constantSource.offset.cancelAndHoldAtTime(time);
-		this._constantSource.offset.setValueAtTime(val, time);
-	}
-
 	getValueAtTime(time: TransportTime): UnitMap[TypeName] {
 		const computedTime = new TransportTimeClass(this.context, time).toSeconds();
 		return super.getValueAtTime(computedTime);
 	}
-	
-	setValueAtTime(value: UnitMap[TypeName], time: TransportTime) {
+
+    setValueAtTime(value: UnitMap[TypeName], time: TransportTime) {
 		const computedTime = new TransportTimeClass(this.context, time).toSeconds();
 		super.setValueAtTime(value, computedTime);
 		return this;
@@ -135,20 +112,20 @@ export class SyncedSignal<TypeName extends UnitName = "number"> extends Signal<T
 		super.cancelAndHoldAtTime(computedTime);
 		return this;
 	}
-	
-	setRampPoint(time: TransportTime): this {
+
+    setRampPoint(time: TransportTime): this {
 		const computedTime = new TransportTimeClass(this.context, time).toSeconds();
 		super.setRampPoint(computedTime);
 		return this;
 	}
-	
-	exponentialRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: TransportTime): this {
+
+    exponentialRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: TransportTime): this {
 		const computedTime = new TransportTimeClass(this.context, startTime).toSeconds();
 		super.exponentialRampTo(value, rampTime, computedTime);
 		return this;
 	}
-	
-	linearRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: TransportTime): this {
+
+    linearRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: TransportTime): this {
 		const computedTime = new TransportTimeClass(this.context, startTime).toSeconds();
 		super.linearRampTo(value, rampTime, computedTime);
 		return this;
@@ -169,4 +146,26 @@ export class SyncedSignal<TypeName extends UnitName = "number"> extends Signal<T
 		this._constantSource.dispose();
 		return this;
 	}
+
+    /**
+     * Callback which is invoked every tick.
+     */
+    private _onTick(time: Seconds): void {
+        const val = super.getValueAtTime(this.context.transport.seconds);
+        // approximate ramp curves with linear ramps
+        if (this._lastVal !== val) {
+            this._lastVal = val;
+            this._constantSource.offset.setValueAtTime(val, time);
+        }
+    }
+
+    /**
+     * Anchor the value at the start and stop of the Transport
+     */
+    private _anchorValue(time: Seconds): void {
+        const val = super.getValueAtTime(this.context.transport.seconds);
+        this._lastVal = val;
+        this._constantSource.offset.cancelAndHoldAtTime(time);
+        this._constantSource.offset.setValueAtTime(val, time);
+    }
 }

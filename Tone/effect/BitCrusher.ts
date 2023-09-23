@@ -1,11 +1,8 @@
-import { ToneAudioWorklet, ToneAudioWorkletOptions } from "../core/worklet/ToneAudioWorklet";
-import { Effect, EffectOptions } from "./Effect";
-import { Positive } from "../core/type/Units";
-import { Gain } from "../core/context/Gain";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { connectSeries } from "../core/context/ToneAudioNode";
-import { Param } from "../core/context/Param";
+import { connectSeries, Gain, optionsFromArguments, Param } from "../core";
+import type { Positive } from "../core/type/Units";
+import { ToneAudioWorklet, type ToneAudioWorkletOptions } from "../core/worklet/ToneAudioWorklet";
 import { workletName } from "./BitCrusher.worklet";
+import { Effect, type EffectOptions } from "./Effect";
 
 export interface BitCrusherOptions extends EffectOptions {
 	bits: Positive;
@@ -20,7 +17,7 @@ export interface BitCrusherOptions extends EffectOptions {
  * const crusher = new Tone.BitCrusher(4).toDestination();
  * const synth = new Tone.Synth().connect(crusher);
  * synth.triggerAttackRelease("C2", 2);
- * 
+ *
  * @category Effect
  */
 export class BitCrusher extends Effect<BitCrusherOptions> {
@@ -109,10 +106,6 @@ class BitCrusherWorklet extends ToneAudioWorklet<BitCrusherWorkletOptions> {
 		});
 	}
 
-	protected _audioWorkletName(): string {
-		return workletName;
-	}
-
 	onReady(node: AudioWorkletNode) {
 		connectSeries(this.input, node, this.output);
 		const bits = node.parameters.get("bits") as AudioParam;
@@ -126,4 +119,8 @@ class BitCrusherWorklet extends ToneAudioWorklet<BitCrusherWorkletOptions> {
 		this.bits.dispose();
 		return this;
 	}
+
+    protected _audioWorkletName(): string {
+        return workletName;
+    }
 }

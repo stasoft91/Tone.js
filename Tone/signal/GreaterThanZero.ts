@@ -1,8 +1,7 @@
-import { SignalOperator, SignalOperatorOptions } from "./SignalOperator";
+import { optionsFromArguments, ToneAudioNode } from "../core";
 import { Multiply } from "./Multiply";
-import { ToneAudioNode } from "../core/context/ToneAudioNode";
+import { SignalOperator, type SignalOperatorOptions } from "./SignalOperator";
 import { WaveShaper } from "./WaveShaper";
-import { optionsFromArguments } from "../core/util/Defaults";
 
 export type GreaterThanZeroOptions = SignalOperatorOptions
 
@@ -10,29 +9,26 @@ export type GreaterThanZeroOptions = SignalOperatorOptions
  * GreaterThanZero outputs 1 when the input is strictly greater than zero
  * @example
  * return Tone.Offline(() => {
- * 	const gt0 = new Tone.GreaterThanZero().toDestination();
- * 	const sig = new Tone.Signal(0.5).connect(gt0);
- * 	sig.setValueAtTime(-1, 0.05);
+ *    const gt0 = new Tone.GreaterThanZero().toDestination();
+ *    const sig = new Tone.Signal(0.5).connect(gt0);
+ *    sig.setValueAtTime(-1, 0.05);
  * }, 0.1, 1);
  * @category Signal
  */
 export class GreaterThanZero extends SignalOperator<GreaterThanZeroOptions> {
 
 	readonly name: string = "GreaterThanZero";
-
+    readonly output: ToneAudioNode;
+    readonly input: ToneAudioNode;
 	/**
 	 * The waveshaper
 	 */
 	private _thresh: WaveShaper;
-
 	/**
 	 * Scale the first thresholded signal by a large value.
 	 * this will help with values which are very close to 0
 	 */
 	private _scale: Multiply;
-
-	readonly output: ToneAudioNode;
-	readonly input: ToneAudioNode;
 
 	constructor(options?: Partial<GreaterThanZeroOptions>);
 	constructor() {

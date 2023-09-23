@@ -1,15 +1,11 @@
-import { AmplitudeEnvelope } from "../component/envelope/AmplitudeEnvelope";
-import { NormalRange, Time } from "../core/type/Units";
+import { AmplitudeEnvelope, Envelope, type EnvelopeOptions } from "../component";
+import { ToneAudioNode, type ToneAudioNodeOptions, } from "../core";
+import type { NormalRange, Time } from "../core/type/Units";
 import { omitFromObject, optionsFromArguments } from "../core/util/Defaults";
-import { RecursivePartial } from "../core/util/Interface";
-import { Noise, NoiseOptions } from "../source/Noise";
-import { Instrument, InstrumentOptions } from "./Instrument";
-import {
-	ToneAudioNode,
-	ToneAudioNodeOptions,
-} from "../core/context/ToneAudioNode";
-import { Envelope, EnvelopeOptions } from "../component/envelope/Envelope";
+import type { RecursivePartial } from "../core/util/Interface";
+import { Noise, type NoiseOptions } from "../source";
 import { Source } from "../source/Source";
+import { Instrument, type InstrumentOptions } from "./Instrument";
 
 export interface NoiseSynthOptions extends InstrumentOptions {
 	envelope: Omit<EnvelopeOptions, keyof ToneAudioNodeOptions>;
@@ -110,8 +106,8 @@ export class NoiseSynth extends Instrument<NoiseSynthOptions> {
 		if (this.envelope.sustain === 0) {
 			this.noise.stop(
 				time +
-					this.toSeconds(this.envelope.attack) +
-					this.toSeconds(this.envelope.decay)
+                this.toSeconds(this.envelope.attack) +
+                this.toSeconds(this.envelope.decay)
 			);
 		}
 		return this;

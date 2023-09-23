@@ -1,7 +1,7 @@
 import { BaseContext } from "../context/BaseContext";
 import { Tone } from "../Tone";
 import { isDefined, isObject, isString, isUndef } from "../util/TypeCheck";
-import { BPM, Hertz, MidiNote, Milliseconds, Samples, Seconds, Ticks, Time } from "./Units";
+import type { BPM, Hertz, MidiNote, Milliseconds, Samples, Seconds, Ticks, Time } from "./Units";
 
 export type TimeValue = Time | TimeBaseClass<any, any>;
 
@@ -28,26 +28,22 @@ export interface TimeExpression<Type extends number> {
 export abstract class TimeBaseClass<Type extends number, Unit extends string> extends Tone {
 
 	readonly context: BaseContext;
-
-	/**
-	 * The value of the units
-	 */
-	protected _val?: TimeValue;
-
-	/**
-	 * The units of time
-	 */
-	protected _units?: Unit;
-
-	/**
-	 * All of the conversion expressions
-	 */
-	protected _expressions: TimeExpression<Type>;
-
 	/**
 	 * The default units
 	 */
 	readonly defaultUnits: Unit = "s" as Unit;
+	/**
+	 * The value of the units
+	 */
+	protected _val?: TimeValue;
+	/**
+	 * The units of time
+	 */
+	protected _units?: Unit;
+	/**
+	 * All of the conversion expressions
+	 */
+	protected _expressions: TimeExpression<Type>;
 
 	/**
 	 * @param context The context associated with the time value. Used to compute
@@ -62,6 +58,120 @@ export abstract class TimeBaseClass<Type extends number, Unit extends string> ex
 		this._units = units;
 		this.context = context;
 		this._expressions = this._getExpressions();
+	}
+
+	/**
+	 * Evaluate the time value. Returns the time in seconds.
+	 */
+	valueOf(): Type {
+		if (this._val instanceof TimeBaseClass) {
+			this.fromType(this._val);
+		}
+		if (isUndef(this._val)) {
+			return this._noArg();
+		} else if (isString(this._val) && isUndef(this._units)) {
+			for (const units in this._expressions) {
+				if (this._expressions[units].regexp.test(this._val.trim())) {
+					this._units = units as Unit;
+					break;
+				}
+			}
+		} else if (isObject(this._val)) {
+			let total = 0;
+			for (const typeName in this._val) {
+				if (isDefined(this._val[typeName])) {
+					const quantity = this._val[typeName];
+					// @ts-ignore
+					const time = (new this.constructor(this.context, typeName)).valueOf() * quantity;
+					total += time;
+				}
+			}
+			return total as Type;
+		}
+		if (isDefined(this._units)) {
+			const expr = this._expressions[this._units];
+			const matching = this._val.toString().trim().match(expr.regexp);
+			if (matching) {
+				return expr.method.apply(this, matching.slice(1));
+			} else {
+				return expr.method.call(this, this._val);
+			}
+		} else if (isString(this._val)) {
+			return parseFloat(this._val) as Type;
+		} else {
+			return this._val as Type;
+		}
+	}
+
+	//-------------------------------------
+	// 	VALUE OF
+	//-------------------------------------
+
+	/**
+	 * Coerce a time type into this units type.
+	 * @param type Any time type units
+	 */
+	fromType(type: TimeBaseClass<any, any>): this {
+		this._units = undefined;
+		switch (this.defaultUnits) {
+			case "s":
+				this._val = type.toSeconds();
+				break;
+			case "i":
+				this._val = type.toTicks();
+				break;
+			case "hz":
+				this._val = type.toFrequency();
+				break;
+			case "midi":
+				this._val = type.toMidi();
+				break;
+		}
+		return this;
+	}
+
+	//-------------------------------------
+	// 	UNIT CONVERSIONS
+	//-------------------------------------
+
+	/**
+	 * Return the value in seconds
+	 */
+	abstract toSeconds(): Seconds;
+
+	/**
+	 * Return the value as a Midi note
+	 */
+	abstract toMidi(): MidiNote;
+
+	/**
+	 * Convert the value into ticks
+	 */
+	abstract toTicks(): Ticks;
+
+	/**
+	 * Return the value in hertz
+	 */
+	toFrequency(): Hertz {
+		return 1 / this.toSeconds();
+	}
+
+	/**
+	 * Return the time in samples
+	 */
+	toSamples(): Samples {
+		return this.toSeconds() * this.context.sampleRate;
+	}
+
+	//-------------------------------------
+	// 	TEMPO CONVERSIONS
+	//-------------------------------------
+
+	/**
+	 * Return the time in milliseconds.
+	 */
+	toMilliseconds(): Milliseconds {
+		return this.toSeconds() * 1000;
 	}
 
 	/**
@@ -143,57 +253,6 @@ export abstract class TimeBaseClass<Type extends number, Unit extends string> ex
 		};
 	}
 
-	//-------------------------------------
-	// 	VALUE OF
-	//-------------------------------------
-
-	/**
-	 * Evaluate the time value. Returns the time in seconds.
-	 */
-	valueOf(): Type {
-		if (this._val instanceof TimeBaseClass) {
-			this.fromType(this._val);
-		}
-		if (isUndef(this._val)) {
-			return this._noArg();
-		} else if (isString(this._val) && isUndef(this._units)) {
-			for (const units in this._expressions) {
-				if (this._expressions[units].regexp.test(this._val.trim())) {
-					this._units = units as Unit;
-					break;
-				}
-			}
-		} else if (isObject(this._val)) {
-			let total = 0;
-			for (const typeName in this._val) {
-				if (isDefined(this._val[typeName])) {
-					const quantity = this._val[typeName];
-					// @ts-ignore
-					const time = (new this.constructor(this.context, typeName)).valueOf() * quantity;
-					total += time;
-				}
-			}
-			return total as Type;
-		}
-		if (isDefined(this._units)) {
-			const expr = this._expressions[this._units];
-			const matching = this._val.toString().trim().match(expr.regexp);
-			if (matching) {
-				return expr.method.apply(this, matching.slice(1));
-			} else {
-				return expr.method.call(this, this._val);
-			}
-		} else if (isString(this._val)) {
-			return parseFloat(this._val) as Type;
-		} else {
-			return this._val as Type;
-		}
-	}
-
-	//-------------------------------------
-	// 	UNIT CONVERSIONS
-	//-------------------------------------
-
 	/**
 	 * Returns the value of a frequency in the current units
 	 */
@@ -207,6 +266,10 @@ export abstract class TimeBaseClass<Type extends number, Unit extends string> ex
 	protected _beatsToUnits(beats: number): Type {
 		return (60 / this._getBpm()) * beats as Type;
 	}
+
+	//-------------------------------------
+	// 	CONVERSION INTERFACE
+	//-------------------------------------
 
 	/**
 	 * Returns the value of a second in the current units
@@ -228,10 +291,6 @@ export abstract class TimeBaseClass<Type extends number, Unit extends string> ex
 	protected _noArg(): Type {
 		return this._now();
 	}
-
-	//-------------------------------------
-	// 	TEMPO CONVERSIONS
-	//-------------------------------------
 
 	/**
 	 * Return the bpm
@@ -258,67 +317,4 @@ export abstract class TimeBaseClass<Type extends number, Unit extends string> ex
 	 * Return the current time in whichever context is relevant
 	 */
 	protected abstract _now(): Type;
-
-	//-------------------------------------
-	// 	CONVERSION INTERFACE
-	//-------------------------------------
-
-	/**
-	 * Coerce a time type into this units type.
-	 * @param type Any time type units
-	 */
-	fromType(type: TimeBaseClass<any, any>): this {
-		this._units = undefined;
-		switch (this.defaultUnits) {
-			case "s":
-				this._val = type.toSeconds();
-				break;
-			case "i":
-				this._val = type.toTicks();
-				break;
-			case "hz":
-				this._val = type.toFrequency();
-				break;
-			case "midi":
-				this._val = type.toMidi();
-				break;
-		}
-		return this;
-	}
-
-	/**
-	 * Return the value in seconds
-	 */
-	abstract toSeconds(): Seconds;
-
-	/**
-	 * Return the value as a Midi note
-	 */
-	abstract toMidi(): MidiNote;
-
-	/**
-	 * Convert the value into ticks
-	 */
-	abstract toTicks(): Ticks;
-
-	/**
-	 * Return the value in hertz
-	 */
-	toFrequency(): Hertz {
-		return 1 / this.toSeconds();
-	}
-
-	/**
-	 * Return the time in samples
-	 */
-	toSamples(): Samples {
-		return this.toSeconds() * this.context.sampleRate;
-	}
-
-	/**
-	 * Return the time in milliseconds.
-	 */
-	toMilliseconds(): Milliseconds {
-		return this.toSeconds() * 1000;
-	}
 }

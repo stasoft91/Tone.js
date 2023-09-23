@@ -1,13 +1,13 @@
-import { AbstractParam } from "../context/AbstractParam";
 import { dbToGain, gainToDb } from "../type/Conversions";
-import { Decibels, Frequency, Positive, Time, UnitMap, UnitName } from "../type/Units";
+import type { Decibels, Frequency, Positive, Time, UnitMap, UnitName } from "../type/Units";
 import { isAudioParam } from "../util/AdvancedTypeCheck";
+import { assert, assertRange } from "../util/Debug";
 import { optionsFromArguments } from "../util/Defaults";
+import { EQ } from "../util/Math";
 import { Timeline } from "../util/Timeline";
 import { isDefined } from "../util/TypeCheck";
-import { ToneWithContext, ToneWithContextOptions } from "./ToneWithContext";
-import { EQ } from "../util/Math";
-import { assert, assertRange } from "../util/Debug";
+import { AbstractParam } from "./AbstractParam";
+import { ToneWithContext, type ToneWithContextOptions } from "./ToneWithContext";
 
 export interface ParamOptions<TypeName extends UnitName> extends ToneWithContextOptions {
 	units: TypeName;
@@ -22,7 +22,12 @@ export interface ParamOptions<TypeName extends UnitName> extends ToneWithContext
 /**
  * the possible automation types
  */
-type AutomationType = "linearRampToValueAtTime" | "exponentialRampToValueAtTime" | "setValueAtTime" | "setTargetAtTime" | "cancelScheduledValues";
+type AutomationType =
+    "linearRampToValueAtTime"
+    | "exponentialRampToValueAtTime"
+    | "setValueAtTime"
+    | "setTargetAtTime"
+    | "cancelScheduledValues";
 
 interface TargetAutomationEvent {
 	type: "setTargetAtTime";
@@ -36,6 +41,7 @@ interface NormalAutomationEvent {
 	time: number;
 	value: number;
 }
+
 /**
  * The events on the automation
  */
@@ -74,23 +80,20 @@ export class Param<TypeName extends UnitName = "number">
 	 * The default value before anything is assigned
 	 */
 	protected _initialValue: number;
-
+    /**
+     * If the underlying AudioParam can be swapped out
+     * using the setParam method.
+     */
+    protected readonly _swappable: boolean;
 	/**
 	 * The minimum output value
 	 */
 	private _minOutput = 1e-7;
-
 	/**
 	 * Private reference to the min and max values if passed into the constructor
 	 */
 	private readonly _minValue?: number;
 	private readonly _maxValue?: number;
-
-	/**
-	 * If the underlying AudioParam can be swapped out
-	 * using the setParam method. 
-	 */
-	protected readonly _swappable: boolean;
 
 	/**
 	 * @param param The AudioParam to wrap
@@ -105,7 +108,7 @@ export class Param<TypeName extends UnitName = "number">
 		const options = optionsFromArguments(Param.getDefaults(), arguments, ["param", "units", "convert"]);
 
 		assert(isDefined(options.param) &&
-			(isAudioParam(options.param) || options.param instanceof Param), "param must be an AudioParam");
+            (isAudioParam(options.param) || options.param instanceof Param), "param must be an AudioParam");
 
 		while (!isAudioParam(options.param)) {
 			options.param = options.param._param;
@@ -133,17 +136,11 @@ export class Param<TypeName extends UnitName = "number">
 		}
 	}
 
-	static getDefaults(): ParamOptions<any> {
-		return Object.assign(ToneWithContext.getDefaults(), {
-			convert: true,
-			units: "number" as UnitName,
-		} as ParamOptions<any>);
-	}
-
 	get value(): UnitMap[TypeName] {
 		const now = this.now();
 		return this.getValueAtTime(now);
 	}
+
 	set value(value) {
 		this.cancelScheduledValues(this.now());
 		this.setValueAtTime(value, this.now());
@@ -154,9 +151,9 @@ export class Param<TypeName extends UnitName = "number">
 		if (isDefined(this._minValue)) {
 			return this._minValue;
 		} else if (this.units === "time" || this.units === "frequency" ||
-			this.units === "normalRange" || this.units === "positive" ||
-			this.units === "transportTime" || this.units === "ticks" ||
-			this.units === "bpm" || this.units === "hertz" || this.units === "samples") {
+            this.units === "normalRange" || this.units === "positive" ||
+            this.units === "transportTime" || this.units === "ticks" ||
+            this.units === "bpm" || this.units === "hertz" || this.units === "samples") {
 			return 0;
 		} else if (this.units === "audioRange") {
 			return -1;
@@ -171,68 +168,23 @@ export class Param<TypeName extends UnitName = "number">
 		if (isDefined(this._maxValue)) {
 			return this._maxValue;
 		} else if (this.units === "normalRange" ||
-			this.units === "audioRange") {
+            this.units === "audioRange") {
 			return 1;
 		} else {
 			return this._param.maxValue;
 		}
 	}
 
-	/**
-	 * Type guard based on the unit name
-	 */
-	private _is<T>(arg: any, type: UnitName): arg is T {
-		return this.units === type;
+    get defaultValue(): UnitMap[TypeName] {
+        return this._toType(this._param.defaultValue);
 	}
 
-	/**
-	 * Make sure the value is always in the defined range
-	 */
-	private _assertRange(value: number): number {
-		if (isDefined(this.maxValue) && isDefined(this.minValue)) {
-			assertRange(value, this._fromType(this.minValue), this._fromType(this.maxValue));
-		}
-		return value;
+    static getDefaults(): ParamOptions<any> {
+        return Object.assign(ToneWithContext.getDefaults(), {
+            convert: true,
+            units: "number" as UnitName,
+        } as ParamOptions<any>);
 	}
-
-	/**
-	 * Convert the given value from the type specified by Param.units
-	 * into the destination value (such as Gain or Frequency).
-	 */
-	protected _fromType(val: UnitMap[TypeName]): number {
-		if (this.convert && !this.overridden) {
-			if (this._is<Time>(val, "time")) {
-				return this.toSeconds(val);
-			} else if (this._is<Decibels>(val, "decibels")) {
-				return dbToGain(val);
-			} else if (this._is<Frequency>(val, "frequency")) {
-				return this.toFrequency(val);
-			} else {
-				return val as number;
-			}
-		} else if (this.overridden) {
-			// if it's overridden, should only schedule 0s
-			return 0;
-		} else {
-			return val as number;
-		}
-	}
-
-	/**
-	 * Convert the parameters value into the units specified by Param.units.
-	 */
-	protected _toType(val: number): UnitMap[TypeName] {
-		if (this.convert && this.units === "decibels") {
-			return gainToDb(val) as UnitMap[TypeName];
-		} else {
-			return val as UnitMap[TypeName];
-		}
-	}
-
-	//-------------------------------------
-	// ABSTRACT PARAM INTERFACE
-	// all docs are generated from ParamInterface.ts
-	//-------------------------------------
 
 	setValueAtTime(value: UnitMap[TypeName], time: Time): this {
 		const computedTime = this.toSeconds(time);
@@ -302,6 +254,11 @@ export class Param<TypeName extends UnitName = "number">
 		this.setValueAtTime(currentVal, time);
 		return this;
 	}
+
+    //-------------------------------------
+    // ABSTRACT PARAM INTERFACE
+    // all docs are generated from ParamInterface.ts
+    //-------------------------------------
 
 	linearRampToValueAtTime(value: UnitMap[TypeName], endTime: Time): this {
 		const numericValue = this._fromType(value);
@@ -418,7 +375,7 @@ export class Param<TypeName extends UnitName = "number">
 		assert(isFinite(computedTime), `Invalid argument to cancelAndHoldAtTime: ${JSON.stringify(time)}`);
 
 		this.log(this.units, "cancelAndHoldAtTime", computedTime, "value=" + valueAtTime);
-		
+
 		// if there is an event at the given computedTime
 		// and that even is not a "set"
 		const before = this._events.get(computedTime);
@@ -496,7 +453,7 @@ export class Param<TypeName extends UnitName = "number">
 	}
 
 	/**
-	 * Replace the Param's internal AudioParam. Will apply scheduled curves 
+     * Replace the Param's internal AudioParam. Will apply scheduled curves
 	 * onto the parameter and replace the connections.
 	 */
 	setParam(param: AudioParam): this {
@@ -515,14 +472,39 @@ export class Param<TypeName extends UnitName = "number">
 		return this;
 	}
 
-	get defaultValue(): UnitMap[TypeName] {
-		return this._toType(this._param.defaultValue);
+    /**
+     * Convert the given value from the type specified by Param.units
+     * into the destination value (such as Gain or Frequency).
+     */
+    protected _fromType(val: UnitMap[TypeName]): number {
+        if (this.convert && !this.overridden) {
+            if (this._is<Time>(val, "time")) {
+                return this.toSeconds(val);
+            } else if (this._is<Decibels>(val, "decibels")) {
+                return dbToGain(val);
+            } else if (this._is<Frequency>(val, "frequency")) {
+                return this.toFrequency(val);
+            } else {
+                return val as number;
+            }
+        } else if (this.overridden) {
+            // if it's overridden, should only schedule 0s
+            return 0;
+        } else {
+            return val as number;
+        }
 	}
 
-	//-------------------------------------
-	// 	AUTOMATION CURVE CALCULATIONS
-	// 	MIT License, copyright (c) 2014 Jordan Santell
-	//-------------------------------------
+    /**
+     * Convert the parameters value into the units specified by Param.units.
+     */
+    protected _toType(val: number): UnitMap[TypeName] {
+        if (this.convert && this.units === "decibels") {
+            return gainToDb(val) as UnitMap[TypeName];
+        } else {
+            return val as UnitMap[TypeName];
+        }
+    }
 
 	// Calculates the the value along the curve produced by setTargetAtTime
 	protected _exponentialApproach(t0: number, v0: number, v1: number, timeConstant: number, t: number): number {
@@ -534,8 +516,30 @@ export class Param<TypeName extends UnitName = "number">
 		return v0 + (v1 - v0) * ((t - t0) / (t1 - t0));
 	}
 
+    //-------------------------------------
+    // 	AUTOMATION CURVE CALCULATIONS
+    // 	MIT License, copyright (c) 2014 Jordan Santell
+    //-------------------------------------
+
 	// Calculates the the value along the curve produced by exponentialRampToValueAtTime
 	protected _exponentialInterpolate(t0: number, v0: number, t1: number, v1: number, t: number): number {
 		return v0 * Math.pow(v1 / v0, (t - t0) / (t1 - t0));
 	}
+
+    /**
+     * Type guard based on the unit name
+     */
+    private _is<T>(arg: any, type: UnitName): arg is T {
+        return this.units === type;
+    }
+
+    /**
+     * Make sure the value is always in the defined range
+     */
+    private _assertRange(value: number): number {
+        if (isDefined(this.maxValue) && isDefined(this.minValue)) {
+            assertRange(value, this._fromType(this.minValue), this._fromType(this.maxValue));
+        }
+        return value;
+    }
 }

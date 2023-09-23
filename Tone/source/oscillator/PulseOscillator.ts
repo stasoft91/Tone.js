@@ -1,14 +1,12 @@
-import { Gain } from "../../core/context/Gain";
-import { AudioRange, Degrees, Frequency, Seconds, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { Gain, optionsFromArguments } from "../../core";
+import type { AudioRange, Degrees, Frequency, Seconds, Time } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { Signal } from "../../signal/Signal";
-import { WaveShaper } from "../../signal/WaveShaper";
+import { Signal, WaveShaper } from "../../signal";
 import { Source } from "../Source";
 import { Oscillator } from "./Oscillator";
-import { generateWaveform, PulseOscillatorOptions, ToneOscillatorInterface } from "./OscillatorInterface";
+import { generateWaveform, type PulseOscillatorOptions, type ToneOscillatorInterface } from "./OscillatorInterface";
 
-export { PulseOscillatorOptions } from "./OscillatorInterface";
+export type { PulseOscillatorOptions } from "./OscillatorInterface";
 
 /**
  * PulseOscillator is an oscillator with control over pulse width,
@@ -41,7 +39,7 @@ export { PulseOscillatorOptions } from "./OscillatorInterface";
  * ```
  * @example
  * return Tone.Offline(() => {
- * 	const pulse = new Tone.PulseOscillator(50, 0.4).toDestination().start();
+ *    const pulse = new Tone.PulseOscillator(50, 0.4).toDestination().start();
  * }, 0.1, 1);
  * @category Source
  */
@@ -53,11 +51,18 @@ export class PulseOscillator extends Source<PulseOscillatorOptions> implements T
 	 * The width of the pulse.
 	 * @example
 	 * return Tone.Offline(() => {
-	 * 	const pulse = new Tone.PulseOscillator(20, 0.8).toDestination().start();
+     *    const pulse = new Tone.PulseOscillator(20, 0.8).toDestination().start();
 	 * }, 0.1, 1);
 	 */
 	readonly width: Signal<"audioRange">;
-
+    /**
+     * The frequency control.
+     */
+    readonly frequency: Signal<"frequency">;
+    /**
+     * The detune in cents.
+     */
+    readonly detune: Signal<"cents">;
 	/**
 	 * gate the width amount
 	 */
@@ -65,22 +70,10 @@ export class PulseOscillator extends Source<PulseOscillatorOptions> implements T
 		context: this.context,
 		gain: 0,
 	});
-
 	/**
 	 * the sawtooth oscillator
 	 */
 	private _triangle: Oscillator;
-
-	/**
-	 * The frequency control.
-	 */
-	readonly frequency: Signal<"frequency">;
-
-	/**
-	 * The detune in cents.
-	 */
-	readonly detune: Signal<"cents">;
-
 	/**
 	 * Threshold the signal to turn it into a square
 	 */
@@ -123,49 +116,13 @@ export class PulseOscillator extends Source<PulseOscillatorOptions> implements T
 		readOnly(this, ["width", "frequency", "detune"]);
 	}
 
-	static getDefaults(): PulseOscillatorOptions {
-		return Object.assign(Source.getDefaults(), {
-			detune: 0,
-			frequency: 440,
-			phase: 0,
-			type: "pulse" as const,
-			width: 0.2,
-		});
-	}
-
-	/**
-	 * start the oscillator
-	 */
-	protected _start(time: Time): void {
-		time = this.toSeconds(time);
-		this._triangle.start(time);
-		this._widthGate.gain.setValueAtTime(1, time);
-	}
-
-	/**
-	 * stop the oscillator
-	 */
-	protected _stop(time: Time): void {
-		time = this.toSeconds(time);
-		this._triangle.stop(time);
-		// the width is still connected to the output.
-		// that needs to be stopped also
-		this._widthGate.gain.cancelScheduledValues(time);
-		this._widthGate.gain.setValueAtTime(0, time);
-	}
-
-	protected _restart(time: Seconds): void {
-		this._triangle.restart(time);
-		this._widthGate.gain.cancelScheduledValues(time);
-		this._widthGate.gain.setValueAtTime(1, time);
-	}
-
 	/**
 	 * The phase of the oscillator in degrees.
 	 */
 	get phase(): Degrees {
 		return this._triangle.phase;
 	}
+
 	set phase(phase: Degrees) {
 		this._triangle.phase = phase;
 	}
@@ -199,13 +156,23 @@ export class PulseOscillator extends Source<PulseOscillatorOptions> implements T
 	}
 
 	/**
-	 * *Internal use* The carrier oscillator type is fed through the 
+     * *Internal use* The carrier oscillator type is fed through the
 	 * waveshaper node to create the pulse. Using different carrier oscillators
-	 * changes oscillator's behavior. 
+     * changes oscillator's behavior.
 	 */
 	set carrierType(type: "triangle" | "sine") {
 		this._triangle.type = type;
 	}
+
+    static getDefaults(): PulseOscillatorOptions {
+        return Object.assign(Source.getDefaults(), {
+            detune: 0,
+            frequency: 440,
+            phase: 0,
+            type: "pulse" as const,
+            width: 0.2,
+        });
+    }
 
 	async asArray(length = 1024): Promise<Float32Array> {
 		return generateWaveform(this, length);
@@ -222,4 +189,31 @@ export class PulseOscillator extends Source<PulseOscillatorOptions> implements T
 		this._thresh.dispose();
 		return this;
 	}
+
+    /**
+     * start the oscillator
+     */
+    protected _start(time: Time): void {
+        time = this.toSeconds(time);
+        this._triangle.start(time);
+        this._widthGate.gain.setValueAtTime(1, time);
+    }
+
+    /**
+     * stop the oscillator
+     */
+    protected _stop(time: Time): void {
+        time = this.toSeconds(time);
+        this._triangle.stop(time);
+        // the width is still connected to the output.
+        // that needs to be stopped also
+        this._widthGate.gain.cancelScheduledValues(time);
+        this._widthGate.gain.setValueAtTime(0, time);
+    }
+
+    protected _restart(time: Seconds): void {
+        this._triangle.restart(time);
+        this._widthGate.gain.cancelScheduledValues(time);
+        this._widthGate.gain.setValueAtTime(1, time);
+    }
 }

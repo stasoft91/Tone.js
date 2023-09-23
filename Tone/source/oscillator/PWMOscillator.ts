@@ -1,14 +1,13 @@
-import { Degrees, Frequency, Seconds, Time } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { optionsFromArguments } from "../../core";
+import type { Degrees, Frequency, Seconds, Time } from "../../core/type/Units";
 import { readOnly } from "../../core/util/Interface";
-import { Multiply } from "../../signal/Multiply";
-import { Signal } from "../../signal/Signal";
+import { Multiply, Signal } from "../../signal";
 import { Source } from "../Source";
 import { Oscillator } from "./Oscillator";
-import { generateWaveform, PWMOscillatorOptions, ToneOscillatorInterface } from "./OscillatorInterface";
+import { generateWaveform, type PWMOscillatorOptions, type ToneOscillatorInterface } from "./OscillatorInterface";
 import { PulseOscillator } from "./PulseOscillator";
 
-export { PWMOscillatorOptions } from "./OscillatorInterface";
+export type { PWMOscillatorOptions } from "./OscillatorInterface";
 
 /**
  * PWMOscillator modulates the width of a Tone.PulseOscillator
@@ -17,7 +16,7 @@ export { PWMOscillatorOptions } from "./OscillatorInterface";
  * generated.
  * @example
  * return Tone.Offline(() => {
- * 	const pwm = new Tone.PWMOscillator(60, 0.3).toDestination().start();
+ *    const pwm = new Tone.PWMOscillator(60, 0.3).toDestination().start();
  * }, 0.1, 1);
  * @category Source
  */
@@ -26,43 +25,38 @@ export class PWMOscillator extends Source<PWMOscillatorOptions> implements ToneO
 	readonly name: string = "PWMOscillator";
 
 	readonly sourceType = "pwm";
-
-	/**
-	 * the pulse oscillator
-	 */
-	private _pulse: PulseOscillator;
-	/**
-	 * the modulator
-	 */
-	private _modulator: Oscillator;
-
-	/**
-	 * Scale the oscillator so it doesn't go silent
-	 * at the extreme values.
-	 */
-	private _scale: Multiply = new Multiply({
-		context: this.context,
-		value: 2,
-	});
-
 	/**
 	 * The frequency control.
 	 */
 	readonly frequency: Signal<"frequency">;
-
 	/**
 	 * The detune of the oscillator.
 	 */
 	readonly detune: Signal<"cents">;
-
 	/**
 	 * The width modulation rate of the oscillator.
 	 * @example
 	 * return Tone.Offline(() => {
-	 * 	const osc = new Tone.PWMOscillator(20, 2).toDestination().start();
+     *    const osc = new Tone.PWMOscillator(20, 2).toDestination().start();
 	 * }, 0.1, 1);
 	 */
 	readonly modulationFrequency: Signal<"frequency">;
+    /**
+     * the pulse oscillator
+     */
+    private _pulse: PulseOscillator;
+    /**
+     * the modulator
+     */
+    private _modulator: Oscillator;
+    /**
+     * Scale the oscillator so it doesn't go silent
+     * at the extreme values.
+     */
+    private _scale: Multiply = new Multiply({
+        context: this.context,
+        value: 2,
+    });
 
 	/**
 	 * @param {Frequency} frequency The starting frequency of the oscillator.
@@ -100,41 +94,6 @@ export class PWMOscillator extends Source<PWMOscillatorOptions> implements ToneO
 		readOnly(this, ["modulationFrequency", "frequency", "detune"]);
 	}
 
-	static getDefaults(): PWMOscillatorOptions {
-		return Object.assign(Source.getDefaults(), {
-			detune: 0,
-			frequency: 440,
-			modulationFrequency: 0.4,
-			phase: 0,
-			type: "pwm" as const,
-		});
-	}
-	/**
-	 * start the oscillator
-	 */
-	protected _start(time: Time): void {
-		time = this.toSeconds(time);
-		this._modulator.start(time);
-		this._pulse.start(time);
-	}
-
-	/**
-	 * stop the oscillator
-	 */
-	protected _stop(time: Time): void {
-		time = this.toSeconds(time);
-		this._modulator.stop(time);
-		this._pulse.stop(time);
-	}
-
-	/**
-	 * restart the oscillator
-	 */
-	protected _restart(time: Seconds): void {
-		this._modulator.restart(time);
-		this._pulse.restart(time);
-	}
-
 	/**
 	 * The type of the oscillator. Always returns "pwm".
 	 */
@@ -169,9 +128,20 @@ export class PWMOscillator extends Source<PWMOscillatorOptions> implements ToneO
 	get phase(): Degrees {
 		return this._modulator.phase;
 	}
+
 	set phase(phase: Degrees) {
 		this._modulator.phase = phase;
 	}
+
+    static getDefaults(): PWMOscillatorOptions {
+        return Object.assign(Source.getDefaults(), {
+            detune: 0,
+            frequency: 440,
+            modulationFrequency: 0.4,
+            phase: 0,
+            type: "pwm" as const,
+        });
+    }
 
 	async asArray(length = 1024): Promise<Float32Array> {
 		return generateWaveform(this, length);
@@ -187,4 +157,30 @@ export class PWMOscillator extends Source<PWMOscillatorOptions> implements ToneO
 		this._modulator.dispose();
 		return this;
 	}
+
+    /**
+     * start the oscillator
+     */
+    protected _start(time: Time): void {
+        time = this.toSeconds(time);
+        this._modulator.start(time);
+        this._pulse.start(time);
+    }
+
+    /**
+     * stop the oscillator
+     */
+    protected _stop(time: Time): void {
+        time = this.toSeconds(time);
+        this._modulator.stop(time);
+        this._pulse.stop(time);
+    }
+
+    /**
+     * restart the oscillator
+     */
+    protected _restart(time: Seconds): void {
+        this._modulator.restart(time);
+        this._pulse.restart(time);
+    }
 }

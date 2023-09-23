@@ -1,8 +1,8 @@
+import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
-import { Pattern } from "./Pattern";
 import { Offline } from "test/helper/Offline";
 import { Time } from "Tone/core/type/Time";
-import { expect } from "chai";
+import { Pattern } from "./Pattern";
 
 describe("Pattern", () => {
 
@@ -12,7 +12,8 @@ describe("Pattern", () => {
 
 		it("takes a callback, an array of values and a pattern name", () => {
 			return Offline(() => {
-				const callback = function() {};
+                const callback = function() {
+                };
 				const pattern = new Pattern(callback, [0, 1, 2, 3], "down");
 				expect(pattern.callback).to.equal(callback);
 				expect(pattern.values).to.deep.equal([0, 1, 2, 3]);
@@ -30,7 +31,8 @@ describe("Pattern", () => {
 
 		it("can pass in arguments in options object", () => {
 			return Offline(() => {
-				const callback = function() {};
+                const callback = function() {
+                };
 				const pattern = new Pattern({
 					callback: callback,
 					iterations: 4,
@@ -54,7 +56,8 @@ describe("Pattern", () => {
 
 		it("can set values with object", () => {
 			return Offline(() => {
-				const callback = function() {};
+                const callback = function() {
+                };
 				const pattern = new Pattern();
 				pattern.set({
 					callback: callback,
@@ -68,7 +71,8 @@ describe("Pattern", () => {
 
 		it("can set get a the values as an object", () => {
 			return Offline(() => {
-				const callback = function() {};
+                const callback = function() {
+                };
 				const pattern = new Pattern({
 					callback: callback,
 					pattern: "random",

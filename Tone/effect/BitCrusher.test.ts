@@ -1,10 +1,10 @@
-import { BitCrusher } from "./BitCrusher";
+import { expect } from "chai";
+import { BasicTests } from "test/helper/Basic";
+import { CompareToFile } from "test/helper/CompareToFile";
+import { EffectTests } from "test/helper/EffectTests";
 import { FeedbackCombFilter } from "Tone/component/filter/FeedbackCombFilter";
 import { Oscillator } from "Tone/source/oscillator/Oscillator";
-import { BasicTests } from "test/helper/Basic";
-import { EffectTests } from "test/helper/EffectTests";
-import { CompareToFile } from "test/helper/CompareToFile";
-import { expect } from "chai";
+import { BitCrusher } from "./BitCrusher";
 
 describe("BitCrusher", () => {
 

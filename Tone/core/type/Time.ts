@@ -1,7 +1,7 @@
 import { getContext } from "../Global";
 import { ftom } from "./Conversions";
-import { TimeBaseClass, TimeBaseUnit, TimeExpression, TimeValue } from "./TimeBase";
-import { BarsBeatsSixteenths, MidiNote, Seconds, Subdivision, Ticks, Time } from "./Units";
+import { TimeBaseClass, type TimeBaseUnit, type TimeExpression, type TimeValue } from "./TimeBase";
+import type { BarsBeatsSixteenths, MidiNote, Seconds, Subdivision, Ticks, Time } from "./Units";
 
 /**
  * TimeClass is a primitive type for encoding and decoding Time values.
@@ -16,24 +16,6 @@ export class TimeClass<Type extends Seconds | Ticks = Seconds, Unit extends stri
 	extends TimeBaseClass<Type, Unit> {
 
 	readonly name: string = "TimeClass";
-
-	protected _getExpressions(): TimeExpression<Type> {
-		return Object.assign(super._getExpressions(), {
-			now: {
-				method: (capture: string): Type => {
-					return this._now() + new (this.constructor as typeof TimeClass)(this.context, capture).valueOf() as Type;
-				},
-				regexp: /^\+(.+)/,
-			},
-			quantize: {
-				method: (capture: string): Type => {
-					const quantTo = new TimeClass(this.context, capture).valueOf();
-					return this._secondsToUnits(this.context.transport.nextSubdivision(quantTo));
-				},
-				regexp: /^@(.+)/,
-			},
-		});
-	}
 
 	/**
 	 * Quantize the time by the given subdivision. Optionally add a
@@ -54,8 +36,6 @@ export class TimeClass<Type extends Seconds | Ticks = Seconds, Unit extends stri
 		return value + diff * percent as Type;
 	}
 
-	//-------------------------------------
-	// CONVERSIONS
 	//-------------------------------------
 	/**
 	 * Convert a Time to Notation. The notation values are will be the
@@ -87,6 +67,9 @@ export class TimeClass<Type extends Seconds | Ticks = Seconds, Unit extends stri
 		});
 		return closest;
 	}
+
+    //-------------------------------------
+    // CONVERSIONS
 
 	/**
 	 * Return the time encoded as Bars:Beats:Sixteenths.
@@ -130,13 +113,31 @@ export class TimeClass<Type extends Seconds | Ticks = Seconds, Unit extends stri
 		return ftom(this.toFrequency());
 	}
 
+    protected _getExpressions(): TimeExpression<Type> {
+        return Object.assign(super._getExpressions(), {
+            now: {
+                method: (capture: string): Type => {
+                    return this._now() + new (this.constructor as typeof TimeClass)(this.context, capture).valueOf() as Type;
+                },
+                regexp: /^\+(.+)/,
+            },
+            quantize: {
+                method: (capture: string): Type => {
+                    const quantTo = new TimeClass(this.context, capture).valueOf();
+                    return this._secondsToUnits(this.context.transport.nextSubdivision(quantTo));
+                },
+                regexp: /^@(.+)/,
+            },
+        });
+    }
+
 	protected _now(): Type {
 		return this.context.now() as Type;
 	}
 }
 
 /**
- * Create a TimeClass from a time string or number. The time is computed against the 
+ * Create a TimeClass from a time string or number. The time is computed against the
  * global Tone.Context. To use a specific context, use [[TimeClass]]
  * @param value A value which represents time
  * @param units The value's units if they can't be inferred by the value.

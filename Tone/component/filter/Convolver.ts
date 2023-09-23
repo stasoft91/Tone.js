@@ -1,7 +1,4 @@
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { ToneAudioBuffer } from "../../core/context/ToneAudioBuffer";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { Gain } from "../../core/context/Gain";
+import { Gain, optionsFromArguments, ToneAudioBuffer, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
 import { noOp } from "../../core/util/Interface";
 
 export interface ConvolverOptions extends ToneAudioNodeOptions {
@@ -24,26 +21,21 @@ export interface ConvolverOptions extends ToneAudioNodeOptions {
 export class Convolver extends ToneAudioNode<ConvolverOptions> {
 
 	readonly name: string = "Convolver";
-
+    readonly input: Gain;
+    readonly output: Gain;
 	/**
 	 * The native ConvolverNode
 	 */
 	private _convolver: ConvolverNode = this.context.createConvolver();
 
 	/**
-	 * The Buffer belonging to the convolver
-	 */
-	private _buffer: ToneAudioBuffer;
-
-	readonly input: Gain;
-	readonly output: Gain;
-
-	/**
 	 * @param url The URL of the impulse response or the ToneAudioBuffer containing the impulse response.
 	 * @param onload The callback to invoke when the url is loaded.
 	 */
 	constructor(url?: string | AudioBuffer | ToneAudioBuffer, onload?: () => void);
+
 	constructor(options?: Partial<ConvolverOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Convolver.getDefaults(), arguments, ["url", "onload"]));
@@ -69,22 +61,10 @@ export class Convolver extends ToneAudioNode<ConvolverOptions> {
 		this.input.chain(this._convolver, this.output);
 	}
 
-	static getDefaults(): ConvolverOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			normalize: true,
-			onload: noOp,
-		});
-	}
-
 	/**
-	 * Load an impulse response url as an audio buffer.
-	 * Decodes the audio asynchronously and invokes
-	 * the callback once the audio buffer loads.
-	 * @param url The url of the buffer to load. filetype support depends on the browser.
+     * The Buffer belonging to the convolver
 	 */
-	async load(url: string): Promise<void> {
-		this.buffer = await this._buffer.load(url);
-	}
+    private _buffer: ToneAudioBuffer;
 
 	/**
 	 * The convolver's buffer
@@ -96,7 +76,8 @@ export class Convolver extends ToneAudioNode<ConvolverOptions> {
 			return null;
 		}
 	}
-	set buffer(buffer) {
+
+    set buffer(buffer) {
 		if (buffer) {
 			this._buffer.set(buffer);
 		}
@@ -121,9 +102,27 @@ export class Convolver extends ToneAudioNode<ConvolverOptions> {
 	get normalize(): boolean {
 		return this._convolver.normalize;
 	}
-	set normalize(norm) {
+
+    set normalize(norm) {
 		this._convolver.normalize = norm;
 	}
+
+    static getDefaults(): ConvolverOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            normalize: true,
+            onload: noOp,
+        });
+    }
+
+    /**
+     * Load an impulse response url as an audio buffer.
+     * Decodes the audio asynchronously and invokes
+     * the callback once the audio buffer loads.
+     * @param url The url of the buffer to load. filetype support depends on the browser.
+     */
+    async load(url: string): Promise<void> {
+        this.buffer = await this._buffer.load(url);
+    }
 
 	dispose(): this {
 		super.dispose();

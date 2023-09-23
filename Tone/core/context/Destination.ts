@@ -1,10 +1,10 @@
-import { Volume } from "../../component/channel/Volume";
-import { Decibels } from "../type/Units";
+import { Volume } from "../../component";
+import type { Decibels } from "../type/Units";
 import { optionsFromArguments } from "../util/Defaults";
 import { onContextClose, onContextInit } from "./ContextInitialization";
 import { Gain } from "./Gain";
 import { Param } from "./Param";
-import { connectSeries, ToneAudioNode, ToneAudioNodeOptions } from "./ToneAudioNode";
+import { connectSeries, ToneAudioNode, type ToneAudioNodeOptions } from "./ToneAudioNode";
 
 interface DestinationOptions extends ToneAudioNodeOptions {
 	volume: Decibels;
@@ -34,7 +34,7 @@ export class Destination extends ToneAudioNode<DestinationOptions> {
 	output: Gain = new Gain({ context: this.context });
 
 	/**
-	 * The volume of the master output in decibels. -Infinity is silent, and 0 is no change. 
+     * The volume of the master output in decibels. -Infinity is silent, and 0 is no change.
 	 * @example
 	 * const osc = new Tone.Oscillator().toDestination();
 	 * osc.start();
@@ -55,28 +55,38 @@ export class Destination extends ToneAudioNode<DestinationOptions> {
 		this._internalChannels = [this.input, this.context.rawContext.destination, this.output];
 	}
 
-	static getDefaults(): DestinationOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			mute: false,
-			volume: 0,
-		});
-	}
-
 	/**
 	 * Mute the output.
 	 * @example
 	 * const oscillator = new Tone.Oscillator().start().toDestination();
 	 * setTimeout(() => {
-	 * 	// mute the output
-	 * 	Tone.Destination.mute = true;
+     *    // mute the output
+     *    Tone.Destination.mute = true;
 	 * }, 1000);
 	 */
 	get mute(): boolean {
 		return this.input.mute;
 	}
+
 	set mute(mute: boolean) {
 		this.input.mute = mute;
 	}
+
+    /**
+     * The maximum number of channels the system can output
+     * @example
+     * console.log(Tone.Destination.maxChannelCount);
+     */
+    get maxChannelCount(): number {
+        return this.context.rawContext.destination.maxChannelCount;
+    }
+
+    static getDefaults(): DestinationOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            mute: false,
+            volume: 0,
+        });
+    }
 
 	/**
 	 * Add a master effects chain. NOTE: this will disconnect any nodes which were previously
@@ -94,15 +104,6 @@ export class Destination extends ToneAudioNode<DestinationOptions> {
 		args.push(this.output);
 		connectSeries(...args);
 		return this;
-	}
-
-	/**
-	 * The maximum number of channels the system can output
-	 * @example
-	 * console.log(Tone.Destination.maxChannelCount);
-	 */
-	get maxChannelCount(): number {
-		return this.context.rawContext.destination.maxChannelCount;
 	}
 
 	/**

@@ -1,10 +1,9 @@
-import { FrequencyClass } from "../core/type/Frequency";
-import { Cents, Frequency, NormalRange, Seconds, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { noOp } from "../core/util/Interface";
-import { Instrument, InstrumentOptions } from "../instrument/Instrument";
-import { Signal } from "../signal/Signal";
+import { FrequencyClass, optionsFromArguments } from "../core";
+import type { Cents, Frequency, NormalRange, Seconds, Time } from "../core/type/Units";
 import { timeRange } from "../core/util/Decorator";
+import { noOp } from "../core/util/Interface";
+import { Signal } from "../signal";
+import { Instrument, type InstrumentOptions } from "./Instrument";
 
 type onSilenceCallback = (instrument: Monophonic<any>) => void;
 
@@ -23,7 +22,7 @@ export abstract class Monophonic<Options extends MonophonicOptions> extends Inst
 	 * The glide time between notes.
 	 */
 	@timeRange(0)
-	portamento: Seconds;
+    portamento: Seconds;
 
 	/**
 	 * Invoked when the release has finished and the output is silent.
@@ -93,16 +92,6 @@ export abstract class Monophonic<Options extends MonophonicOptions> extends Inst
 	}
 
 	/**
-	 * Internal method which starts the envelope attack
-	 */
-	protected abstract _triggerEnvelopeAttack(time: Seconds, velocity: NormalRange): void;
-
-	/**
-	 * Internal method which starts the envelope release
-	 */
-	protected abstract _triggerEnvelopeRelease(time: Seconds): void;
-
-	/**
 	 * Get the level of the output at the given time. Measures
 	 * the envelope(s) value at the time.
 	 * @param time The time to query the envelope value
@@ -132,4 +121,14 @@ export abstract class Monophonic<Options extends MonophonicOptions> extends Inst
 		}
 		return this;
 	}
+
+    /**
+     * Internal method which starts the envelope attack
+     */
+    protected abstract _triggerEnvelopeAttack(time: Seconds, velocity: NormalRange): void;
+
+    /**
+     * Internal method which starts the envelope release
+     */
+    protected abstract _triggerEnvelopeRelease(time: Seconds): void;
 }

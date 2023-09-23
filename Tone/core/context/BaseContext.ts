@@ -1,6 +1,6 @@
-import { Seconds } from "../type/Units";
+import type { Seconds } from "../type/Units";
 import { Emitter } from "../util/Emitter";
-import { AnyAudioContext } from "./AudioContext";
+import type { AnyAudioContext } from "./AudioContext";
 
 type Draw = import("../util/Draw").Draw;
 type Destination = import("./Destination").Destination;
@@ -9,14 +9,14 @@ type Listener = import("./Listener").Listener;
 
 // these are either not used in Tone.js or deprecated and not implemented.
 export type ExcludedFromBaseAudioContext =
-	| "onstatechange"
-	| "addEventListener"
-	| "removeEventListener"
-	| "listener"
-	| "dispatchEvent"
-	| "audioWorklet"
-	| "destination"
-	| "createScriptProcessor";
+    | "onstatechange"
+    | "addEventListener"
+    | "removeEventListener"
+    | "listener"
+    | "dispatchEvent"
+    | "audioWorklet"
+    | "destination"
+    | "createScriptProcessor";
 
 // the subset of the BaseAudioContext which Tone.Context implements.
 export type BaseAudioContextSubset = Omit<
@@ -31,6 +31,26 @@ export abstract class BaseContext
 	implements BaseAudioContextSubset {
 	//---------------------------
 	// BASE AUDIO CONTEXT METHODS
+    abstract lookAhead: number;
+    abstract latencyHint: ContextLatencyHint | Seconds;
+    readonly isOffline: boolean = false;
+
+    abstract get rawContext(): AnyAudioContext;
+
+    abstract get currentTime(): Seconds;
+
+    abstract get state(): AudioContextState;
+
+    abstract get sampleRate(): number;
+
+    abstract get listener(): Listener;
+
+    abstract get transport(): Transport;
+
+    abstract get draw(): Draw;
+
+    abstract get destination(): Destination;
+
 	//---------------------------
 	abstract createAnalyser(): AnalyserNode;
 
@@ -59,6 +79,10 @@ export abstract class BaseContext
 	abstract createConvolver(): ConvolverNode;
 
 	abstract createDelay(_maxDelayTime?: number | undefined): DelayNode;
+
+    //---------------------------
+    // TONE AUDIO CONTEXT METHODS
+    //---------------------------
 
 	abstract createDynamicsCompressor(): DynamicsCompressorNode;
 
@@ -93,24 +117,14 @@ export abstract class BaseContext
 
 	abstract decodeAudioData(_audioData: ArrayBuffer): Promise<AudioBuffer>;
 
-	//---------------------------
-	// TONE AUDIO CONTEXT METHODS
-	//---------------------------
-
 	abstract createAudioWorkletNode(
 		_name: string,
 		_options?: Partial<AudioWorkletNodeOptions>
 	): AudioWorkletNode;
 
-	abstract get rawContext(): AnyAudioContext;
-
 	abstract addAudioWorkletModule(
 		_url: string
 	): Promise<void>;
-
-	abstract lookAhead: number;
-
-	abstract latencyHint: ContextLatencyHint | Seconds;
 
 	abstract resume(): Promise<void>;
 
@@ -130,32 +144,16 @@ export abstract class BaseContext
 
 	abstract getConstant(_val: number): AudioBufferSourceNode;
 
-	abstract get currentTime(): Seconds;
-
-	abstract get state(): AudioContextState;
-
-	abstract get sampleRate(): number;
-
-	abstract get listener(): Listener;
-
-	abstract get transport(): Transport;
-
-	abstract get draw(): Draw;
-
-	abstract get destination(): Destination;
-
 	abstract now(): Seconds;
 
 	abstract immediate(): Seconds;
 
 	/*
-	 * This is a placeholder so that JSON.stringify does not throw an error
-	 * This matches what JSON.stringify(audioContext) returns on a native
-	 * audioContext instance.
-	 */
+     * This is a placeholder so that JSON.stringify does not throw an error
+     * This matches what JSON.stringify(audioContext) returns on a native
+     * audioContext instance.
+     */
 	toJSON(): Record<string, any> {
 		return {};
 	}
-
-	readonly isOffline: boolean = false;
 }

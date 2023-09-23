@@ -1,10 +1,15 @@
+import {
+	connect,
+	type InputNode,
+	optionsFromArguments,
+	type OutputNode,
+	Param,
+	ToneAudioNode,
+	type ToneAudioNodeOptions
+} from "../core";
 import { AbstractParam } from "../core/context/AbstractParam";
-import { Param } from "../core/context/Param";
-import { InputNode, OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { connect } from "../core/context/ToneAudioNode";
-import { Time, UnitMap, UnitName } from "../core/type/Units";
+import type { Time, UnitMap, UnitName } from "../core/type/Units";
 import { isAudioParam } from "../core/util/AdvancedTypeCheck";
-import { optionsFromArguments } from "../core/util/Defaults";
 import { ToneConstantSource } from "./ToneConstantSource";
 
 export interface SignalOptions<TypeName extends UnitName> extends ToneAudioNodeOptions {
@@ -27,8 +32,8 @@ export interface SignalOptions<TypeName extends UnitName> extends ToneAudioNodeO
  * const osc = new Tone.Oscillator().toDestination().start();
  * // a scheduleable signal which can be connected to control an AudioParam or another Signal
  * const signal = new Tone.Signal({
- * 	value: "C4",
- * 	units: "frequency"
+ *    value: "C4",
+ *    units: "frequency"
  * }).connect(osc.frequency);
  * // the scheduled ramp controls the connected signal
  * signal.rampTo("C2", 4, "+0.5");
@@ -43,14 +48,13 @@ export class Signal<TypeName extends UnitName = "number"> extends ToneAudioNode<
 	 * Indicates if the value should be overridden on connection.
 	 */
 	readonly override: boolean = true;
-
+    readonly output: OutputNode;
+    readonly input: InputNode;
 	/**
 	 * The constant source node which generates the signal
 	 */
 	protected _constantSource: ToneConstantSource<TypeName>;
-	readonly output: OutputNode;
 	protected _param: Param<TypeName>;
-	readonly input: InputNode;
 
 	/**
 	 * @param value Initial value of the signal
@@ -76,6 +80,48 @@ export class Signal<TypeName extends UnitName = "number"> extends ToneAudioNode<
 		this.input = this._param = this._constantSource.offset;
 	}
 
+    get value(): UnitMap[TypeName] {
+        return this._param.value;
+    }
+
+    set value(value: UnitMap[TypeName]) {
+        this._param.value = value;
+    }
+
+    get convert(): boolean {
+        return this._param.convert;
+    }
+
+    //-------------------------------------
+    // ABSTRACT PARAM INTERFACE
+    // just a proxy for the ConstantSourceNode's offset AudioParam
+    // all docs are generated from AbstractParam.ts
+    //-------------------------------------
+
+    set convert(convert: boolean) {
+        this._param.convert = convert;
+    }
+
+    get units(): UnitName {
+        return this._param.units;
+    }
+
+    get overridden(): boolean {
+        return this._param.overridden;
+    }
+
+    set overridden(overridden: boolean) {
+        this._param.overridden = overridden;
+    }
+
+    get maxValue(): number {
+        return this._param.maxValue;
+    }
+
+    get minValue(): number {
+        return this._param.minValue;
+    }
+
 	static getDefaults(): SignalOptions<any> {
 		return Object.assign(ToneAudioNode.getDefaults(), {
 			convert: true,
@@ -97,98 +143,73 @@ export class Signal<TypeName extends UnitName = "number"> extends ToneAudioNode<
 		return this;
 	}
 
-	//-------------------------------------
-	// ABSTRACT PARAM INTERFACE
-	// just a proxy for the ConstantSourceNode's offset AudioParam
-	// all docs are generated from AbstractParam.ts
-	//-------------------------------------
-
 	setValueAtTime(value: UnitMap[TypeName], time: Time): this {
 		this._param.setValueAtTime(value, time);
 		return this;
 	}
+
 	getValueAtTime(time: Time): UnitMap[TypeName] {
 		return this._param.getValueAtTime(time);
 	}
-	setRampPoint(time: Time): this {
+
+    setRampPoint(time: Time): this {
 		this._param.setRampPoint(time);
 		return this;
 	}
-	linearRampToValueAtTime(value: UnitMap[TypeName], time: Time): this {
+
+    linearRampToValueAtTime(value: UnitMap[TypeName], time: Time): this {
 		this._param.linearRampToValueAtTime(value, time);
 		return this;
 	}
-	exponentialRampToValueAtTime(value: UnitMap[TypeName], time: Time): this {
+
+    exponentialRampToValueAtTime(value: UnitMap[TypeName], time: Time): this {
 		this._param.exponentialRampToValueAtTime(value, time);
 		return this;
 	}
-	exponentialRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
+
+    exponentialRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
 		this._param.exponentialRampTo(value, rampTime, startTime);
 		return this;
 	}
-	linearRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
+
+    linearRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
 		this._param.linearRampTo(value, rampTime, startTime);
 		return this;
 	}
-	targetRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
+
+    targetRampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
 		this._param.targetRampTo(value, rampTime, startTime);
 		return this;
 	}
-	exponentialApproachValueAtTime(value: UnitMap[TypeName], time: Time, rampTime: Time): this {
+
+    exponentialApproachValueAtTime(value: UnitMap[TypeName], time: Time, rampTime: Time): this {
 		this._param.exponentialApproachValueAtTime(value, time, rampTime);
 		return this;
 	}
-	setTargetAtTime(value: UnitMap[TypeName], startTime: Time, timeConstant: number): this {
+
+    setTargetAtTime(value: UnitMap[TypeName], startTime: Time, timeConstant: number): this {
 		this._param.setTargetAtTime(value, startTime, timeConstant);
 		return this;
 	}
-	setValueCurveAtTime(values: UnitMap[TypeName][], startTime: Time, duration: Time, scaling?: number): this {
+
+    setValueCurveAtTime(values: UnitMap[TypeName][], startTime: Time, duration: Time, scaling?: number): this {
 		this._param.setValueCurveAtTime(values, startTime, duration, scaling);
 		return this;
 	}
-	cancelScheduledValues(time: Time): this {
+
+    cancelScheduledValues(time: Time): this {
 		this._param.cancelScheduledValues(time);
 		return this;
 	}
-	cancelAndHoldAtTime(time: Time): this {
+
+    cancelAndHoldAtTime(time: Time): this {
 		this._param.cancelAndHoldAtTime(time);
 		return this;
 	}
-	rampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
+
+    rampTo(value: UnitMap[TypeName], rampTime: Time, startTime?: Time): this {
 		this._param.rampTo(value, rampTime, startTime);
 		return this;
-	}
-
-	get value(): UnitMap[TypeName] {
-		return this._param.value;
-	}
-	set value(value: UnitMap[TypeName]) {
-		this._param.value = value;
-	}
-
-	get convert(): boolean {
-		return this._param.convert;
-	}
-	set convert(convert: boolean) {
-		this._param.convert = convert;
-	}
-
-	get units(): UnitName {
-		return this._param.units;
-	}
-
-	get overridden(): boolean {
-		return this._param.overridden;
-	}
-	set overridden(overridden: boolean) {
-		this._param.overridden = overridden;
-	}
-
-	get maxValue(): number {
-		return this._param.maxValue;
-	}
-	get minValue(): number {
-		return this._param.minValue;
 	}
 
 	/**
@@ -212,7 +233,7 @@ export class Signal<TypeName extends UnitName = "number"> extends ToneAudioNode<
  */
 export function connectSignal(signal: OutputNode, destination: InputNode, outputNum?: number, inputNum?: number): void {
 	if (destination instanceof Param || isAudioParam(destination) ||
-		(destination instanceof Signal && destination.override)) {
+        (destination instanceof Signal && destination.override)) {
 		// cancel changes
 		destination.cancelScheduledValues(0);
 		// reset the value

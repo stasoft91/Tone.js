@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { BasicTests } from "test/helper/Basic";
 import { Offline } from "test/helper/Offline";
 import { PassAudio } from "test/helper/PassAudio";
-import { Oscillator } from "../../source/oscillator/Oscillator";
+import { Oscillator } from "../../source";
 import { BiquadFilter } from "./BiquadFilter";
 
 describe("BiquadFilter", () => {

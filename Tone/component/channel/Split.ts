@@ -1,5 +1,4 @@
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../../core/util/Defaults";
+import { optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
 
 interface SplitOptions extends ToneAudioNodeOptions {
 	channels: number;
@@ -15,14 +14,12 @@ interface SplitOptions extends ToneAudioNodeOptions {
  */
 export class Split extends ToneAudioNode<SplitOptions> {
 	readonly name: string = "Split";
-
-	/**
-	 * The splitting node
-	 */
-	private _splitter: ChannelSplitterNode;
-
 	readonly input: ChannelSplitterNode;
 	readonly output: ChannelSplitterNode;
+    /**
+     * The splitting node
+     */
+    private _splitter: ChannelSplitterNode;
 
 	/**
 	 * @param channels The number of channels to merge.

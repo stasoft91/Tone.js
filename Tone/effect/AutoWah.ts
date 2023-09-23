@@ -1,13 +1,9 @@
-import { Effect, EffectOptions } from "./Effect";
-import { Filter } from "../component/filter/Filter";
-import { Follower } from "../component/analysis/Follower";
-import { Decibels, Frequency, GainFactor, Hertz, Positive, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { Gain } from "../core/context/Gain";
-import { dbToGain, gainToDb } from "../core/type/Conversions";
-import { ScaleExp } from "../signal/ScaleExp";
-import { Signal } from "../signal/Signal";
+import { Filter, Follower } from "../component";
+import { dbToGain, Gain, gainToDb, optionsFromArguments } from "../core";
+import type { Decibels, Frequency, GainFactor, Hertz, Positive, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { ScaleExp, Signal } from "../signal";
+import { Effect, type EffectOptions } from "./Effect";
 
 export interface AutoWahOptions extends EffectOptions {
 	baseFrequency: Frequency;
@@ -19,10 +15,10 @@ export interface AutoWahOptions extends EffectOptions {
 }
 
 /**
- * AutoWah connects a [[Follower]] to a [[Filter]]. 
- * The frequency of the filter, follows the input amplitude curve. 
+ * AutoWah connects a [[Follower]] to a [[Filter]].
+ * The frequency of the filter, follows the input amplitude curve.
  * Inspiration from [Tuna.js](https://github.com/Dinahmoe/tuna).
- * 
+ *
  * @example
  * const autoWah = new Tone.AutoWah(50, 6, -30).toDestination();
  * // initialize the synth and connect to autowah
@@ -36,60 +32,38 @@ export interface AutoWahOptions extends EffectOptions {
 export class AutoWah extends Effect<AutoWahOptions> {
 
 	readonly name: string = "AutoWah";
-
+    /**
+     * The gain of the filter.
+     */
+    readonly gain: Signal<"decibels">;
 	/**
-	 * The envelope follower. Set the attack/release
-	 * timing to adjust how the envelope is followed.
+     * The quality of the filter.
 	 */
-	private _follower: Follower;
-
+    readonly Q: Signal<"positive">;
 	/**
 	 * scales the follower value to the frequency domain
 	 */
 	private _sweepRange: ScaleExp;
-
-	/**
-	 * Hold the base frequency value
-	 */
-	private _baseFrequency: Hertz;
-
-	/**
-	 * Private holder for the octave count
-	 */
-	private _octaves: Positive;
-
 	/**
 	 * the input gain to adjust the sensitivity
 	 */
 	private _inputBoost: Gain;
-
 	/**
 	 * Private holder for the filter
 	 */
 	private _bandpass: Filter;
-
 	/**
 	 * The peaking fitler
 	 */
 	private _peaking: Filter;
-
 	/**
-	 * The gain of the filter.
+     * The envelope follower. Set the attack/release
+     * timing to adjust how the envelope is followed.
 	 */
-	readonly gain: Signal<"decibels">;
+    private _follower: Follower;
 
-	/**
-	 * The quality of the filter.
-	 */
-	readonly Q: Signal<"positive">;
-
-	/**
-	 * @param baseFrequency The frequency the filter is set to at the low point of the wah
-	 * @param octaves The number of octaves above the baseFrequency the filter will sweep to when fully open. 
-	 * @param sensitivity The decibel threshold sensitivity for the incoming signal. Normal range of -40 to 0.
-	 */
-	constructor(baseFrequency?: Frequency, octaves?: Positive, sensitivity?: Decibels);
 	constructor(options?: Partial<AutoWahOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(AutoWah.getDefaults(), arguments, ["baseFrequency", "octaves", "sensitivity"]));
@@ -134,28 +108,10 @@ export class AutoWah extends Effect<AutoWahOptions> {
 
 		readOnly(this, ["gain", "Q"]);
 	}
-
-	static getDefaults(): AutoWahOptions {
-		return Object.assign(Effect.getDefaults(), {
-			baseFrequency: 100,
-			octaves: 6,
-			sensitivity: 0,
-			Q: 2,
-			gain: 2,
-			follower: 0.2,
-		});
-	}
-
-	/**
-	 * The number of octaves that the filter will sweep above the baseFrequency.
-	 */
-	get octaves() {
-		return this._octaves;
-	}
-	set octaves(octaves) {
-		this._octaves = octaves;
-		this._setSweepRange();
-	}
+    /**
+     * Hold the base frequency value
+     */
+    private _baseFrequency: Hertz;
 
 	/**
 	 * The follower's smoothing time
@@ -163,9 +119,17 @@ export class AutoWah extends Effect<AutoWahOptions> {
 	get follower(): Time {
 		return this._follower.smoothing;
 	}
+
 	set follower(follower) {
 		this._follower.smoothing = follower;
 	}
+
+	/**
+	 * @param baseFrequency The frequency the filter is set to at the low point of the wah
+     * @param octaves The number of octaves above the baseFrequency the filter will sweep to when fully open.
+	 * @param sensitivity The decibel threshold sensitivity for the incoming signal. Normal range of -40 to 0.
+	 */
+	constructor(baseFrequency?: Frequency, octaves?: Positive, sensitivity?: Decibels);
 
 	/**
 	 * The base frequency from which the sweep will start from.
@@ -173,10 +137,28 @@ export class AutoWah extends Effect<AutoWahOptions> {
 	get baseFrequency(): Frequency {
 		return this._baseFrequency;
 	}
-	set baseFrequency(baseFreq) {
+
+    set baseFrequency(baseFreq) {
 		this._baseFrequency = this.toFrequency(baseFreq);
 		this._setSweepRange();
 	}
+
+    /**
+     * Private holder for the octave count
+     */
+    private _octaves: Positive;
+
+    /**
+     * The number of octaves that the filter will sweep above the baseFrequency.
+     */
+    get octaves() {
+        return this._octaves;
+    }
+
+    set octaves(octaves) {
+        this._octaves = octaves;
+        this._setSweepRange();
+    }
 
 	/**
 	 * The sensitivity to control how responsive to the input signal the filter is.
@@ -184,16 +166,20 @@ export class AutoWah extends Effect<AutoWahOptions> {
 	get sensitivity(): Decibels {
 		return gainToDb(1 / this._inputBoost.gain.value);
 	}
-	set sensitivity(sensitivity) {
+
+    set sensitivity(sensitivity) {
 		this._inputBoost.gain.value = 1 / dbToGain(sensitivity);
 	}
 
-	/**
-	 * sets the sweep range of the scaler
-	 */
-	private _setSweepRange() {
-		this._sweepRange.min = this._baseFrequency;
-		this._sweepRange.max = Math.min(this._baseFrequency * Math.pow(2, this._octaves), this.context.sampleRate / 2);
+    static getDefaults(): AutoWahOptions {
+        return Object.assign(Effect.getDefaults(), {
+            baseFrequency: 100,
+            octaves: 6,
+            sensitivity: 0,
+            Q: 2,
+            gain: 2,
+            follower: 0.2,
+        });
 	}
 
 	dispose(): this {
@@ -205,4 +191,12 @@ export class AutoWah extends Effect<AutoWahOptions> {
 		this._inputBoost.dispose();
 		return this;
 	}
+
+    /**
+     * sets the sweep range of the scaler
+     */
+    private _setSweepRange() {
+        this._sweepRange.min = this._baseFrequency;
+        this._sweepRange.max = Math.min(this._baseFrequency * Math.pow(2, this._octaves), this.context.sampleRate / 2);
+    }
 }

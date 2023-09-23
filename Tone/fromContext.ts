@@ -1,14 +1,17 @@
 import * as Classes from "./classes";
+import {
+	Context,
+	FrequencyClass,
+	isDefined,
+	isFunction,
+	MidiClass,
+	TicksClass,
+	TimeClass,
+	TransportTimeClass
+} from "./core";
 import { Transport } from "./core/clock/Transport";
-import { Context } from "./core/context/Context";
-import { Listener } from "./core/context/Listener";
 import { Destination } from "./core/context/Destination";
-import { FrequencyClass } from "./core/type/Frequency";
-import { MidiClass } from "./core/type/Midi";
-import { TicksClass } from "./core/type/Ticks";
-import { TimeClass } from "./core/type/Time";
-import { TransportTimeClass } from "./core/type/TransportTime";
-import { isDefined, isFunction } from "./core/util/TypeCheck";
+import { Listener } from "./core/context/Listener";
 import { omitFromObject } from "./core/util/Defaults";
 import { Draw } from "./core/util/Draw";
 

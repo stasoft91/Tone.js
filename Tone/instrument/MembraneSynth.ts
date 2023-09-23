@@ -1,10 +1,10 @@
-import { FrequencyClass } from "../core/type/Frequency";
-import { Frequency, Positive, Time } from "../core/type/Units";
-import { deepMerge, optionsFromArguments } from "../core/util/Defaults";
-import { readOnly, RecursivePartial } from "../core/util/Interface";
-import { Monophonic } from "./Monophonic";
-import { Synth, SynthOptions } from "./Synth";
+import { FrequencyClass } from "../core";
+import type { Frequency, Positive, Time } from "../core/type/Units";
 import { range, timeRange } from "../core/util/Decorator";
+import { deepMerge, optionsFromArguments } from "../core/util/Defaults";
+import { readOnly, type RecursivePartial } from "../core/util/Interface";
+import { Monophonic } from "./Monophonic";
+import { Synth, type SynthOptions } from "./Synth";
 
 export interface MembraneSynthOptions extends SynthOptions {
 	pitchDecay: Time;
@@ -34,7 +34,7 @@ export class MembraneSynth extends Synth<MembraneSynthOptions> {
 	 * @max 8
 	 */
 	@range(0)
-	octaves: Positive;
+    octaves: Positive;
 
 	/**
 	 * The amount of time the frequency envelope takes.
@@ -42,7 +42,7 @@ export class MembraneSynth extends Synth<MembraneSynthOptions> {
 	 * @max 0.5
 	 */
 	@timeRange(0)
-	pitchDecay: Time;
+    pitchDecay: Time;
 
 	/**
 	 * Portamento is ignored in this synth. use pitch decay instead.

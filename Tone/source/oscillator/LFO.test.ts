@@ -3,7 +3,7 @@ import { BasicTests } from "test/helper/Basic";
 import { Offline } from "test/helper/Offline";
 import { OutputAudio } from "test/helper/OutputAudio";
 import { Signal } from "Tone/signal/Signal";
-import { LFO, LFOOptions } from "./LFO";
+import { LFO, type LFOOptions } from "./LFO";
 
 describe("LFO", () => {
 

@@ -1,10 +1,9 @@
-import { StereoEffect, StereoEffectOptions } from "./StereoEffect";
-import { NormalRange } from "../core/type/Units";
-import { Signal } from "../signal/Signal";
-import { Gain } from "../core/context/Gain";
+import { Merge, Split } from "../component";
+import { Gain } from "../core";
+import type { NormalRange } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
-import { Split } from "../component/channel/Split";
-import { Merge } from "../component/channel/Merge";
+import { Signal } from "../signal";
+import { StereoEffect, type StereoEffectOptions } from "./StereoEffect";
 
 export interface StereoFeedbackEffectOptions extends StereoEffectOptions {
 	feedback: NormalRange;
@@ -14,7 +13,7 @@ export interface StereoFeedbackEffectOptions extends StereoEffectOptions {
  * Base class for stereo feedback effects where the effectReturn is fed back into the same channel.
  */
 export class StereoFeedbackEffect<Options extends StereoFeedbackEffectOptions> extends StereoEffect<Options> {
-	
+
 	/**
 	 * The amount of feedback from the output
 	 * back into the input of the effect (routed
@@ -48,7 +47,7 @@ export class StereoFeedbackEffect<Options extends StereoFeedbackEffectOptions> e
 
 		this.feedback = new Signal({
 			context: this.context,
-			value: options.feedback, 
+            value: options.feedback,
 			units: "normalRange"
 		});
 		this._feedbackL = new Gain({ context: this.context });
@@ -59,16 +58,16 @@ export class StereoFeedbackEffect<Options extends StereoFeedbackEffectOptions> e
 
 		this._merge.connect(this._feedbackSplit);
 		this._feedbackMerge.connect(this._split);
-		
-		// the left output connected to the left input
+
+        // the left output connected to the left input
 		this._feedbackSplit.connect(this._feedbackL, 0, 0);
 		this._feedbackL.connect(this._feedbackMerge, 0, 0);
 
 		// the right output connected to the right input
 		this._feedbackSplit.connect(this._feedbackR, 1, 0);
 		this._feedbackR.connect(this._feedbackMerge, 0, 1);
-		
-		// the feedback control
+
+        // the feedback control
 		this.feedback.fan(this._feedbackL.gain, this._feedbackR.gain);
 		readOnly(this, ["feedback"]);
 	}

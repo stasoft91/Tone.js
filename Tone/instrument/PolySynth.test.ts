@@ -3,12 +3,12 @@ import { BasicTests, warns } from "test/helper/Basic";
 import { CompareToFile } from "test/helper/CompareToFile";
 import { atTime, Offline } from "test/helper/Offline";
 import { OutputAudio } from "test/helper/OutputAudio";
+import { FMSynth } from "./FMSynth";
+import { MembraneSynth } from "./MembraneSynth";
+import { MetalSynth } from "./MetalSynth";
+import { PluckSynth } from "./PluckSynth";
 import { PolySynth } from "./PolySynth";
 import { Synth } from "./Synth";
-import { FMSynth } from "./FMSynth";
-import { PluckSynth } from "./PluckSynth";
-import { MetalSynth } from "./MetalSynth";
-import { MembraneSynth } from "./MembraneSynth";
 
 describe("PolySynth", () => {
 

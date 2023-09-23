@@ -1,8 +1,8 @@
-import { Param } from "../context/Param";
-import { Seconds, Time } from "../type/Units";
+import type { Seconds, Time } from "../type/Units";
 import { optionsFromArguments } from "../util/Defaults";
 import { readOnly } from "../util/Interface";
-import { ToneAudioNode, ToneAudioNodeOptions } from "./ToneAudioNode";
+import { Param } from "./Param";
+import { ToneAudioNode, type ToneAudioNodeOptions } from "./ToneAudioNode";
 
 export interface DelayOptions extends ToneAudioNodeOptions {
 	delayTime: Time;
@@ -14,22 +14,16 @@ export interface DelayOptions extends ToneAudioNodeOptions {
  * @category Core
  * @example
  * return Tone.Offline(() => {
- * 	const delay = new Tone.Delay(0.1).toDestination();
- * 	// connect the signal to both the delay and the destination
- * 	const pulse = new Tone.PulseOscillator().connect(delay).toDestination();
- * 	// start and stop the pulse
- * 	pulse.start(0).stop(0.01);
+ *    const delay = new Tone.Delay(0.1).toDestination();
+ *    // connect the signal to both the delay and the destination
+ *    const pulse = new Tone.PulseOscillator().connect(delay).toDestination();
+ *    // start and stop the pulse
+ *    pulse.start(0).stop(0.01);
  * }, 0.5, 1);
  */
 export class Delay extends ToneAudioNode<DelayOptions> {
 
 	readonly name: string = "Delay";
-
-	/**
-	 * Private holder of the max delay time
-	 */
-	private _maxDelay: Seconds;
-
 	/**
 	 * The amount of time the incoming signal is delayed.
 	 * @example
@@ -40,20 +34,21 @@ export class Delay extends ToneAudioNode<DelayOptions> {
 	 * // the change in delayTime causes the pitch to go up and down
 	 */
 	readonly delayTime: Param<"time">;
-
-	/**
-	 * Private reference to the internal DelayNode
-	 */
-	private _delayNode: DelayNode;
 	readonly input: DelayNode;
 	readonly output: DelayNode;
+    /**
+     * Private reference to the internal DelayNode
+     */
+    private _delayNode: DelayNode;
 
 	/**
 	 * @param delayTime The delay applied to the incoming signal.
 	 * @param maxDelay The maximum delay time.
 	 */
 	constructor(delayTime?: Time, maxDelay?: Time);
+
 	constructor(options?: Partial<DelayOptions>);
+
 	constructor() {
 		super(optionsFromArguments(Delay.getDefaults(), arguments, ["delayTime", "maxDelay"]));
 
@@ -76,12 +71,10 @@ export class Delay extends ToneAudioNode<DelayOptions> {
 		readOnly(this, "delayTime");
 	}
 
-	static getDefaults(): DelayOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			delayTime: 0,
-			maxDelay: 1,
-		});
-	}
+    /**
+     * Private holder of the max delay time
+     */
+    private _maxDelay: Seconds;
 
 	/**
 	 * The maximum delay time. This cannot be changed after
@@ -90,6 +83,13 @@ export class Delay extends ToneAudioNode<DelayOptions> {
 	get maxDelay(): Seconds {
 		return this._maxDelay;
 	}
+
+    static getDefaults(): DelayOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            delayTime: 0,
+            maxDelay: 1,
+        });
+    }
 
 	/**
 	 * Clean up.

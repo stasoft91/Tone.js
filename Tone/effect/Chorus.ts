@@ -1,11 +1,10 @@
-import { StereoFeedbackEffect, StereoFeedbackEffectOptions } from "../effect/StereoFeedbackEffect";
-import { Degrees, Frequency, Milliseconds, NormalRange, Seconds, Time } from "../core/type/Units";
-import { ToneOscillatorType } from "../source/oscillator/OscillatorInterface";
-import { optionsFromArguments } from "../core/util/Defaults";
-import { LFO } from "../source/oscillator/LFO";
-import { Delay } from "../core/context/Delay";
-import { Signal } from "../signal/Signal";
+import { Delay, optionsFromArguments } from "../core";
+import type { Degrees, Frequency, Milliseconds, NormalRange, Seconds, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
+import { Signal } from "../signal";
+import type { ToneOscillatorType } from "../source";
+import { LFO } from "../source";
+import { StereoFeedbackEffect, type StereoFeedbackEffectOptions } from "./StereoFeedbackEffect";
 
 export interface ChorusOptions extends StereoFeedbackEffectOptions {
 	frequency: Frequency;
@@ -31,41 +30,26 @@ export interface ChorusOptions extends StereoFeedbackEffectOptions {
 export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 
 	readonly name: string = "Chorus";
-
 	/**
-	 * the depth of the chorus
+     * The frequency of the LFO which modulates the delayTime.
 	 */
-	private _depth: NormalRange;
-
-	/**
-	 * the delayTime in seconds.
-	 */
-	private _delayTime: Seconds;
-
+    readonly frequency: Signal<"frequency">;
 	/**
 	 * the lfo which controls the delayTime
 	 */
-	private _lfoL: LFO
-
+    private _lfoL: LFO;
 	/**
 	 * another LFO for the right side with a 180 degree phase diff
 	 */
-	private _lfoR: LFO
-
+    private _lfoR: LFO;
 	/**
 	 * delay for left
 	 */
 	private _delayNodeL: Delay;
-
 	/**
 	 * delay for right
 	 */
 	private _delayNodeR: Delay;
-
-	/**
-	 * The frequency of the LFO which modulates the delayTime.
-	 */
-	readonly frequency: Signal<"frequency">
 
 	/**
 	 * @param frequency The frequency of the LFO.
@@ -73,7 +57,9 @@ export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 	 * @param depth The depth of the chorus.
 	 */
 	constructor(frequency?: Frequency, delayTime?: Milliseconds, depth?: NormalRange);
+
 	constructor(options?: Partial<ChorusOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Chorus.getDefaults(), arguments, ["frequency", "delayTime", "depth"]));
@@ -113,17 +99,10 @@ export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 		this.spread = options.spread;
 	}
 
-	static getDefaults(): ChorusOptions {
-		return Object.assign(StereoFeedbackEffect.getDefaults(), {
-			frequency: 1.5,
-			delayTime: 3.5,
-			depth: 0.7,
-			type: "sine" as const,
-			spread: 180,
-			feedback: 0,
-			wet: 0.5,
-		});
-	}
+    /**
+     * the depth of the chorus
+     */
+    private _depth: NormalRange;
 
 	/**
 	 * The depth of the effect. A depth of 1 makes the delayTime
@@ -132,7 +111,12 @@ export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 	get depth(): NormalRange {
 		return this._depth;
 	}
-	set depth(depth) {
+    /**
+     * the delayTime in seconds.
+     */
+    private _delayTime: Seconds;
+
+    set depth(depth) {
 		this._depth = depth;
 		const deviation = this._delayTime * depth;
 		this._lfoL.min = Math.max(this._delayTime - deviation, 0);
@@ -149,7 +133,8 @@ export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 	get delayTime(): Milliseconds {
 		return this._delayTime * 1000;
 	}
-	set delayTime(delayTime) {
+
+    set delayTime(delayTime) {
 		this._delayTime = delayTime / 1000;
 		this.depth = this._depth;
 	}
@@ -160,7 +145,8 @@ export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 	get type(): ToneOscillatorType {
 		return this._lfoL.type;
 	}
-	set type(type) {
+
+    set type(type) {
 		this._lfoL.type = type;
 		this._lfoR.type = type;
 	}
@@ -172,10 +158,23 @@ export class Chorus extends StereoFeedbackEffect<ChorusOptions> {
 	get spread(): Degrees {
 		return this._lfoR.phase - this._lfoL.phase;
 	}
-	set spread(spread) {
+
+    set spread(spread) {
 		this._lfoL.phase = 90 - (spread / 2);
 		this._lfoR.phase = (spread / 2) + 90;
 	}
+
+    static getDefaults(): ChorusOptions {
+        return Object.assign(StereoFeedbackEffect.getDefaults(), {
+            frequency: 1.5,
+            delayTime: 3.5,
+            depth: 0.7,
+            type: "sine" as const,
+            spread: 180,
+            feedback: 0,
+            wet: 0.5,
+        });
+    }
 
 	/**
 	 * Start the effect.

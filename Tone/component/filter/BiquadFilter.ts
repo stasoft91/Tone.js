@@ -1,7 +1,5 @@
-import { ToneAudioNode, ToneAudioNodeOptions } from "../../core/context/ToneAudioNode";
-import { Cents, Frequency, GainFactor } from "../../core/type/Units";
-import { optionsFromArguments } from "../../core/util/Defaults";
-import { Param } from "../../core/context/Param";
+import { optionsFromArguments, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../../core";
+import type { Cents, Frequency, GainFactor } from "../../core/type/Units";
 import { assert } from "../../core/util/Debug";
 
 export interface BiquadFilterOptions extends ToneAudioNodeOptions {
@@ -13,8 +11,8 @@ export interface BiquadFilterOptions extends ToneAudioNodeOptions {
 }
 
 /**
- * Thin wrapper around the native Web Audio [BiquadFilterNode](https://webaudio.github.io/web-audio-api/#biquadfilternode). 
- * BiquadFilter is similar to [[Filter]] but doesn't have the option to set the "rolloff" value. 
+ * Thin wrapper around the native Web Audio [BiquadFilterNode](https://webaudio.github.io/web-audio-api/#biquadfilternode).
+ * BiquadFilter is similar to [[Filter]] but doesn't have the option to set the "rolloff" value.
  * @category Component
  */
 export class BiquadFilter extends ToneAudioNode<BiquadFilterOptions> {
@@ -32,13 +30,13 @@ export class BiquadFilter extends ToneAudioNode<BiquadFilterOptions> {
 	 * A detune value, in cents, for the frequency.
 	 */
 	readonly detune: Param<"cents">;
-	
+
 	/**
 	 * The Q factor of the filter.
-	 * For lowpass and highpass filters the Q value is interpreted to be in dB. 
+     * For lowpass and highpass filters the Q value is interpreted to be in dB.
 	 * For these filters the nominal range is [−𝑄𝑙𝑖𝑚,𝑄𝑙𝑖𝑚] where 𝑄𝑙𝑖𝑚 is the largest value for which 10𝑄/20 does not overflow. This is approximately 770.63678.
-	 * For the bandpass, notch, allpass, and peaking filters, this value is a linear value. 
-	 * The value is related to the bandwidth of the filter and hence should be a positive value. The nominal range is 
+     * For the bandpass, notch, allpass, and peaking filters, this value is a linear value.
+     * The value is related to the bandwidth of the filter and hence should be a positive value. The nominal range is
 	 * [0,3.4028235𝑒38], the upper limit being the most-positive-single-float.
 	 * This is not used for the lowshelf and highshelf filters.
 	 */
@@ -70,22 +68,22 @@ export class BiquadFilter extends ToneAudioNode<BiquadFilterOptions> {
 			value: options.Q,
 			param: this._filter.Q,
 		});
-		
-		this.frequency = new Param({
+
+        this.frequency = new Param({
 			context: this.context,
 			units: "frequency",
 			value: options.frequency,
 			param: this._filter.frequency,
 		});
-		
-		this.detune = new Param({
+
+        this.detune = new Param({
 			context: this.context,
 			units: "cents",
 			value: options.detune,
 			param: this._filter.detune,
 		});
-		
-		this.gain = new Param({
+
+        this.gain = new Param({
 			context: this.context,
 			units: "decibels",
 			convert: false,
@@ -96,16 +94,6 @@ export class BiquadFilter extends ToneAudioNode<BiquadFilterOptions> {
 		this.type = options.type;
 	}
 
-	static getDefaults(): BiquadFilterOptions {
-		return Object.assign(ToneAudioNode.getDefaults(), {
-			Q: 1,
-			type: "lowpass" as const,
-			frequency: 350,
-			detune: 0,
-			gain: 0,
-		});
-	}
-
 	/**
 	 * The type of this BiquadFilterNode. For a complete list of types and their attributes, see the
 	 * [Web Audio API](https://webaudio.github.io/web-audio-api/#dom-biquadfiltertype-lowpass)
@@ -113,12 +101,23 @@ export class BiquadFilter extends ToneAudioNode<BiquadFilterOptions> {
 	get type(): BiquadFilterType {
 		return this._filter.type;
 	}
-	set type(type) {
+
+    set type(type) {
 		const types: BiquadFilterType[] = ["lowpass", "highpass", "bandpass",
 			"lowshelf", "highshelf", "notch", "allpass", "peaking"];
 		assert(types.indexOf(type) !== -1, `Invalid filter type: ${type}`);
 		this._filter.type = type;
 	}
+
+    static getDefaults(): BiquadFilterOptions {
+        return Object.assign(ToneAudioNode.getDefaults(), {
+            Q: 1,
+            type: "lowpass" as const,
+            frequency: 350,
+            detune: 0,
+            gain: 0,
+        });
+    }
 
 	/**
 	 * Get the frequency response curve. This curve represents how the filter

@@ -1,17 +1,13 @@
-import { Ticker, TickerClockSource } from "../clock/Ticker";
-import { Seconds } from "../type/Units";
+import { Ticker, type TickerClockSource } from "../clock/Ticker";
+import type { Seconds } from "../type/Units";
 import { isAudioContext } from "../util/AdvancedTypeCheck";
+import { assert } from "../util/Debug";
 import { optionsFromArguments } from "../util/Defaults";
 import { Timeline } from "../util/Timeline";
 import { isDefined } from "../util/TypeCheck";
-import {
-	AnyAudioContext,
-	createAudioContext,
-	createAudioWorkletNode,
-} from "./AudioContext";
+import { type AnyAudioContext, createAudioContext, createAudioWorkletNode, } from "./AudioContext";
+import { BaseContext, type ContextLatencyHint } from "./BaseContext";
 import { closeContext, initializeContext } from "./ContextInitialization";
-import { BaseContext, ContextLatencyHint } from "./BaseContext";
-import { assert } from "../util/Debug";
 
 type Transport = import("../clock/Transport").Transport;
 type Destination = import("./Destination").Destination;
@@ -38,22 +34,18 @@ export interface ContextTimeoutEvent {
  */
 export class Context extends BaseContext {
 	readonly name: string = "Context";
-
+    /**
+     * Indicates if the context is an OfflineAudioContext or an AudioContext
+     */
+    readonly isOffline: boolean = false;
 	/**
 	 * private reference to the BaseAudioContext
 	 */
 	protected readonly _context: AnyAudioContext;
-
 	/**
 	 * A reliable callback method
 	 */
 	private readonly _ticker: Ticker;
-
-	/**
-	 * The default latency hint
-	 */
-	private _latencyHint!: ContextLatencyHint | Seconds;
-
 	/**
 	 * An object containing all of the constants AudioBufferSourceNodes
 	 */
@@ -68,44 +60,23 @@ export class Context extends BaseContext {
 	 * The timeout id counter
 	 */
 	private _timeoutIds = 0;
-
-	/**
-	 * A reference the Transport singleton belonging to this context
-	 */
-	private _transport!: Transport;
-
-	/**
-	 * A reference the Listener singleton belonging to this context
-	 */
-	private _listener!: Listener;
-
-	/**
-	 * A reference the Destination singleton belonging to this context
-	 */
-	private _destination!: Destination;
-
-	/**
-	 * A reference the Transport singleton belonging to this context
-	 */
-	private _draw!: Draw;
-
 	/**
 	 * Private indicator if the context has been initialized
 	 */
 	private _initialized = false;
-
 	/**
 	 * Private indicator if a close() has been called on the context, since close is async
 	 */
 	private _closeStarted = false;
-
 	/**
-	 * Indicates if the context is an OfflineAudioContext or an AudioContext
+     * Maps a module name to promise of the addModule method
 	 */
-	readonly isOffline: boolean = false;
+    private _workletPromise: null | Promise<void> = null;
 
 	constructor(context?: AnyAudioContext);
+
 	constructor(options?: Partial<ContextOptions>);
+
 	constructor() {
 		super();
 		const options = optionsFromArguments(Context.getDefaults(), arguments, [
@@ -135,10 +106,192 @@ export class Context extends BaseContext {
 		this._context.onstatechange = () => {
 			this.emit("statechange", this.state);
 		};
-		
+
 		// if no custom updateInterval provided, updateInterval will be derived by lookAhead setter
 		this[arguments[0]?.hasOwnProperty("updateInterval") ? "_lookAhead" : "lookAhead"] = options.lookAhead;
 	}
+
+    /**
+     * The default latency hint
+     */
+    private _latencyHint!: ContextLatencyHint | Seconds;
+
+    /**
+     * The type of playback, which affects tradeoffs between audio
+     * output latency and responsiveness.
+     * In addition to setting the value in seconds, the latencyHint also
+     * accepts the strings "interactive" (prioritizes low latency),
+     * "playback" (prioritizes sustained playback), "balanced" (balances
+     * latency and performance).
+     * @example
+     * // prioritize sustained playback
+     * const context = new Tone.Context({ latencyHint: "playback" });
+     * // set this context as the global Context
+     * Tone.setContext(context);
+     * // the global context is gettable with Tone.getContext()
+     * console.log(Tone.getContext().latencyHint);
+     */
+    get latencyHint(): ContextLatencyHint | Seconds {
+        return this._latencyHint;
+    }
+
+    /**
+     * A reference the Transport singleton belonging to this context
+     */
+    private _transport!: Transport;
+
+    /**
+     * There is only one Transport per Context. It is created on initialization.
+     */
+    get transport(): Transport {
+        this.initialize();
+        return this._transport;
+    }
+
+    set transport(t: Transport) {
+        assert(
+            !this._initialized,
+            "The transport cannot be set after initialization."
+        );
+        this._transport = t;
+    }
+
+    /**
+     * A reference the Listener singleton belonging to this context
+     */
+    private _listener!: Listener;
+
+    //---------------------------
+    // BASE AUDIO CONTEXT METHODS
+    //---------------------------
+
+    /**
+     * The listener
+     */
+    get listener(): Listener {
+        this.initialize();
+        return this._listener;
+    }
+
+    set listener(l) {
+        assert(
+            !this._initialized,
+            "The listener cannot be set after initialization."
+        );
+        this._listener = l;
+    }
+
+    /**
+     * A reference the Destination singleton belonging to this context
+     */
+    private _destination!: Destination;
+
+    /**
+     * A reference to the Context's destination node.
+     */
+    get destination(): Destination {
+        this.initialize();
+        return this._destination;
+    }
+
+    set destination(d: Destination) {
+        assert(
+            !this._initialized,
+            "The destination cannot be set after initialization."
+        );
+        this._destination = d;
+    }
+
+    /**
+     * A reference the Transport singleton belonging to this context
+     */
+    private _draw!: Draw;
+
+    /**
+     * This is the Draw object for the context which is useful for synchronizing the draw frame with the Tone.js clock.
+     */
+    get draw(): Draw {
+        this.initialize();
+        return this._draw;
+    }
+
+    set draw(d) {
+        assert(!this._initialized, "Draw cannot be set after initialization.");
+        this._draw = d;
+    }
+
+    /**
+     * The current time in seconds of the AudioContext.
+     */
+    get currentTime(): Seconds {
+        return this._context.currentTime;
+    }
+
+    /**
+     * The current time in seconds of the AudioContext.
+     */
+    get state(): AudioContextState {
+        return this._context.state;
+    }
+
+    /**
+     * The current time in seconds of the AudioContext.
+     */
+    get sampleRate(): number {
+        return this._context.sampleRate;
+    }
+
+    /**
+     * How often the interval callback is invoked.
+     * This number corresponds to how responsive the scheduling
+     * can be. Setting to 0 will result in the lowest practial interval
+     * based on context properties. context.updateInterval + context.lookAhead
+     * gives you the total latency between scheduling an event and hearing it.
+     */
+    get updateInterval(): Seconds {
+        return this._ticker.updateInterval;
+    }
+
+    set updateInterval(interval: Seconds) {
+        this._ticker.updateInterval = interval;
+    }
+
+    /**
+     * What the source of the clock is, either "worker" (default),
+     * "timeout", or "offline" (none).
+     */
+    get clockSource(): TickerClockSource {
+        return this._ticker.type;
+    }
+
+    set clockSource(type: TickerClockSource) {
+        this._ticker.type = type;
+    }
+
+    private _lookAhead!: Seconds;
+
+    /**
+     * The amount of time into the future events are scheduled. Giving Web Audio
+     * a short amount of time into the future to schedule events can reduce clicks and
+     * improve performance. This value can be set to 0 to get the lowest latency.
+     * Adjusting this value also affects the [[updateInterval]].
+     */
+    get lookAhead(): Seconds {
+        return this._lookAhead;
+    }
+
+    set lookAhead(time: Seconds) {
+        this._lookAhead = time;
+        // if lookAhead is 0, default to .01 updateInterval
+        this.updateInterval = time ? (time / 2) : .01;
+    }
+
+    /**
+     * The unwrapped AudioContext or OfflineAudioContext
+     */
+    get rawContext(): AnyAudioContext {
+        return this._context;
+    }
 
 	static getDefaults(): ContextOptions {
 		return {
@@ -149,66 +302,66 @@ export class Context extends BaseContext {
 		} as ContextOptions;
 	}
 
-	/**
-	 * Finish setting up the context. **You usually do not need to do this manually.**
-	 */
-	private initialize(): this {
-		if (!this._initialized) {
-			// add any additional modules
-			initializeContext(this);
-			this._initialized = true;
-		}
-		return this;
-	}
-
-	//---------------------------
-	// BASE AUDIO CONTEXT METHODS
-	//---------------------------
-
 	createAnalyser(): AnalyserNode {
 		return this._context.createAnalyser();
 	}
+
 	createOscillator(): OscillatorNode {
 		return this._context.createOscillator();
 	}
+
 	createBufferSource(): AudioBufferSourceNode {
 		return this._context.createBufferSource();
 	}
-	createBiquadFilter(): BiquadFilterNode {
+
+    createBiquadFilter(): BiquadFilterNode {
 		return this._context.createBiquadFilter();
 	}
-	createBuffer(
+
+    createBuffer(
 		numberOfChannels: number,
 		length: number,
 		sampleRate: number
 	): AudioBuffer {
 		return this._context.createBuffer(numberOfChannels, length, sampleRate);
 	}
-	createChannelMerger(
+
+    createChannelMerger(
 		numberOfInputs?: number | undefined
 	): ChannelMergerNode {
 		return this._context.createChannelMerger(numberOfInputs);
 	}
-	createChannelSplitter(
+
+    createChannelSplitter(
 		numberOfOutputs?: number | undefined
 	): ChannelSplitterNode {
 		return this._context.createChannelSplitter(numberOfOutputs);
 	}
-	createConstantSource(): ConstantSourceNode {
+
+    createConstantSource(): ConstantSourceNode {
 		return this._context.createConstantSource();
 	}
-	createConvolver(): ConvolverNode {
+
+    createConvolver(): ConvolverNode {
 		return this._context.createConvolver();
 	}
-	createDelay(maxDelayTime?: number | undefined): DelayNode {
+
+    createDelay(maxDelayTime?: number | undefined): DelayNode {
 		return this._context.createDelay(maxDelayTime);
 	}
-	createDynamicsCompressor(): DynamicsCompressorNode {
+
+    createDynamicsCompressor(): DynamicsCompressorNode {
 		return this._context.createDynamicsCompressor();
 	}
-	createGain(): GainNode {
+
+    createGain(): GainNode {
 		return this._context.createGain();
 	}
+
+    //--------------------------------------------
+    // AUDIO WORKLET
+    //--------------------------------------------
+
 	createIIRFilter(
 		feedForward: number[] | Float32Array,
 		feedback: number[] | Float32Array
@@ -216,23 +369,32 @@ export class Context extends BaseContext {
 		// @ts-ignore
 		return this._context.createIIRFilter(feedForward, feedback);
 	}
-	createPanner(): PannerNode {
+
+    createPanner(): PannerNode {
 		return this._context.createPanner();
 	}
-	createPeriodicWave(
+
+    createPeriodicWave(
 		real: number[] | Float32Array,
 		imag: number[] | Float32Array,
 		constraints?: PeriodicWaveConstraints | undefined
 	): PeriodicWave {
 		return this._context.createPeriodicWave(real, imag, constraints);
 	}
-	createStereoPanner(): StereoPannerNode {
+
+    createStereoPanner(): StereoPannerNode {
 		return this._context.createStereoPanner();
 	}
+
+    //---------------------------
+    // TICKER
+    //---------------------------
+
 	createWaveShaper(): WaveShaperNode {
 		return this._context.createWaveShaper();
 	}
-	createMediaStreamSource(stream: MediaStream): MediaStreamAudioSourceNode {
+
+    createMediaStreamSource(stream: MediaStream): MediaStreamAudioSourceNode {
 		assert(
 			isAudioContext(this._context),
 			"Not available if OfflineAudioContext"
@@ -240,7 +402,8 @@ export class Context extends BaseContext {
 		const context = this._context as AudioContext;
 		return context.createMediaStreamSource(stream);
 	}
-	createMediaElementSource(
+
+    createMediaElementSource(
 		element: HTMLMediaElement
 	): MediaElementAudioSourceNode {
 		assert(
@@ -250,7 +413,8 @@ export class Context extends BaseContext {
 		const context = this._context as AudioContext;
 		return context.createMediaElementSource(element);
 	}
-	createMediaStreamDestination(): MediaStreamAudioDestinationNode {
+
+    createMediaStreamDestination(): MediaStreamAudioDestinationNode {
 		assert(
 			isAudioContext(this._context),
 			"Not available if OfflineAudioContext"
@@ -258,94 +422,10 @@ export class Context extends BaseContext {
 		const context = this._context as AudioContext;
 		return context.createMediaStreamDestination();
 	}
-	decodeAudioData(audioData: ArrayBuffer): Promise<AudioBuffer> {
+
+    decodeAudioData(audioData: ArrayBuffer): Promise<AudioBuffer> {
 		return this._context.decodeAudioData(audioData);
 	}
-
-	/**
-	 * The current time in seconds of the AudioContext.
-	 */
-	get currentTime(): Seconds {
-		return this._context.currentTime;
-	}
-	/**
-	 * The current time in seconds of the AudioContext.
-	 */
-	get state(): AudioContextState {
-		return this._context.state;
-	}
-	/**
-	 * The current time in seconds of the AudioContext.
-	 */
-	get sampleRate(): number {
-		return this._context.sampleRate;
-	}
-
-	/**
-	 * The listener
-	 */
-	get listener(): Listener {
-		this.initialize();
-		return this._listener;
-	}
-	set listener(l) {
-		assert(
-			!this._initialized,
-			"The listener cannot be set after initialization."
-		);
-		this._listener = l;
-	}
-
-	/**
-	 * There is only one Transport per Context. It is created on initialization.
-	 */
-	get transport(): Transport {
-		this.initialize();
-		return this._transport;
-	}
-	set transport(t: Transport) {
-		assert(
-			!this._initialized,
-			"The transport cannot be set after initialization."
-		);
-		this._transport = t;
-	}
-
-	/**
-	 * This is the Draw object for the context which is useful for synchronizing the draw frame with the Tone.js clock.
-	 */
-	get draw(): Draw {
-		this.initialize();
-		return this._draw;
-	}
-	set draw(d) {
-		assert(!this._initialized, "Draw cannot be set after initialization.");
-		this._draw = d;
-	}
-
-	/**
-	 * A reference to the Context's destination node.
-	 */
-	get destination(): Destination {
-		this.initialize();
-		return this._destination;
-	}
-	set destination(d: Destination) {
-		assert(
-			!this._initialized,
-			"The destination cannot be set after initialization."
-		);
-		this._destination = d;
-	}
-
-	//--------------------------------------------
-	// AUDIO WORKLET
-	//--------------------------------------------
-
-	/**
-	 * Maps a module name to promise of the addModule method
-	 */
-	private _workletPromise: null | Promise<void> = null;
 
 	/**
 	 * Create an audio worklet node from a name and options. The module
@@ -374,88 +454,10 @@ export class Context extends BaseContext {
 	}
 
 	/**
-	 * Returns a promise which resolves when all of the worklets have been loaded on this context
-	 */
-	protected async workletsAreReady(): Promise<void> {
-		await this._workletPromise ? this._workletPromise : Promise.resolve();
-	}
-
-	//---------------------------
-	// TICKER
-	//---------------------------
-
-	/**
-	 * How often the interval callback is invoked.
-	 * This number corresponds to how responsive the scheduling
-	 * can be. Setting to 0 will result in the lowest practial interval
-	 * based on context properties. context.updateInterval + context.lookAhead
-	 * gives you the total latency between scheduling an event and hearing it.
-	 */
-	get updateInterval(): Seconds {
-		return this._ticker.updateInterval;
-	}
-	set updateInterval(interval: Seconds) {
-		this._ticker.updateInterval = interval;
-	}
-
-	/**
-	 * What the source of the clock is, either "worker" (default),
-	 * "timeout", or "offline" (none).
-	 */
-	get clockSource(): TickerClockSource {
-		return this._ticker.type;
-	}
-	set clockSource(type: TickerClockSource) {
-		this._ticker.type = type;
-	}
-
-	/**
-	 * The amount of time into the future events are scheduled. Giving Web Audio
-	 * a short amount of time into the future to schedule events can reduce clicks and
-	 * improve performance. This value can be set to 0 to get the lowest latency.
-	 * Adjusting this value also affects the [[updateInterval]].
-	 */
-	get lookAhead(): Seconds {
-		return this._lookAhead;
-	}
-	set lookAhead(time: Seconds) {
-		this._lookAhead = time;
-		// if lookAhead is 0, default to .01 updateInterval
-		this.updateInterval = time ? (time / 2) : .01;
-	}	
-	private _lookAhead!: Seconds;
-
-	/**
-	 * The type of playback, which affects tradeoffs between audio
-	 * output latency and responsiveness.
-	 * In addition to setting the value in seconds, the latencyHint also
-	 * accepts the strings "interactive" (prioritizes low latency),
-	 * "playback" (prioritizes sustained playback), "balanced" (balances
-	 * latency and performance).
-	 * @example
-	 * // prioritize sustained playback
-	 * const context = new Tone.Context({ latencyHint: "playback" });
-	 * // set this context as the global Context
-	 * Tone.setContext(context);
-	 * // the global context is gettable with Tone.getContext()
-	 * console.log(Tone.getContext().latencyHint);
-	 */
-	get latencyHint(): ContextLatencyHint | Seconds {
-		return this._latencyHint;
-	}
-
-	/**
-	 * The unwrapped AudioContext or OfflineAudioContext
-	 */
-	get rawContext(): AnyAudioContext {
-		return this._context;
-	}
-
-	/**
 	 * The current audio context time plus a short [[lookAhead]].
 	 * @example
 	 * setInterval(() => {
-	 * 	console.log("now", Tone.now());
+     *    console.log("now", Tone.now());
 	 * }, 100);
 	 */
 	now(): Seconds {
@@ -540,27 +542,6 @@ export class Context extends BaseContext {
 		return this;
 	}
 
-	//---------------------------
-	// TIMEOUTS
-	//---------------------------
-
-	/**
-	 * The private loop which keeps track of the context scheduled timeouts
-	 * Is invoked from the clock source
-	 */
-	private _timeoutLoop(): void {
-		const now = this.now();
-		let firstEvent = this._timeouts.peek();
-		while (this._timeouts.length && firstEvent && firstEvent.time <= now) {
-			// invoke the callback
-			firstEvent.callback();
-			// shift the first event off
-			this._timeouts.shift();
-			// get the next one
-			firstEvent = this._timeouts.peek();
-		}
-	}
-
 	/**
 	 * A setTimeout which is guaranteed by the clock source.
 	 * Also runs in the offline context.
@@ -592,6 +573,10 @@ export class Context extends BaseContext {
 		return this;
 	}
 
+    //---------------------------
+    // TIMEOUTS
+    //---------------------------
+
 	/**
 	 * Clear the function scheduled by [[setInterval]]
 	 */
@@ -621,4 +606,40 @@ export class Context extends BaseContext {
 		intervalFn();
 		return id;
 	}
+
+    /**
+     * Returns a promise which resolves when all of the worklets have been loaded on this context
+     */
+    protected async workletsAreReady(): Promise<void> {
+        await this._workletPromise ? this._workletPromise : Promise.resolve();
+    }
+
+    /**
+     * Finish setting up the context. **You usually do not need to do this manually.**
+     */
+    private initialize(): this {
+        if (!this._initialized) {
+            // add any additional modules
+            initializeContext(this);
+            this._initialized = true;
+        }
+        return this;
+    }
+
+    /**
+     * The private loop which keeps track of the context scheduled timeouts
+     * Is invoked from the clock source
+     */
+    private _timeoutLoop(): void {
+        const now = this.now();
+        let firstEvent = this._timeouts.peek();
+        while (this._timeouts.length && firstEvent && firstEvent.time <= now) {
+            // invoke the callback
+            firstEvent.callback();
+            // shift the first event off
+            this._timeouts.shift();
+            // get the next one
+            firstEvent = this._timeouts.peek();
+        }
+    }
 }

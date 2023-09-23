@@ -1,8 +1,6 @@
-import { Volume } from "../component/channel/Volume";
-import { Param } from "../core/context/Param";
-import { OutputNode, ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { Decibels, Frequency, NormalRange, Time } from "../core/type/Units";
-import { optionsFromArguments } from "../core/util/Defaults";
+import { Volume } from "../component";
+import { optionsFromArguments, type OutputNode, Param, ToneAudioNode, type ToneAudioNodeOptions } from "../core";
+import type { Decibels, Frequency, NormalRange, Time } from "../core/type/Units";
 import { readOnly } from "../core/util/Interface";
 
 export interface InstrumentOptions extends ToneAudioNodeOptions {
@@ -14,17 +12,11 @@ export interface InstrumentOptions extends ToneAudioNodeOptions {
  */
 export abstract class Instrument<Options extends InstrumentOptions> extends ToneAudioNode<Options> {
 
-	/**
-	 * The output and volume triming node
-	 */
-	private _volume: Volume;
 	output: OutputNode;
-
 	/**
 	 * The instrument only has an output
 	 */
 	input: undefined;
-
 	/**
 	 * The volume of the output in decibels.
 	 * @example
@@ -33,7 +25,10 @@ export abstract class Instrument<Options extends InstrumentOptions> extends Tone
 	 * amSynth.triggerAttackRelease("G#3", 0.2);
 	 */
 	volume: Param<"decibels">;
-
+    /**
+     * The output and volume triming node
+     */
+    private _volume: Volume;
 	/**
 	 * Keep track of all events scheduled to the transport
 	 * when the instrument is 'synced'
@@ -44,8 +39,11 @@ export abstract class Instrument<Options extends InstrumentOptions> extends Tone
 	 * If the instrument is currently synced
 	 */
 	private _synced = false;
+    private _original_triggerAttack = this.triggerAttack;
+    private _original_triggerRelease = this.triggerRelease;
 
 	constructor(options?: Partial<InstrumentOptions>);
+
 	constructor() {
 
 		super(optionsFromArguments(Instrument.getDefaults(), arguments));
@@ -89,35 +87,6 @@ export abstract class Instrument<Options extends InstrumentOptions> extends Tone
 			this.context.transport.on("loopEnd", this._syncedRelease);
 		}
 		return this;
-	}
-
-	/**
-	 * set _sync
-	 */
-	protected _syncState(): boolean {
-		let changed = false;
-		if (!this._synced) {
-			this._synced = true;
-			changed = true;
-		}
-		return changed;
-	}
-
-	/**
-	 * Wrap the given method so that it can be synchronized
-	 * @param method Which method to wrap and sync
-	 * @param  timePosition What position the time argument appears in
-	 */
-	protected _syncMethod(method: string, timePosition: number): void {
-		const originalMethod = this["_original_" + method] = this[method];
-		this[method] = (...args: any[]) => {
-			const time = args[timePosition];
-			const id = this.context.transport.schedule((t) => {
-				args[timePosition] = t;
-				originalMethod.apply(this, args);
-			}, time);
-			this._scheduledEvents.push(id);
-		};
 	}
 
 	/**
@@ -165,19 +134,12 @@ export abstract class Instrument<Options extends InstrumentOptions> extends Tone
 	 * @param velocity the velocity to trigger the note (between 0-1)
 	 */
 	abstract triggerAttack(note: Frequency, time?: Time, velocity?: NormalRange): this;
-	private _original_triggerAttack = this.triggerAttack;
 
 	/**
 	 * Trigger the release phase of the current note.
 	 * @param time when to trigger the release
 	 */
 	abstract triggerRelease(...args: any[]): this;
-	private _original_triggerRelease = this.triggerRelease;
-
-	/**
-	 * The release which is scheduled to the timeline. 
-	 */
-	protected _syncedRelease = (time: number) => this._original_triggerRelease(time);
 
 	/**
 	 * clean up
@@ -190,4 +152,38 @@ export abstract class Instrument<Options extends InstrumentOptions> extends Tone
 		this._scheduledEvents = [];
 		return this;
 	}
+
+    /**
+     * set _sync
+     */
+    protected _syncState(): boolean {
+        let changed = false;
+        if (!this._synced) {
+            this._synced = true;
+            changed = true;
+        }
+        return changed;
+    }
+
+    /**
+     * Wrap the given method so that it can be synchronized
+     * @param method Which method to wrap and sync
+     * @param  timePosition What position the time argument appears in
+     */
+    protected _syncMethod(method: string, timePosition: number): void {
+        const originalMethod = this["_original_" + method] = this[method];
+        this[method] = (...args: any[]) => {
+            const time = args[timePosition];
+            const id = this.context.transport.schedule((t) => {
+                args[timePosition] = t;
+                originalMethod.apply(this, args);
+            }, time);
+            this._scheduledEvents.push(id);
+        };
+    }
+
+    /**
+     * The release which is scheduled to the timeline.
+     */
+    protected _syncedRelease = (time: number) => this._original_triggerRelease(time);
 }

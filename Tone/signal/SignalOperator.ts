@@ -1,5 +1,4 @@
-import { optionsFromArguments } from "../core/util/Defaults";
-import { InputNode, ToneAudioNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
+import { type InputNode, optionsFromArguments, ToneAudioNode, type ToneAudioNodeOptions } from "../core";
 import { connectSignal } from "./Signal";
 
 export type SignalOperatorOptions = ToneAudioNodeOptions;

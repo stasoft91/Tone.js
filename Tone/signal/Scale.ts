@@ -1,5 +1,5 @@
-import { InputNode, OutputNode, ToneAudioNodeOptions } from "../core/context/ToneAudioNode";
-import { optionsFromArguments } from "../core/util/Defaults";
+import type { InputNode, OutputNode, ToneAudioNodeOptions } from "../core";
+import { optionsFromArguments } from "../core";
 import { Add } from "./Add";
 import { Multiply } from "./Multiply";
 import { SignalOperator } from "./SignalOperator";
@@ -38,21 +38,13 @@ export class Scale<Options extends ScaleOptions = ScaleOptions> extends SignalOp
 	protected _add: Add;
 
 	/**
-	 * Private reference to the min value
-	 */
-	private _min: number;
-
-	/**
-	 * Private reference to the max value
-	 */
-	private _max: number;
-
-	/**
 	 * @param min The output value when the input is 0.
 	 * @param max The output value when the input is 1.
 	 */
 	constructor(min?: number, max?: number);
+
 	constructor(options?: Partial<ScaleOptions>);
+
 	constructor() {
 		super(Object.assign(optionsFromArguments(Scale.getDefaults(), arguments, ["min", "max"])));
 		const options = optionsFromArguments(Scale.getDefaults(), arguments, ["min", "max"]);
@@ -73,12 +65,10 @@ export class Scale<Options extends ScaleOptions = ScaleOptions> extends SignalOp
 		this.input.connect(this.output);
 	}
 
-	static getDefaults(): ScaleOptions {
-		return Object.assign(SignalOperator.getDefaults(), {
-			max: 1,
-			min: 0,
-		});
-	}
+    /**
+     * Private reference to the min value
+     */
+    private _min: number;
 
 	/**
 	 * The minimum output value. This number is output when the value input value is 0.
@@ -86,10 +76,16 @@ export class Scale<Options extends ScaleOptions = ScaleOptions> extends SignalOp
 	get min(): number {
 		return this._min;
 	}
+
 	set min(min) {
 		this._min = min;
 		this._setRange();
 	}
+
+    /**
+     * Private reference to the max value
+     */
+    private _max: number;
 
 	/**
 	 * The maximum output value. This number is output when the value input value is 1.
@@ -97,17 +93,17 @@ export class Scale<Options extends ScaleOptions = ScaleOptions> extends SignalOp
 	get max(): number {
 		return this._max;
 	}
-	set max(max) {
+
+    set max(max) {
 		this._max = max;
 		this._setRange();
 	}
 
-	/**
-	 * set the values
-	 */
-	private _setRange(): void {
-		this._add.value = this._min;
-		this._mult.value = this._max - this._min;
+    static getDefaults(): ScaleOptions {
+        return Object.assign(SignalOperator.getDefaults(), {
+            max: 1,
+            min: 0,
+        });
 	}
 
 	dispose(): this {
@@ -116,4 +112,12 @@ export class Scale<Options extends ScaleOptions = ScaleOptions> extends SignalOp
 		this._mult.dispose();
 		return this;
 	}
+
+    /**
+     * set the values
+     */
+    private _setRange(): void {
+        this._add.value = this._min;
+        this._mult.value = this._max - this._min;
+    }
 }
